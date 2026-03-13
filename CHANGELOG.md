@@ -5,6 +5,17 @@ All notable changes to Nox API will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Homepage CTA button** — Added a prominent "开始使用" (Get Started) button in the hero section, linking to the console for quick access.
+
+### Changed
+- **Homepage quote animation** — The inspirational quote now uses a looping typewriter effect (type → hold → erase → pause → repeat) with EB Garamond font for a more elegant look.
+- **Homepage hero spacing** — Increased spacing between hero elements to reduce visual crowding.
+- **Homepage bio copy** — Simplified the personal bio text to be more natural and concise.
+
+### Fixed
+- **Homepage admin avatar** — Fixed avatar not loading on the homepage by correcting the filename pattern from `user_1.{ext}` to `1.{ext}` to match the actual avatar storage convention.
+
+### Added
 - **Ranking leaderboard** — New `/console/ranking` page with two fun rankings: "屯屯鼠排名" (Hoarder Ranking, highest available balance) and "AI大王排名" (AI King Ranking, highest usage). Features gold/silver/bronze medals for top 3, current-user highlighting, and avatar display. Accessible from the sidebar under "个人中心".
 - **Avatar in user management** — Admin user management table now shows user avatars next to usernames.
 - **Avatar upload during registration** — Registration form now includes an avatar picker. After registration, users are auto-logged in with avatar upload, then redirected directly to the console.
