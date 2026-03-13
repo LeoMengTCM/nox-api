@@ -5,6 +5,9 @@ All notable changes to Nox API will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Ranking leaderboard** — New `/console/ranking` page with two fun rankings: "屯屯鼠排名" (Hoarder Ranking, highest available balance) and "AI大王排名" (AI King Ranking, highest usage). Features gold/silver/bronze medals for top 3, current-user highlighting, and avatar display. Accessible from the sidebar under "个人中心".
+- **Avatar in user management** — Admin user management table now shows user avatars next to usernames.
+- **Avatar upload during registration** — Registration form now includes an avatar picker. After registration, users are auto-logged in with avatar upload, then redirected directly to the console.
 - **Avatar system** — Users can upload avatars (up to 5MB, jpg/png/gif/webp) via personal settings. Avatars are displayed in the top bar and user profile. New users are prompted to upload an avatar after login.
 - **Per-channel system prompt** — Channels now support injecting a system prompt into all requests. Supports prepend mode (added before existing system prompt) and override mode (replaces existing system prompt). Configured via the channel edit dialog.
 - **Model selector component** — Replaced the old comma-separated textarea with a rich model selector featuring provider-based categorization (OpenAI, Anthropic, Google, Meta, etc.), search/filter, checkbox selection, select-all per category, and manual input.
@@ -13,6 +16,7 @@ All notable changes to Nox API will be documented in this file.
 - ICO favicon fallback for Safari compatibility.
 
 ### Fixed
+- **Turnstile verification on login/register** — Login and register pages now load system status from the API on mount, fixing the issue where enabling Turnstile in settings would make login impossible because the frontend didn't know Turnstile was enabled.
 - **User group edit 404** — Editing a user's group now calls the correct API endpoint (`PUT /api/user/` instead of `PUT /api/user/manage`).
 - **Safari favicon** — Safari tabs now display the correct Nox API logo instead of a stale cached icon. Added proper `.ico` and Apple Touch Icon support.
 - **Channel dialog JSX structure** — Fixed mismatched dialog footer tags that prevented frontend builds.
