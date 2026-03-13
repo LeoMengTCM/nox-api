@@ -3,8 +3,11 @@ package controller
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -106,6 +109,7 @@ func setupLogin(user *model.User, c *gin.Context) {
 			"role":         user.Role,
 			"status":       user.Status,
 			"group":        user.Group,
+			"avatar_url":   user.AvatarUrl,
 		},
 	})
 }
@@ -404,6 +408,7 @@ func GetSelf(c *gin.Context) {
 		"aff_history_quota": user.AffHistoryQuota,
 		"inviter_id":        user.InviterId,
 		"linux_do_id":       user.LinuxDOId,
+		"avatar_url":        user.AvatarUrl,
 		"setting":           user.Setting,
 		"stripe_customer":   user.StripeCustomer,
 		"sidebar_modules":   userSetting.SidebarModules, // 正确提取sidebar_modules字段
@@ -1185,4 +1190,90 @@ func UpdateUserSetting(c *gin.Context) {
 	}
 
 	common.ApiSuccessI18n(c, i18n.MsgSettingSaved, nil)
+}
+
+func UploadAvatar(c *gin.Context) {
+	userId := c.GetInt("id")
+	file, header, err := c.Request.FormFile("avatar")
+	if err != nil {
+		common.ApiError(c, fmt.Errorf("missing avatar file"))
+		return
+	}
+	defer file.Close()
+
+	// Validate file size (max 5MB)
+	if header.Size > 5*1024*1024 {
+		common.ApiError(c, fmt.Errorf("file too large, max 5MB"))
+		return
+	}
+
+	// Validate file type
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	allowed := map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".gif": true, ".webp": true}
+	if !allowed[ext] {
+		common.ApiError(c, fmt.Errorf("unsupported file type, allowed: jpg, jpeg, png, gif, webp"))
+		return
+	}
+
+	// Ensure avatars directory exists
+	avatarDir := filepath.Join("avatars")
+	if err := os.MkdirAll(avatarDir, 0755); err != nil {
+		common.ApiError(c, fmt.Errorf("failed to create avatar directory"))
+		return
+	}
+
+	// Save file as {user_id}{ext}
+	filename := fmt.Sprintf("%d%s", userId, ext)
+	destPath := filepath.Join(avatarDir, filename)
+
+	// Remove old avatar files with different extensions
+	for _, oldExt := range []string{".jpg", ".jpeg", ".png", ".gif", ".webp"} {
+		oldPath := filepath.Join(avatarDir, fmt.Sprintf("%d%s", userId, oldExt))
+		if oldPath != destPath {
+			os.Remove(oldPath)
+		}
+	}
+
+	dst, err := os.Create(destPath)
+	if err != nil {
+		common.ApiError(c, fmt.Errorf("failed to save avatar"))
+		return
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, file); err != nil {
+		common.ApiError(c, fmt.Errorf("failed to write avatar"))
+		return
+	}
+
+	// Update user avatar_url
+	avatarUrl := "/api/user/avatar/" + filename
+	user, err := model.GetUserById(userId, false)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	user.AvatarUrl = avatarUrl
+	if err := user.Update(false); err != nil {
+		common.ApiError(c, fmt.Errorf("failed to update user"))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "success",
+		"data":    avatarUrl,
+	})
+}
+
+func GetAvatar(c *gin.Context) {
+	filename := c.Param("filename")
+	// Sanitize filename to prevent path traversal
+	filename = filepath.Base(filename)
+	avatarPath := filepath.Join("avatars", filename)
+	if _, err := os.Stat(avatarPath); os.IsNotExist(err) {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	c.File(avatarPath)
 }

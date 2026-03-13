@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button, Input, Card, Badge } from '../components/ui';
 import { API } from '../lib/api';
 import { showError, showSuccess, showInfo, timestamp2string, copy } from '../lib/utils';
-import { User, Shield, Key, Fingerprint, Copy, Mail, Clock, Trash2 } from 'lucide-react';
+import { User, Shield, Key, Fingerprint, Copy, Mail, Clock, Trash2, Camera } from 'lucide-react';
 
 // --- Section Card wrapper ---
 function SettingSection({ icon: Icon, title, description, action, children }) {
@@ -228,11 +228,56 @@ export default function PersonalSettingPage() {
           <div className="text-text-secondary text-sm">加载中...</div>
         ) : (
           <div className="space-y-4">
-            {/* Username (read-only) + role badge */}
+            {/* Username (read-only) + role badge + avatar upload */}
             <div className="flex items-center gap-3 p-3 rounded-lg bg-surface-hover/50 border border-border">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/10 text-accent font-heading text-lg">
-                {(userInfo?.username || '?')[0].toUpperCase()}
-              </div>
+              <button
+                type="button"
+                className="relative group shrink-0"
+                onClick={() => document.getElementById('avatar-upload')?.click()}
+              >
+                {userInfo?.avatar_url ? (
+                  <img
+                    src={userInfo.avatar_url}
+                    alt="avatar"
+                    className="h-10 w-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/10 text-accent font-heading text-lg">
+                    {(userInfo?.username || '?')[0].toUpperCase()}
+                  </div>
+                )}
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Camera className="h-4 w-4 text-white" />
+                </div>
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 5 * 1024 * 1024) {
+                      showError('头像文件不能超过 5MB');
+                      return;
+                    }
+                    const form = new FormData();
+                    form.append('avatar', file);
+                    try {
+                      const res = await API.post('/api/user/avatar', form);
+                      if (res.data.success) {
+                        showSuccess('头像上传成功');
+                        setUserInfo((prev) => ({ ...prev, avatar_url: res.data.data }));
+                      } else {
+                        showError(res.data.message || '上传失败');
+                      }
+                    } catch (err) {
+                      showError(err?.message || '上传失败');
+                    }
+                    e.target.value = '';
+                  }}
+                />
+              </button>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-text-primary">{userInfo?.username || '-'}</span>

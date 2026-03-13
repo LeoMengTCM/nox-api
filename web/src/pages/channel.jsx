@@ -2,39 +2,10 @@ import { useState, useEffect } from 'react';
 import { Button, Input, Card, Badge, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Switch, Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '../components/ui';
 import { DataTable } from '../components/ui/data-table';
 import { Pagination } from '../components/ui/pagination';
+import { ModelSelector } from '../components/model-selector';
 import { API } from '../lib/api';
 import { showError, showSuccess, showInfo, timestamp2string } from '../lib/utils';
-
-const CHANNEL_TYPE_MAP = {
-  1: 'OpenAI',
-  3: 'Azure',
-  14: 'Anthropic',
-  24: 'Gemini',
-  33: 'AWS Claude',
-  15: '百度',
-  17: '阿里',
-  18: '讯飞',
-  31: 'Groq',
-  40: 'Cohere',
-};
-
-const CHANNEL_TYPE_COLORS = {
-  1: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-  3: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-  14: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
-  24: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
-  33: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-  15: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400',
-  17: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-  18: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400',
-  31: 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400',
-  40: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400',
-};
-
-// Channel types that support fetching model lists from upstream
-const MODEL_FETCHABLE_CHANNEL_TYPES = new Set([
-  1, 4, 14, 34, 17, 26, 27, 24, 47, 25, 20, 23, 31, 40, 42, 48, 43,
-]);
+import { CHANNEL_OPTIONS, CHANNEL_TYPE_MAP, CHANNEL_TYPE_COLORS, MODEL_FETCHABLE_CHANNEL_TYPES } from '../constants/channel.constants';
 
 const DEFAULT_CHANNEL = {
   name: '',
@@ -45,6 +16,8 @@ const DEFAULT_CHANNEL = {
   group: 'default',
   priority: 0,
   weight: 1,
+  system_prompt: '',
+  system_prompt_override: false,
 };
 
 export default function ChannelPage() {
@@ -62,7 +35,6 @@ export default function ChannelPage() {
   const [submitting, setSubmitting] = useState(false);
   const [testingIds, setTestingIds] = useState({});
   const [testResults, setTestResults] = useState({});
-  const [fetchingModels, setFetchingModels] = useState(false);
   const [testModelDialogOpen, setTestModelDialogOpen] = useState(false);
   const [testTargetChannel, setTestTargetChannel] = useState(null);
   const [testSelectedModel, setTestSelectedModel] = useState('');
@@ -272,6 +244,10 @@ export default function ChannelPage() {
 
   const openEditDialog = (channel) => {
     setEditingChannel(channel);
+    let setting = {};
+    try {
+      if (channel.setting) setting = JSON.parse(channel.setting);
+    } catch { /* ignore */ }
     setFormData({
       name: channel.name || '',
       type: channel.type || 1,
@@ -281,6 +257,9 @@ export default function ChannelPage() {
       group: channel.group || 'default',
       priority: channel.priority || 0,
       weight: channel.weight || 1,
+      system_prompt: setting.system_prompt || '',
+      system_prompt_override: setting.system_prompt_override || false,
+      _rawSetting: setting,
     });
     setDialogOpen(true);
   };
@@ -289,42 +268,37 @@ export default function ChannelPage() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const fetchUpstreamModelList = async () => {
+  const fetchUpstreamModels = async () => {
     if (!MODEL_FETCHABLE_CHANNEL_TYPES.has(formData.type)) {
       showError('该渠道类型不支持获取模型列表');
-      return;
+      return null;
     }
-    setFetchingModels(true);
+    if (!editingChannel && !formData.key) {
+      showError('请先填写密钥');
+      return null;
+    }
     try {
       let res;
       if (editingChannel) {
-        // Edit mode: fetch via existing channel ID
         res = await API.get(`/api/channel/fetch_models/${editingChannel.id}`);
       } else {
-        // Create mode: fetch via provided credentials
-        if (!formData.key) {
-          showError('请先填写密钥');
-          setFetchingModels(false);
-          return;
-        }
         res = await API.post('/api/channel/fetch_models', {
           base_url: formData.base_url,
           type: formData.type,
           key: formData.key,
         });
       }
-      const { success, data } = res.data || {};
+      const { success, data, message } = res.data || {};
       if (success && Array.isArray(data) && data.length > 0) {
         const uniqueModels = Array.from(new Set(data));
-        handleFormChange('models', uniqueModels.join(','));
         showSuccess(`成功获取 ${uniqueModels.length} 个模型`);
-      } else {
-        showError('获取模型列表失败');
+        return uniqueModels;
       }
+      showError(message || '获取模型列表失败');
+      return null;
     } catch (err) {
       showError(err?.message || '获取模型列表失败');
-    } finally {
-      setFetchingModels(false);
+      return null;
     }
   };
 
@@ -341,6 +315,15 @@ export default function ChannelPage() {
     try {
       let res;
       // Build the channel data object matching backend model.Channel field names
+      const settingObj = {
+        ...(formData._rawSetting || {}),
+        system_prompt: formData.system_prompt || '',
+        system_prompt_override: formData.system_prompt_override || false,
+      };
+      // Clean empty fields to keep setting compact
+      if (!settingObj.system_prompt) delete settingObj.system_prompt;
+      if (!settingObj.system_prompt_override) delete settingObj.system_prompt_override;
+
       const channelData = {
         name: formData.name,
         type: formData.type,
@@ -350,6 +333,7 @@ export default function ChannelPage() {
         group: formData.group || 'default',
         priority: formData.priority ?? 0,
         weight: formData.weight ?? 1,
+        setting: JSON.stringify(settingObj),
       };
       if (editingChannel) {
         // PUT /api/channel/ expects PatchChannel (flat model.Channel fields + id)
@@ -617,143 +601,169 @@ export default function ChannelPage() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingChannel ? '编辑渠道' : '添加渠道'}</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-text-primary text-sm font-medium mb-1">
-                  渠道名称
-                </label>
-                <Input
-                  placeholder="请输入渠道名称"
-                  value={formData.name}
-                  onChange={(e) => handleFormChange('name', e.target.value)}
-                />
+          <div className="space-y-6 py-4">
+            {/* Basic Info */}
+            <section>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-3">
+                基本信息
+              </h3>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-text-primary text-sm font-medium mb-1">
+                      渠道名称
+                    </label>
+                    <Input
+                      placeholder="请输入渠道名称"
+                      value={formData.name}
+                      onChange={(e) => handleFormChange('name', e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-text-primary text-sm font-medium mb-1">
+                      渠道类型
+                    </label>
+                    <Select
+                      value={String(formData.type)}
+                      onValueChange={(val) => handleFormChange('type', Number(val))}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="选择类型" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CHANNEL_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={String(opt.value)}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-text-primary text-sm font-medium mb-1">
+                    密钥
+                  </label>
+                  <textarea
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="请输入密钥"
+                    rows={3}
+                    value={formData.key}
+                    onChange={(e) => handleFormChange('key', e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-text-primary text-sm font-medium mb-1">
+                    Base URL
+                    <span className="ml-1 text-text-tertiary font-normal">（可选）</span>
+                  </label>
+                  <Input
+                    placeholder="留空则使用默认地址"
+                    value={formData.base_url}
+                    onChange={(e) => handleFormChange('base_url', e.target.value)}
+                  />
+                </div>
               </div>
+            </section>
 
-              <div>
-                <label className="block text-text-primary text-sm font-medium mb-1">
-                  渠道类型
-                </label>
-                <Select
-                  value={String(formData.type)}
-                  onValueChange={(val) => handleFormChange('type', Number(val))}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="选择类型" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(CHANNEL_TYPE_MAP).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-text-primary text-sm font-medium mb-1">
-                密钥
-              </label>
-              <textarea
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="请输入密钥"
-                rows={3}
-                value={formData.key}
-                onChange={(e) => handleFormChange('key', e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="block text-text-primary text-sm font-medium mb-1">
-                Base URL
-              </label>
-              <Input
-                placeholder="请输入 Base URL（可选）"
-                value={formData.base_url}
-                onChange={(e) => handleFormChange('base_url', e.target.value)}
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-text-primary text-sm font-medium">
-                  模型（逗号分隔）
-                </label>
-                {MODEL_FETCHABLE_CHANNEL_TYPES.has(formData.type) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={fetchUpstreamModelList}
-                    disabled={fetchingModels}
-                  >
-                    {fetchingModels ? '获取中...' : '获取模型列表'}
-                  </Button>
-                )}
-              </div>
-              <textarea
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="gpt-4,gpt-3.5-turbo,claude-3-opus"
-                rows={3}
+            {/* Model Selection */}
+            <section>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-3">
+                模型配置
+              </h3>
+              <ModelSelector
                 value={formData.models}
-                onChange={(e) => handleFormChange('models', e.target.value)}
+                onChange={(val) => handleFormChange('models', val)}
+                onFetch={fetchUpstreamModels}
+                canFetch={MODEL_FETCHABLE_CHANNEL_TYPES.has(formData.type)}
               />
-            </div>
+            </section>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-text-primary text-sm font-medium mb-1">
-                  分组
-                </label>
-                <Select
-                  value={formData.group}
-                  onValueChange={(val) => handleFormChange('group', val)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="default" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableGroups.length > 0 ? (
-                      availableGroups.map((g) => (
-                        <SelectItem key={g} value={g}>{g}</SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="default">default</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
+            {/* Advanced Settings */}
+            <section>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-3">
+                高级设置
+              </h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-text-primary text-sm font-medium mb-1">
+                    分组
+                  </label>
+                  <Select
+                    value={formData.group}
+                    onValueChange={(val) => handleFormChange('group', val)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="default" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableGroups.length > 0 ? (
+                        availableGroups.map((g) => (
+                          <SelectItem key={g} value={g}>{g}</SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="default">default</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="block text-text-primary text-sm font-medium mb-1">
+                    优先级
+                  </label>
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={formData.priority}
+                    onChange={(e) => handleFormChange('priority', Number(e.target.value))}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-text-primary text-sm font-medium mb-1">
+                    权重
+                  </label>
+                  <Input
+                    type="number"
+                    placeholder="1"
+                    value={formData.weight}
+                    onChange={(e) => handleFormChange('weight', Number(e.target.value))}
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-text-primary text-sm font-medium mb-1">
-                  优先级
-                </label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={formData.priority}
-                  onChange={(e) => handleFormChange('priority', Number(e.target.value))}
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-text-primary text-sm font-medium">
+                    系统提示词
+                    <span className="ml-1 text-text-tertiary font-normal">（可选）</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-xs text-text-secondary cursor-pointer select-none">
+                    <Switch
+                      checked={formData.system_prompt_override}
+                      onCheckedChange={(val) => handleFormChange('system_prompt_override', val)}
+                    />
+                    覆盖模式
+                  </label>
+                </div>
+                <textarea
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="为该渠道的所有请求注入系统提示词。关闭覆盖模式时追加到已有提示词之前，开启时替换原有提示词。"
+                  rows={3}
+                  value={formData.system_prompt}
+                  onChange={(e) => handleFormChange('system_prompt', e.target.value)}
                 />
               </div>
-
-              <div>
-                <label className="block text-text-primary text-sm font-medium mb-1">
-                  权重
-                </label>
-                <Input
-                  type="number"
-                  placeholder="1"
-                  value={formData.weight}
-                  onChange={(e) => handleFormChange('weight', Number(e.target.value))}
-                />
-              </div>
-            </div>
+            </section>
           </div>
 
           <DialogFooter>

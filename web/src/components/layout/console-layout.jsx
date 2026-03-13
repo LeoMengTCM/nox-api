@@ -1,14 +1,13 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Outlet } from 'react-router-dom';
 import { cn } from '../../lib/cn';
 import { UserContext } from '../../contexts/user-context';
 import { StatusContext } from '../../contexts/status-context';
 import { useMobile } from '../../hooks/use-mobile';
 import { useSidebar } from '../../hooks/use-sidebar';
 import { API } from '../../lib/api';
-import { getLogo, getSystemName, showError, setStatusData } from '../../lib/utils';
+import { getLogo, getSystemName, showError, showInfo, setStatusData } from '../../lib/utils';
 import { normalizeLanguage } from '../../i18n/language';
 import TopBar from './top-bar';
 import Sidebar from './sidebar';
@@ -23,6 +22,7 @@ const ConsoleLayout = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { i18n } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Expand sidebar on mobile when drawer opens
   useEffect(() => {
@@ -91,6 +91,19 @@ const ConsoleLayout = () => {
       }
     }
   }, []);
+
+  // Prompt user to upload avatar if missing
+  useEffect(() => {
+    if (
+      userState?.user &&
+      !userState.user.avatar_url &&
+      !sessionStorage.getItem('avatar_prompted')
+    ) {
+      sessionStorage.setItem('avatar_prompted', '1');
+      showInfo('您还未设置头像，建议前往个人设置上传头像');
+      setTimeout(() => navigate('/console/personal'), 2000);
+    }
+  }, [userState?.user, navigate]);
 
   // Language sync from user settings
   useEffect(() => {

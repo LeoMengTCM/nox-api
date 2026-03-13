@@ -164,7 +164,7 @@ export default function UserPage() {
       if (editingUser) {
         const payload = { ...formData, id: editingUser.id };
         if (!payload.password) delete payload.password;
-        const res = await API.put('/api/user/manage', payload);
+        const res = await API.put('/api/user/', payload);
         const { success, message } = res.data;
         if (success) {
           showSuccess('用户更新成功');

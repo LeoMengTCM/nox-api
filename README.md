@@ -113,11 +113,18 @@ docker compose up -d
 - **OpenAI Chat ↔ Responses** — in progress
 - Reasoning effort suffixes (`-high`, `-medium`, `-low`) for o3, GPT-5, Gemini, Claude thinking models
 
+### Channel Management
+- Per-channel system prompt injection (prepend or override mode)
+- Model selector with provider-based categorization (OpenAI, Anthropic, Google, etc.)
+- Upstream model fetching with search, filter, and individual selection
+- 57 channel types supported
+
 ### Auth & Security
 - JWT tokens with scoped permissions
 - OAuth: GitHub, Discord, LinuxDO, Telegram, OIDC
 - WebAuthn / Passkeys
 - Two-factor authentication (TOTP)
+- User avatar system with upload and display
 - IP-based and model-based rate limiting
 
 ### Admin Dashboard

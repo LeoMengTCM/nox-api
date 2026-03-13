@@ -11,7 +11,7 @@ import { useSidebar } from '../../hooks/use-sidebar';
 import { API } from '../../lib/api';
 import { getLogo, getSystemName, showError, showSuccess, stringToColor } from '../../lib/utils';
 import { Button } from '../ui/button';
-import { Avatar, AvatarFallback } from '../ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -179,6 +179,9 @@ const TopBar = ({ onMobileMenuToggle, drawerOpen, showSidebar = false }) => {
                 )}
               >
                 <Avatar size="sm">
+                  {userState.user.avatar_url && (
+                    <AvatarImage src={userState.user.avatar_url} alt={userState.user.username} />
+                  )}
                   <AvatarFallback
                     size="sm"
                     style={{ backgroundColor: stringToColor(userState.user.username) }}

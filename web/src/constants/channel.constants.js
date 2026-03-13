@@ -197,3 +197,80 @@ export const MODEL_FETCHABLE_CHANNEL_TYPES = new Set([
 ]);
 
 export const MODEL_TABLE_PAGE_SIZE = 10;
+
+// Model provider categories for grouping models by vendor
+export const MODEL_PROVIDER_CATEGORIES = [
+  { name: 'OpenAI', prefixes: ['gpt-', 'o1-', 'o1', 'o3-', 'o3', 'o4-', 'o4', 'dall-e', 'text-', 'whisper', 'tts-', 'chatgpt', 'ft:gpt', 'gpt4'], color: 'green' },
+  { name: 'Anthropic', prefixes: ['claude'], color: 'orange' },
+  { name: 'Google', prefixes: ['gemini', 'gemma', 'palm', 'models/gemini'], color: 'blue' },
+  { name: 'Meta', prefixes: ['llama', 'meta-llama', 'codellama'], color: 'violet' },
+  { name: 'Mistral', prefixes: ['mistral', 'mixtral', 'codestral', 'pixtral', 'open-mistral', 'open-mixtral', 'ministral'], color: 'purple' },
+  { name: 'DeepSeek', prefixes: ['deepseek'], color: 'cyan' },
+  { name: 'Qwen', prefixes: ['qwen'], color: 'red' },
+  { name: 'Zhipu', prefixes: ['glm', 'chatglm', 'codegeex', 'cogview', 'cogvideo'], color: 'teal' },
+  { name: 'Baidu', prefixes: ['ernie', 'ERNIE', 'eb-'], color: 'amber' },
+  { name: 'xAI', prefixes: ['grok'], color: 'gray' },
+  { name: 'Cohere', prefixes: ['command', 'embed-', 'rerank-'], color: 'pink' },
+  { name: 'Moonshot', prefixes: ['moonshot'], color: 'indigo' },
+  { name: 'Yi', prefixes: ['yi-'], color: 'lime' },
+  { name: 'MiniMax', prefixes: ['minimax', 'abab'], color: 'rose' },
+];
+
+const COLOR_CLASS_MAP = {
+  green: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+  blue: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+  teal: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400',
+  orange: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+  indigo: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400',
+  purple: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+  pink: 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400',
+  violet: 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400',
+  cyan: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400',
+  red: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+  yellow: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+  gray: 'bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-400',
+  grey: 'bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-400',
+  'light-blue': 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400',
+  amber: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+  lime: 'bg-lime-100 text-lime-800 dark:bg-lime-900/30 dark:text-lime-400',
+  rose: 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400',
+};
+
+export const CHANNEL_TYPE_MAP = Object.fromEntries(
+  CHANNEL_OPTIONS.map((opt) => [opt.value, opt.label])
+);
+
+export const CHANNEL_TYPE_COLORS = Object.fromEntries(
+  CHANNEL_OPTIONS.map((opt) => [opt.value, COLOR_CLASS_MAP[opt.color] || COLOR_CLASS_MAP.gray])
+);
+
+export function getProviderColorClass(color) {
+  return COLOR_CLASS_MAP[color] || COLOR_CLASS_MAP.gray;
+}
+
+export function categorizeModels(models) {
+  const categorized = new Map();
+  const uncategorized = [];
+
+  for (const model of models) {
+    const lower = model.toLowerCase();
+    let matched = false;
+    for (const cat of MODEL_PROVIDER_CATEGORIES) {
+      if (cat.prefixes.some((p) => lower.startsWith(p.toLowerCase()))) {
+        if (!categorized.has(cat.name)) {
+          categorized.set(cat.name, { ...cat, models: [] });
+        }
+        categorized.get(cat.name).models.push(model);
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) uncategorized.push(model);
+  }
+
+  const result = [...categorized.values()];
+  if (uncategorized.length > 0) {
+    result.push({ name: '其他', prefixes: [], color: 'gray', models: uncategorized });
+  }
+  return result;
+}
