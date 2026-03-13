@@ -22,6 +22,7 @@ import {
 import Turnstile from 'react-turnstile';
 import TelegramLoginButton from 'react-telegram-login';
 import { Button, Input, Card, Checkbox } from '../components/ui';
+import { Camera } from 'lucide-react';
 
 const RegisterForm = () => {
   const navigate = useNavigate();
@@ -57,6 +58,8 @@ const RegisterForm = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [hasUserAgreement, setHasUserAgreement] = useState(false);
   const [hasPrivacyPolicy, setHasPrivacyPolicy] = useState(false);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
   const githubTimeoutRef = useRef(null);
 
   const logo = getLogo();
@@ -123,6 +126,33 @@ const RegisterForm = () => {
       const res = await API.post(`/api/user/register?turnstile=${turnstileToken}`, payload);
       const { success, message } = res.data;
       if (success) {
+        // Auto-login after registration
+        try {
+          const loginRes = await API.post('/api/user/login', { username, password });
+          const { success: loginSuccess, data: loginData } = loginRes.data;
+          if (loginSuccess && loginData && !loginData.require_2fa) {
+            userDispatch({ type: 'login', payload: loginData });
+            setUserData(loginData);
+            updateAPI();
+
+            // Upload avatar if selected
+            if (avatarFile) {
+              try {
+                const form = new FormData();
+                form.append('avatar', avatarFile);
+                await API.post('/api/user/avatar', form);
+              } catch {
+                // Avatar upload failure is non-critical
+              }
+            }
+
+            showSuccess('注册成功！');
+            navigate('/console');
+            return;
+          }
+        } catch {
+          // Auto-login failed, fall through to redirect to login page
+        }
         navigate('/login');
         showSuccess('注册成功！');
       } else { showError(message); }
@@ -268,6 +298,44 @@ const RegisterForm = () => {
 
   const renderEmailForm = () => (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Avatar picker */}
+      <div className="flex flex-col items-center gap-2 pb-2">
+        <button
+          type="button"
+          className="relative group"
+          onClick={() => document.getElementById('register-avatar-upload')?.click()}
+        >
+          {avatarPreview ? (
+            <img src={avatarPreview} alt="avatar" className="h-16 w-16 rounded-full object-cover" />
+          ) : (
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/10 text-accent border-2 border-dashed border-accent/30">
+              <Camera className="h-6 w-6" />
+            </div>
+          )}
+          <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Camera className="h-5 w-5 text-white" />
+          </div>
+          <input
+            id="register-avatar-upload"
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              if (file.size > 5 * 1024 * 1024) {
+                showError('头像文件不能超过 5MB');
+                return;
+              }
+              setAvatarFile(file);
+              setAvatarPreview(URL.createObjectURL(file));
+              e.target.value = '';
+            }}
+          />
+        </button>
+        <span className="text-xs text-text-tertiary">点击上传头像</span>
+      </div>
+
       <div className="space-y-2">
         <label className="text-sm font-medium text-text-primary">用户名</label>
         <Input placeholder="请输入用户名" value={username} onChange={(e) => handleChange('username', e.target.value)} />

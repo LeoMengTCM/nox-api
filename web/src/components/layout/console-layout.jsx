@@ -42,6 +42,7 @@ const ConsoleLayout = () => {
     '/console/task',
     '/console/models',
     '/console/playground',
+    '/console/ranking',
   ];
   const shouldHideFooter = cardProPages.includes(location.pathname);
 

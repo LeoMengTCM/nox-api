@@ -44,6 +44,7 @@ const Midjourney = lazy(() => import('./pages/midjourney'));
 const Task = lazy(() => import('./pages/task'));
 const Setup = lazy(() => import('./pages/setup'));
 const Guide = lazy(() => import('./pages/guide'));
+const Ranking = lazy(() => import('./pages/ranking'));
 
 const Loading = () => (
   <div className="flex h-screen items-center justify-center bg-background">
@@ -125,6 +126,7 @@ function App() {
           <Route path="/console/log" element={<PrivateRoute><Page><Log /></Page></PrivateRoute>} />
           <Route path="/console/personal" element={<PrivateRoute><Page><PersonalSetting /></Page></PrivateRoute>} />
           <Route path="/console/topup" element={<PrivateRoute><Page><TopUp /></Page></PrivateRoute>} />
+          <Route path="/console/ranking" element={<PrivateRoute><Page><Ranking /></Page></PrivateRoute>} />
           <Route path="/console/playground" element={<PrivateRoute><Page><Playground /></Page></PrivateRoute>} />
           <Route path="/console/midjourney" element={<PrivateRoute><Page><Midjourney /></Page></PrivateRoute>} />
           <Route path="/console/task" element={<PrivateRoute><Page><Task /></Page></PrivateRoute>} />

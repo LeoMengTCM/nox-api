@@ -1037,3 +1037,83 @@ func RootUserExists() bool {
 	}
 	return true
 }
+
+// RankingUser represents a user entry in the ranking leaderboard
+type RankingUser struct {
+	Rank        int    `json:"rank"`
+	Id          int    `json:"id"`
+	Username    string `json:"username"`
+	DisplayName string `json:"display_name"`
+	AvatarUrl   string `json:"avatar_url"`
+	Value       int    `json:"value"`
+}
+
+// GetHoarderRanking returns top users by available quota (屯屯鼠排名)
+func GetHoarderRanking(limit int) ([]RankingUser, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	var users []struct {
+		Id          int
+		Username    string
+		DisplayName string
+		AvatarUrl   string
+		Quota       int
+	}
+	err := DB.Model(&User{}).
+		Select("id, username, display_name, avatar_url, quota").
+		Where("status = ?", common.UserStatusEnabled).
+		Order("quota DESC").
+		Limit(limit).
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	result := make([]RankingUser, len(users))
+	for i, u := range users {
+		result[i] = RankingUser{
+			Rank:        i + 1,
+			Id:          u.Id,
+			Username:    u.Username,
+			DisplayName: u.DisplayName,
+			AvatarUrl:   u.AvatarUrl,
+			Value:       u.Quota,
+		}
+	}
+	return result, nil
+}
+
+// GetAIKingRanking returns top users by used quota (AI大王排名)
+func GetAIKingRanking(limit int) ([]RankingUser, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	var users []struct {
+		Id          int
+		Username    string
+		DisplayName string
+		AvatarUrl   string
+		UsedQuota   int
+	}
+	err := DB.Model(&User{}).
+		Select("id, username, display_name, avatar_url, used_quota").
+		Where("status = ?", common.UserStatusEnabled).
+		Order("used_quota DESC").
+		Limit(limit).
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	result := make([]RankingUser, len(users))
+	for i, u := range users {
+		result[i] = RankingUser{
+			Rank:        i + 1,
+			Id:          u.Id,
+			Username:    u.Username,
+			DisplayName: u.DisplayName,
+			AvatarUrl:   u.AvatarUrl,
+			Value:       u.UsedQuota,
+		}
+	}
+	return result, nil
+}

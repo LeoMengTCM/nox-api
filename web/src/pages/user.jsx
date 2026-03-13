@@ -212,7 +212,22 @@ export default function UserPage() {
 
   const columns = [
     { header: 'ID', accessorKey: 'id', size: 60 },
-    { header: '用户名', accessorKey: 'username' },
+    {
+      header: '用户名',
+      accessorKey: 'username',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          {row.original.avatar_url ? (
+            <img src={row.original.avatar_url} alt="" className="h-7 w-7 rounded-full object-cover shrink-0" />
+          ) : (
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/10 text-accent text-xs font-medium shrink-0">
+              {(row.original.username || '?')[0].toUpperCase()}
+            </div>
+          )}
+          <span>{row.original.username}</span>
+        </div>
+      ),
+    },
     { header: '显示名', accessorKey: 'display_name', cell: ({ row }) => row.original.display_name || '-' },
     { header: '邮箱', accessorKey: 'email', cell: ({ row }) => row.original.email || '-' },
     {

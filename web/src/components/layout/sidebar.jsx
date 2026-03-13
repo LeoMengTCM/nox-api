@@ -17,6 +17,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Trophy,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { isAdmin, isRoot } from '../../lib/utils';
@@ -46,6 +47,7 @@ const iconMap = {
   personal: Settings,
   midjourney: FileText,
   task: FileText,
+  ranking: Trophy,
 };
 
 const getIcon = (itemKey, size = 18) => {
@@ -73,6 +75,7 @@ const routerMap = {
   deployment: '/console/deployment',
   playground: '/console/playground',
   personal: '/console/personal',
+  ranking: '/console/ranking',
 };
 
 const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
@@ -152,9 +155,10 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
   const financeItems = useMemo(() => {
     const items = [
       { text: t('钱包管理'), itemKey: 'topup' },
+      { text: t('排行榜'), itemKey: 'ranking', alwaysShow: true },
       { text: t('个人设置'), itemKey: 'personal' },
     ];
-    return items.filter((item) => isModuleVisible('personal', item.itemKey));
+    return items.filter((item) => item.alwaysShow || isModuleVisible('personal', item.itemKey));
   }, [t, isModuleVisible]);
 
   const adminItems = useMemo(() => {
