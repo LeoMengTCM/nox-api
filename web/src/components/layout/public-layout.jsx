@@ -48,10 +48,9 @@ const PublicLayout = () => {
     }
     let logo = getLogo();
     if (logo) {
-      let linkElement = document.querySelector("link[rel~='icon']");
-      if (linkElement) {
-        linkElement.href = logo;
-      }
+      document.querySelectorAll("link[rel~='icon']").forEach((el) => {
+        el.href = logo;
+      });
     }
   }, []);
 
