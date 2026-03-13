@@ -120,6 +120,7 @@ export function showError(error) {
           if (_redirecting401 || window.location.pathname === '/login') return;
           _redirecting401 = true;
           localStorage.removeItem('user');
+          sessionStorage.removeItem('avatar_prompted');
           // Use a short delay so current render cycle completes before redirect
           setTimeout(() => {
             window.location.href = '/login?expired=true';

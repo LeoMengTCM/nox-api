@@ -16,6 +16,9 @@ All notable changes to Nox API will be documented in this file.
 - ICO favicon fallback for Safari compatibility.
 
 ### Fixed
+- **Token copy copies masked key** — Copy button on token management now auto-fetches the full key from the API before copying, instead of copying the masked `****` version. The fetched key is cached for subsequent operations.
+- **Avatar prompt not triggering** — Fixed avatar upload prompt not appearing for users without avatars after login. Root causes: unstable object reference in `useEffect` dependency (replaced with primitive values), and `sessionStorage` flag not cleared on logout.
+- **Usage logs missing channel column** — Admin users now see a "渠道" (Channel) column in the usage logs table, showing the channel ID with a tooltip for channel name on hover.
 - **Turnstile verification on login/register** — Login and register pages now load system status from the API on mount, fixing the issue where enabling Turnstile in settings would make login impossible because the frontend didn't know Turnstile was enabled.
 - **User group edit 404** — Editing a user's group now calls the correct API endpoint (`PUT /api/user/` instead of `PUT /api/user/manage`).
 - **Safari favicon** — Safari tabs now display the correct Nox API logo instead of a stale cached icon. Added proper `.ico` and Apple Touch Icon support.

@@ -72,6 +72,7 @@ const TopBar = ({ onMobileMenuToggle, drawerOpen, showSidebar = false }) => {
     showSuccess(t('注销成功!'));
     userDispatch({ type: 'logout' });
     localStorage.removeItem('user');
+    sessionStorage.removeItem('avatar_prompted');
     navigate('/login');
   }, [navigate, t, userDispatch]);
 

@@ -13,6 +13,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
 } from '../components/ui';
 import { DataTable } from '../components/ui/data-table';
 import { Pagination } from '../components/ui/pagination';
@@ -179,6 +182,32 @@ export default function LogPage() {
         </span>
       ),
     },
+    ...(admin
+      ? [
+          {
+            header: '渠道',
+            accessorKey: 'channel',
+            cell: ({ row }) => {
+              const id = row.original.channel;
+              const name = row.original.channel_name;
+              if (!id) return <span className="text-sm">-</span>;
+              if (name) {
+                return (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-sm tabular-nums cursor-default">
+                        {id}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>{name}</TooltipContent>
+                  </Tooltip>
+                );
+              }
+              return <span className="text-sm tabular-nums">{id}</span>;
+            },
+          },
+        ]
+      : []),
     {
       header: '提示tokens',
       accessorKey: 'prompt_tokens',
@@ -362,7 +391,13 @@ export default function LogPage() {
               <DetailField label="用户" value={selectedLog.username || '-'} />
               <DetailField label="令牌" value={selectedLog.token_name || '-'} />
               <DetailField label="模型" value={selectedLog.model_name || '-'} />
-              <DetailField label="渠道" value={selectedLog.channel || '-'} />
+              <DetailField label="渠道" value={
+                selectedLog.channel
+                  ? selectedLog.channel_name
+                    ? `${selectedLog.channel} (${selectedLog.channel_name})`
+                    : selectedLog.channel
+                  : '-'
+              } />
               <DetailField
                 label="提示tokens"
                 value={

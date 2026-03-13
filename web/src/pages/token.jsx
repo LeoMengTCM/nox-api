@@ -327,10 +327,22 @@ export default function TokenPage() {
   const handleCopyKey = async (token) => {
     if (revealedKeys[token.id]) {
       await copy(revealedKeys[token.id]);
-    } else {
-      await copy('sk-' + token.key);
+      showSuccess('已复制到剪贴板');
+      return;
     }
-    showSuccess('已复制到剪贴板');
+    try {
+      const res = await API.post(`/api/token/${token.id}/key`);
+      const { success, message, data } = res.data;
+      if (success) {
+        setRevealedKeys((prev) => ({ ...prev, [token.id]: data.key }));
+        await copy(data.key);
+        showSuccess('已复制到剪贴板');
+      } else {
+        showError(message || '获取密钥失败');
+      }
+    } catch (err) {
+      showError('获取密钥失败');
+    }
   };
 
   const handleRevealKey = async (token) => {

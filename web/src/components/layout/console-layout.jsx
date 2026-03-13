@@ -93,17 +93,19 @@ const ConsoleLayout = () => {
   }, []);
 
   // Prompt user to upload avatar if missing
+  const avatarUrl = userState?.user?.avatar_url;
+  const userId = userState?.user?.id;
   useEffect(() => {
     if (
-      userState?.user &&
-      !userState.user.avatar_url &&
+      userId &&
+      !avatarUrl &&
       !sessionStorage.getItem('avatar_prompted')
     ) {
       sessionStorage.setItem('avatar_prompted', '1');
       showInfo('您还未设置头像，建议前往个人设置上传头像');
       setTimeout(() => navigate('/console/personal'), 2000);
     }
-  }, [userState?.user, navigate]);
+  }, [userId, avatarUrl, navigate]);
 
   // Language sync from user settings
   useEffect(() => {

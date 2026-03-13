@@ -245,6 +245,7 @@ async function prepareOAuthState(options = {}) {
       await API.get('/api/user/logout', { skipErrorHandler: true });
     } catch (err) {}
     localStorage.removeItem('user');
+    sessionStorage.removeItem('avatar_prompted');
     updateAPI();
   }
   return await getOAuthState();
