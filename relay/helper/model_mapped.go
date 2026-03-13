@@ -1,11 +1,11 @@
 package helper
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 
+	noxcommon "github.com/LeoMengTCM/nox-api/common"
 	"github.com/LeoMengTCM/nox-api/dto"
 	"github.com/LeoMengTCM/nox-api/relay/common"
 	relayconstant "github.com/LeoMengTCM/nox-api/relay/constant"
@@ -29,7 +29,7 @@ func ModelMappedHelper(c *gin.Context, info *common.RelayInfo, request dto.Reque
 	modelMapping := c.GetString("model_mapping")
 	if modelMapping != "" && modelMapping != "{}" {
 		modelMap := make(map[string]string)
-		err := json.Unmarshal([]byte(modelMapping), &modelMap)
+		err := noxcommon.Unmarshal([]byte(modelMapping), &modelMap)
 		if err != nil {
 			return fmt.Errorf("unmarshal_model_mapping_failed")
 		}

@@ -3,7 +3,7 @@ package oauth
 import (
 	"context"
 	"encoding/base64"
-	stdjson "encoding/json"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -578,7 +578,7 @@ func toFloat(v any) (float64, bool) {
 		return float64(value), true
 	case uint64:
 		return float64(value), true
-	case stdjson.Number:
+	case json.Number:
 		n, err := value.Float64()
 		if err == nil {
 			return n, true
