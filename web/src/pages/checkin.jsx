@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { API } from '../lib/api';
 import { showError, showSuccess, renderQuota } from '../lib/utils';
 import { Card } from '../components/ui';
@@ -54,7 +54,6 @@ export default function CheckinPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [data, setData] = useState(null);
   const [checkedInToday, setCheckedInToday] = useState(false);
-  const [justCheckedIn, setJustCheckedIn] = useState(false);
   const [enabled, setEnabled] = useState(true);
 
   const year = currentDate.getFullYear();
@@ -83,37 +82,37 @@ export default function CheckinPage() {
         if (res.data.message?.includes('未启用')) {
           setEnabled(false);
         } else {
-          showError(res.data.message || t('加载签到信息失败'));
+          showError(res.data.message);
         }
       }
     } catch {
-      showError(t('加载签到信息失败'));
+      showError('加载签到信息失败');
     } finally {
       setLoading(false);
     }
-  }, [t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     fetchCheckinStatus(monthKey);
   }, [monthKey, fetchCheckinStatus]);
 
   const handleCheckin = async () => {
-    if (checkedInToday || checkinLoading || loading) return;
+    if (checkedInToday || checkinLoading) return;
     setCheckinLoading(true);
     try {
       const res = await API.post('/api/user/checkin');
       if (res.data.success) {
         const awarded = res.data.data?.quota_awarded;
-        showSuccess(t('签到成功') + (awarded ? `，${t('获得')} ${renderQuota(awarded)}` : ''));
+        showSuccess('签到成功' + (awarded ? `，获得 ${renderQuota(awarded)}` : ''));
         setCheckedInToday(true);
-        setJustCheckedIn(true);
         // Refresh data
         fetchCheckinStatus(monthKey);
       } else {
-        showError(res.data.message || t('签到失败'));
+        showError(res.data.message || '签到失败');
       }
     } catch {
-      showError(t('签到失败'));
+      showError('签到失败');
     } finally {
       setCheckinLoading(false);
     }
@@ -227,11 +226,12 @@ export default function CheckinPage() {
           transition={{ duration: 0.3, delay: 0.1 }}
         >
           <button
+            type="button"
             onClick={handleCheckin}
             disabled={checkedInToday || checkinLoading}
             className={`
               relative flex items-center gap-2.5 px-8 py-3 rounded-xl text-sm font-medium
-              transition-all duration-300 select-none
+              transition-all duration-200 select-none
               ${checkedInToday
                 ? 'bg-surface-hover text-text-tertiary cursor-default'
                 : checkinLoading
@@ -240,49 +240,21 @@ export default function CheckinPage() {
               }
             `}
           >
-            <AnimatePresence mode="wait">
-              {checkedInToday ? (
-                <motion.span
-                  key="checked"
-                  className="flex items-center gap-2"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                >
-                  <Check className="h-4.5 w-4.5" />
-                  {t('今日已签到')}
-                </motion.span>
-              ) : checkinLoading ? (
-                <motion.span
-                  key="loading"
-                  className="flex items-center gap-2"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
-                  <div className="h-4 w-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  {t('签到中...')}
-                </motion.span>
-              ) : (
-                <motion.span
-                  key="checkin"
-                  className="flex items-center gap-2"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  whileHover={{ scale: 1.02 }}
-                >
-                  <Sparkles className="h-4.5 w-4.5" />
-                  {t('立即签到')}
-                </motion.span>
-              )}
-            </AnimatePresence>
-            {/* Success sparkle effect */}
-            {justCheckedIn && (
-              <motion.span
-                className="absolute inset-0 rounded-xl border-2 border-accent/40"
-                initial={{ opacity: 1, scale: 1 }}
-                animate={{ opacity: 0, scale: 1.15 }}
-                transition={{ duration: 0.6 }}
-              />
+            {checkedInToday ? (
+              <>
+                <Check className="h-4 w-4" />
+                <span>{t('今日已签到')}</span>
+              </>
+            ) : checkinLoading ? (
+              <>
+                <div className="h-4 w-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                <span>{t('签到中...')}</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                <span>{t('立即签到')}</span>
+              </>
             )}
           </button>
         </motion.div>
