@@ -98,7 +98,7 @@ export default function CheckinPage() {
   }, [monthKey, fetchCheckinStatus]);
 
   const handleCheckin = async () => {
-    if (checkedInToday || checkinLoading) return;
+    if (checkedInToday || checkinLoading || loading) return;
     setCheckinLoading(true);
     try {
       const res = await API.post('/api/user/checkin');
@@ -228,15 +228,16 @@ export default function CheckinPage() {
         >
           <button
             onClick={handleCheckin}
-            disabled={checkedInToday || checkinLoading || loading}
+            disabled={checkedInToday || checkinLoading}
             className={`
               relative flex items-center gap-2.5 px-8 py-3 rounded-xl text-sm font-medium
               transition-all duration-300 select-none
               ${checkedInToday
                 ? 'bg-surface-hover text-text-tertiary cursor-default'
-                : 'bg-accent text-white hover:bg-accent/90 active:scale-[0.97] shadow-sm hover:shadow-md cursor-pointer'
+                : checkinLoading
+                  ? 'bg-accent/70 text-white cursor-wait'
+                  : 'bg-accent text-white hover:bg-accent/90 active:scale-[0.97] shadow-sm hover:shadow-md cursor-pointer'
               }
-              disabled:pointer-events-none
             `}
           >
             <AnimatePresence mode="wait">
