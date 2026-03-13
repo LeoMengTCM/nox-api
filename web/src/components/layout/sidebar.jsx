@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Trophy,
+  CalendarCheck,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { isAdmin, isRoot } from '../../lib/utils';
@@ -48,6 +49,7 @@ const iconMap = {
   midjourney: FileText,
   task: FileText,
   ranking: Trophy,
+  checkin: CalendarCheck,
 };
 
 const getIcon = (itemKey, size = 18) => {
@@ -76,6 +78,7 @@ const routerMap = {
   playground: '/console/playground',
   personal: '/console/personal',
   ranking: '/console/ranking',
+  checkin: '/console/checkin',
 };
 
 const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
@@ -155,6 +158,7 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
   const financeItems = useMemo(() => {
     const items = [
       { text: t('钱包管理'), itemKey: 'topup' },
+      { text: t('每日签到'), itemKey: 'checkin', alwaysShow: true },
       { text: t('排行榜'), itemKey: 'ranking', alwaysShow: true },
       { text: t('个人设置'), itemKey: 'personal' },
     ];

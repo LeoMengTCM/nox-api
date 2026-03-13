@@ -5,6 +5,10 @@ All notable changes to Nox API will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Daily check-in system** — New `/console/checkin` page where users can check in daily to receive random quota rewards. Features a calendar grid showing check-in history with hover tooltips for awarded amounts, stats cards (total check-ins, total quota earned, monthly count), month navigation for viewing past records, and animated check-in button with success effects. Accessible from the sidebar under "个人中心".
+- **Check-in admin settings** — Administrators can enable/disable the check-in feature and configure min/max reward quota in the "运营设置" (Operation Settings) tab.
+
+### Changed
 - **Homepage CTA button** — Added a prominent "开始使用" (Get Started) button in the hero section, linking to the console for quick access.
 
 ### Changed

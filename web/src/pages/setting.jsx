@@ -50,6 +50,7 @@ import {
   Lightbulb,
   CreditCard,
   KeyRound,
+  CalendarCheck,
   Shield,
   Send,
 } from 'lucide-react';
@@ -1007,8 +1008,39 @@ const Setting = () => {
                 </div>
                 <QuotaDisplay value={options.QuotaForNewUser} onChange={(v) => updateOption('QuotaForNewUser', v)} />
               </div>
+              <Separator />
+              <SectionHeader icon={CalendarCheck} title="签到功能" description="配置用户每日签到的额度奖励" />
+              <div className="space-y-3">
+                <SettingsField label="启用签到功能" description="开启后用户可每日签到获取额度奖励">
+                  <Switch checked={options['checkin_setting.enabled'] === 'true'} onCheckedChange={(v) => updateOption('checkin_setting.enabled', v ? 'true' : 'false')} />
+                </SettingsField>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-text-primary">最小奖励额度</label>
+                  <p className="text-xs text-text-tertiary">每次签到随机奖励的最小额度值</p>
+                  <div className="flex items-center gap-3">
+                    <Input type="number" value={options['checkin_setting.min_quota'] || ''} onChange={(e) => updateOption('checkin_setting.min_quota', e.target.value)} placeholder="0" className="w-40" />
+                    {parseInt(options['checkin_setting.min_quota']) > 0 && (
+                      <span className="text-xs text-text-secondary px-2 py-1 rounded-md bg-surface-hover">
+                        ≈ {renderQuota(parseInt(options['checkin_setting.min_quota']))}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-text-primary">最大奖励额度</label>
+                  <p className="text-xs text-text-tertiary">每次签到随机奖励的最大额度值</p>
+                  <div className="flex items-center gap-3">
+                    <Input type="number" value={options['checkin_setting.max_quota'] || ''} onChange={(e) => updateOption('checkin_setting.max_quota', e.target.value)} placeholder="0" className="w-40" />
+                    {parseInt(options['checkin_setting.max_quota']) > 0 && (
+                      <span className="text-xs text-text-secondary px-2 py-1 rounded-md bg-surface-hover">
+                        ≈ {renderQuota(parseInt(options['checkin_setting.max_quota']))}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
               <div className="flex justify-end pt-4">
-                <Button variant="primary" onClick={() => saveOptions(['SystemName', 'Logo', 'Footer', 'ServerAddress', 'SelfUseModeEnabled', 'RegisterEnabled', 'EmailVerificationEnabled', 'QuotaForNewUser'])} loading={saving}>
+                <Button variant="primary" onClick={() => saveOptions(['SystemName', 'Logo', 'Footer', 'ServerAddress', 'SelfUseModeEnabled', 'RegisterEnabled', 'EmailVerificationEnabled', 'QuotaForNewUser', 'checkin_setting.enabled', 'checkin_setting.min_quota', 'checkin_setting.max_quota'])} loading={saving}>
                   保存运营设置
                 </Button>
               </div>
