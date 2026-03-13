@@ -187,7 +187,11 @@ export default function ChannelPage() {
 
   const handleToggleStatus = async (channel) => {
     try {
-      const res = await API.put(`/api/channel/?status=${channel.id}`);
+      const newStatus = channel.status === 1 ? 2 : 1;
+      const res = await API.put('/api/channel/', {
+        id: channel.id,
+        status: newStatus,
+      });
       const { success, message } = res.data;
       if (success) {
         showSuccess(channel.status === 1 ? '已禁用' : '已启用');

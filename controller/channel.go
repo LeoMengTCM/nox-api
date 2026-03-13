@@ -1034,36 +1034,55 @@ func FetchModels(c *gin.Context) {
 	}
 
 	client := &http.Client{}
-	url := fmt.Sprintf("%s/v1/models", baseURL)
+
+	var url string
+	switch req.Type {
+	case constant.ChannelTypeAli:
+		url = fmt.Sprintf("%s/compatible-mode/v1/models", baseURL)
+	case constant.ChannelTypeZhipu_v4:
+		if plan, ok := constant.ChannelSpecialBases[baseURL]; ok && plan.OpenAIBaseURL != "" {
+			url = fmt.Sprintf("%s/models", plan.OpenAIBaseURL)
+		} else {
+			url = fmt.Sprintf("%s/api/paas/v4/models", baseURL)
+		}
+	default:
+		url = fmt.Sprintf("%s/v1/models", baseURL)
+	}
 
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
+		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": err.Error(),
 		})
 		return
 	}
 
-	request.Header.Set("Authorization", "Bearer "+key)
+	switch req.Type {
+	case constant.ChannelTypeAnthropic:
+		request.Header.Set("x-api-key", key)
+		request.Header.Set("anthropic-version", "2023-06-01")
+	default:
+		request.Header.Set("Authorization", "Bearer "+key)
+	}
 
 	response, err := client.Do(request)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
+		c.JSON(http.StatusOK, gin.H{
 			"success": false,
-			"message": err.Error(),
-		})
-		return
-	}
-	//check status code
-	if response.StatusCode != http.StatusOK {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"message": "Failed to fetch models",
+			"message": fmt.Sprintf("请求上游失败: %s", err.Error()),
 		})
 		return
 	}
 	defer response.Body.Close()
+	//check status code
+	if response.StatusCode != http.StatusOK {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": fmt.Sprintf("上游返回错误状态码: %d", response.StatusCode),
+		})
+		return
+	}
 
 	var result struct {
 		Data []struct {
@@ -1072,9 +1091,9 @@ func FetchModels(c *gin.Context) {
 	}
 
 	if err := common.DecodeJson(response.Body, &result); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
+		c.JSON(http.StatusOK, gin.H{
 			"success": false,
-			"message": err.Error(),
+			"message": fmt.Sprintf("解析模型列表失败: %s", err.Error()),
 		})
 		return
 	}
