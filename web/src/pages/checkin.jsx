@@ -74,7 +74,7 @@ export default function CheckinPage() {
   const fetchCheckinStatus = useCallback(async (monthStr) => {
     setLoading(true);
     try {
-      const res = await API.get(`/api/user/self/checkin?month=${monthStr}`);
+      const res = await API.get(`/api/user/checkin?month=${monthStr}`);
       if (res.data.success) {
         setData(res.data.data);
         setCheckedInToday(res.data.data?.stats?.checked_in_today ?? false);
@@ -101,7 +101,7 @@ export default function CheckinPage() {
     if (checkedInToday || checkinLoading) return;
     setCheckinLoading(true);
     try {
-      const res = await API.post('/api/user/self/checkin');
+      const res = await API.post('/api/user/checkin');
       if (res.data.success) {
         const awarded = res.data.data?.quota_awarded;
         showSuccess(t('签到成功') + (awarded ? `，${t('获得')} ${renderQuota(awarded)}` : ''));
