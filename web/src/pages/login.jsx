@@ -11,6 +11,7 @@ import {
   getLogo,
   getSystemName,
   setUserData,
+  setStatusData,
 } from '../lib/utils';
 import {
   onGitHubOAuthClicked,
@@ -49,7 +50,7 @@ const LoginForm = () => {
   const { username, password } = inputs;
 
   const [, userDispatch] = useContext(UserContext);
-  const [statusState] = useContext(StatusContext);
+  const [statusState, statusDispatch] = useContext(StatusContext);
 
   const [turnstileEnabled, setTurnstileEnabled] = useState(false);
   const [turnstileSiteKey, setTurnstileSiteKey] = useState('');
@@ -89,6 +90,19 @@ const LoginForm = () => {
     status.github_oauth || status.discord_oauth || status.oidc_enabled ||
     status.wechat_login || status.linuxdo_oauth || status.telegram_oauth || hasCustomOAuth,
   );
+
+  // Load fresh status from API on mount (login page is outside layouts)
+  useEffect(() => {
+    if (!statusState?.status) {
+      API.get('/api/status').then((res) => {
+        const { success, data } = res.data;
+        if (success) {
+          statusDispatch({ type: 'set', payload: data });
+          setStatusData(data);
+        }
+      }).catch(() => {});
+    }
+  }, []);
 
   useEffect(() => {
     if (status?.turnstile_check) {
