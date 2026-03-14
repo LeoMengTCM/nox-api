@@ -53,6 +53,7 @@ import {
   CalendarCheck,
   Shield,
   Send,
+  MessageSquareMore,
 } from 'lucide-react';
 
 // Generic settings section component
@@ -1039,8 +1040,20 @@ const Setting = () => {
                   </div>
                 </div>
               </div>
+              <Separator />
+              <SectionHeader icon={MessageSquareMore} title="社区功能" description="配置社区帖子、转发和通知功能" />
+              <div className="space-y-3">
+                <SettingsField label="启用社区功能" description="开启后用户可发帖、关注、评论、转发和收到通知">
+                  <Switch checked={options['social_setting.enabled'] === 'true'} onCheckedChange={(v) => updateOption('social_setting.enabled', v ? 'true' : 'false')} />
+                </SettingsField>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-text-primary">帖子最大字数</label>
+                  <p className="text-xs text-text-tertiary">单条帖子允许的最大字符数</p>
+                  <Input type="number" value={options['social_setting.max_post_length'] || ''} onChange={(e) => updateOption('social_setting.max_post_length', e.target.value)} placeholder="500" className="w-40" />
+                </div>
+              </div>
               <div className="flex justify-end pt-4">
-                <Button variant="primary" onClick={() => saveOptions(['SystemName', 'Logo', 'Footer', 'ServerAddress', 'SelfUseModeEnabled', 'RegisterEnabled', 'EmailVerificationEnabled', 'QuotaForNewUser', 'checkin_setting.enabled', 'checkin_setting.min_quota', 'checkin_setting.max_quota'])} loading={saving}>
+                <Button variant="primary" onClick={() => saveOptions(['SystemName', 'Logo', 'Footer', 'ServerAddress', 'SelfUseModeEnabled', 'RegisterEnabled', 'EmailVerificationEnabled', 'QuotaForNewUser', 'checkin_setting.enabled', 'checkin_setting.min_quota', 'checkin_setting.max_quota', 'social_setting.enabled', 'social_setting.max_post_length'])} loading={saving}>
                   保存运营设置
                 </Button>
               </div>

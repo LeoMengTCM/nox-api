@@ -46,6 +46,9 @@ const Setup = lazy(() => import('./pages/setup'));
 const Guide = lazy(() => import('./pages/guide'));
 const Ranking = lazy(() => import('./pages/ranking'));
 const Checkin = lazy(() => import('./pages/checkin'));
+const Community = lazy(() => import('./pages/community'));
+const UserProfile = lazy(() => import('./pages/user-profile'));
+const Notifications = lazy(() => import('./pages/notifications'));
 
 const Loading = () => (
   <div className="flex h-screen items-center justify-center bg-background">
@@ -129,6 +132,9 @@ function App() {
           <Route path="/console/topup" element={<PrivateRoute><Page><TopUp /></Page></PrivateRoute>} />
           <Route path="/console/ranking" element={<PrivateRoute><Page><Ranking /></Page></PrivateRoute>} />
           <Route path="/console/checkin" element={<PrivateRoute><Page><Checkin /></Page></PrivateRoute>} />
+          <Route path="/console/community" element={<PrivateRoute><Page><Community /></Page></PrivateRoute>} />
+          <Route path="/console/notifications" element={<PrivateRoute><Page><Notifications /></Page></PrivateRoute>} />
+          <Route path="/console/user/:id" element={<PrivateRoute><Page><UserProfile /></Page></PrivateRoute>} />
           <Route path="/console/playground" element={<PrivateRoute><Page><Playground /></Page></PrivateRoute>} />
           <Route path="/console/midjourney" element={<PrivateRoute><Page><Midjourney /></Page></PrivateRoute>} />
           <Route path="/console/task" element={<PrivateRoute><Page><Task /></Page></PrivateRoute>} />

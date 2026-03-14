@@ -322,6 +322,50 @@ func SetApiRouter(router *gin.Engine) {
 			taskRoute.GET("/", middleware.AdminAuth(), controller.GetAllTask)
 		}
 
+		// Social / Community routes
+		socialRoute := apiRouter.Group("/social")
+		socialRoute.Use(middleware.UserAuth())
+		{
+			socialRoute.POST("/post", controller.CreatePost)
+			socialRoute.DELETE("/post/:id", controller.DeletePostByUser)
+			socialRoute.GET("/feed/following", controller.GetFeed)
+			socialRoute.GET("/feed/square", controller.GetSquare)
+			socialRoute.POST("/follow/:id", controller.SocialFollowUser)
+			socialRoute.DELETE("/follow/:id", controller.SocialUnfollowUser)
+			socialRoute.GET("/follow/:id/status", controller.GetFollowStatus)
+			socialRoute.GET("/followers/:id", controller.GetFollowersList)
+			socialRoute.GET("/following/:id", controller.GetFollowingList)
+			socialRoute.GET("/profile/:id", controller.GetUserProfile)
+			socialRoute.GET("/profile/:id/posts", controller.GetUserProfilePosts)
+			// Like
+			socialRoute.POST("/post/:id/like", controller.LikePost)
+			socialRoute.DELETE("/post/:id/like", controller.UnlikePost)
+			// Comment
+			socialRoute.POST("/post/:id/comment", controller.CreateSocialComment)
+			socialRoute.GET("/post/:id/comments", controller.GetPostComments)
+			socialRoute.DELETE("/comment/:id", controller.DeleteSocialComment)
+			// Bookmark
+			socialRoute.POST("/post/:id/bookmark", controller.BookmarkPost)
+			socialRoute.DELETE("/post/:id/bookmark", controller.UnbookmarkPost)
+			socialRoute.GET("/bookmarks", controller.GetBookmarks)
+			// Repost
+			socialRoute.POST("/post/repost", controller.CreateRepost)
+			// Notifications
+			socialRoute.GET("/notifications", controller.GetNotifications)
+			socialRoute.GET("/notifications/unread-count", controller.GetUnreadNotificationCount)
+			socialRoute.PUT("/notifications/read-all", controller.MarkAllNotificationsRead)
+			socialRoute.PUT("/notification/:id/read", controller.MarkNotificationRead)
+		}
+		socialAdminRoute := apiRouter.Group("/social/admin")
+		socialAdminRoute.Use(middleware.AdminAuth())
+		{
+			socialAdminRoute.GET("/posts", controller.AdminGetSocialPosts)
+			socialAdminRoute.PUT("/post/:id/status", controller.AdminUpdateSocialPostStatus)
+			socialAdminRoute.DELETE("/post/:id", controller.AdminDeleteSocialPost)
+			socialAdminRoute.DELETE("/comment/:id", controller.AdminDeleteSocialComment)
+			socialAdminRoute.PUT("/comment/:id/status", controller.AdminUpdateSocialCommentStatus)
+		}
+
 		vendorRoute := apiRouter.Group("/vendors")
 		vendorRoute.Use(middleware.AdminAuth())
 		{

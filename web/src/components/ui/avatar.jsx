@@ -8,6 +8,7 @@ const avatarVariants = cva(
   {
     variants: {
       size: {
+        xs: 'h-5 w-5',
         sm: 'h-6 w-6',
         default: 'h-8 w-8',
         lg: 'h-10 w-10',
@@ -23,6 +24,7 @@ const avatarVariants = cva(
 const fallbackTextVariants = cva('font-medium', {
   variants: {
     size: {
+      xs: 'text-[9px]',
       sm: 'text-[10px]',
       default: 'text-xs',
       lg: 'text-sm',

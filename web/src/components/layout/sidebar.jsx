@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Trophy,
   CalendarCheck,
+  MessageCircle,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { isAdmin, isRoot } from '../../lib/utils';
@@ -50,6 +51,7 @@ const iconMap = {
   task: FileText,
   ranking: Trophy,
   checkin: CalendarCheck,
+  community: MessageCircle,
 };
 
 const getIcon = (itemKey, size = 18) => {
@@ -79,6 +81,7 @@ const routerMap = {
   personal: '/console/personal',
   ranking: '/console/ranking',
   checkin: '/console/checkin',
+  community: '/console/community',
 };
 
 const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
@@ -159,6 +162,7 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
     const items = [
       { text: t('钱包管理'), itemKey: 'topup' },
       { text: t('每日签到'), itemKey: 'checkin', alwaysShow: true },
+      { text: t('社区'), itemKey: 'community', alwaysShow: true },
       { text: t('排行榜'), itemKey: 'ranking', alwaysShow: true },
       { text: t('个人设置'), itemKey: 'personal' },
     ];

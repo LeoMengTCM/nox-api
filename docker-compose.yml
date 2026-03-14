@@ -36,6 +36,7 @@ services:
       - TZ=Asia/Shanghai
       - ERROR_LOG_ENABLED=true
       - BATCH_UPDATE_ENABLED=true
+      - GLOBAL_API_RATE_LIMIT_ENABLE=false
 #      - STREAMING_TIMEOUT=300       # Stream timeout in seconds (default 120)
 #      - SESSION_SECRET=              # Required for multi-node deployment
 #      - CRYPTO_SECRET=               # Required when using Redis across nodes

@@ -280,6 +280,12 @@ func migrateDB() error {
 		&SubscriptionPreConsumeRecord{},
 		&CustomOAuthProvider{},
 		&UserOAuthBinding{},
+		&SocialPost{},
+		&SocialFollow{},
+		&SocialLike{},
+		&SocialComment{},
+		&SocialBookmark{},
+		&SocialNotification{},
 	)
 	if err != nil {
 		return err
@@ -328,6 +334,12 @@ func migrateDBFast() error {
 		{&SubscriptionPreConsumeRecord{}, "SubscriptionPreConsumeRecord"},
 		{&CustomOAuthProvider{}, "CustomOAuthProvider"},
 		{&UserOAuthBinding{}, "UserOAuthBinding"},
+		{&SocialPost{}, "SocialPost"},
+		{&SocialFollow{}, "SocialFollow"},
+		{&SocialLike{}, "SocialLike"},
+		{&SocialComment{}, "SocialComment"},
+		{&SocialBookmark{}, "SocialBookmark"},
+		{&SocialNotification{}, "SocialNotification"},
 	}
 	// 动态计算migration数量，确保errChan缓冲区足够大
 	errChan := make(chan error, len(migrations))

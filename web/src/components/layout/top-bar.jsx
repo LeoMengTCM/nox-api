@@ -25,6 +25,7 @@ import {
   TooltipContent,
   TooltipProvider,
 } from '../ui/tooltip';
+import NotificationBell from '../social/notification-bell';
 
 const TopBar = ({ onMobileMenuToggle, drawerOpen, showSidebar = false }) => {
   const { t } = useTranslation();
@@ -171,7 +172,9 @@ const TopBar = ({ onMobileMenuToggle, drawerOpen, showSidebar = false }) => {
 
         {/* User area */}
         {userState.user ? (
-          <DropdownMenu>
+          <>
+            <NotificationBell />
+            <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 className={cn(
@@ -209,6 +212,7 @@ const TopBar = ({ onMobileMenuToggle, drawerOpen, showSidebar = false }) => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </>
         ) : (
           <div className="flex items-center gap-1">
             <Link to="/login">

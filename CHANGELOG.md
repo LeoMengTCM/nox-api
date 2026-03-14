@@ -5,6 +5,15 @@ All notable changes to Nox API will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Community system** — Full-featured social community at `/console/community` with follow, post, like, comment, bookmark, quote repost, and notification capabilities:
+  - **Follow system** — Follow/unfollow users, following/followers feed
+  - **Posts & Feed** — Create posts, square (public) feed, following feed, bookmarks tab
+  - **User profiles** — `/console/user/:id` with avatar, bio, post count, followers/following stats, and post timeline
+  - **Like & Comment** — Like/unlike posts with optimistic UI, threaded comments with delete
+  - **Bookmark** — Save/unsave posts, dedicated bookmarks tab
+  - **Quote Repost** — Repost with optional comment (up to 500 chars), embedded original post display, chain repost protection (always references original source), self-repost blocked
+  - **Notification system** — Bell icon with unread badge (30-second polling, pauses when tab hidden), dropdown preview of 10 recent notifications, full notification page at `/console/notifications` with paginated list and read/unread distinction, "Mark all as read", smart deduplication (like/follow deduplicated, comment/repost always created), self-triggered actions don't generate notifications
+- **Community admin settings** — Enable/disable the community feature and configure max post length in the "运营设置" (Operation Settings) tab.
 - **Daily check-in system** — New `/console/checkin` page where users can check in daily to receive random quota rewards. Features a calendar grid showing check-in history with hover tooltips for awarded amounts, stats cards (total check-ins, total quota earned, monthly count), month navigation for viewing past records, and animated check-in button with success effects. Accessible from the sidebar under "个人中心".
 - **Check-in admin settings** — Administrators can enable/disable the check-in feature and configure min/max reward quota in the "运营设置" (Operation Settings) tab.
 
@@ -18,6 +27,10 @@ All notable changes to Nox API will be documented in this file.
 
 ### Fixed
 - **Homepage admin avatar** — Fixed avatar not loading on the homepage by correcting the filename pattern from `user_1.{ext}` to `1.{ext}` to match the actual avatar storage convention.
+- **Embedded repost avatar oversized** — Fixed avatar in embedded original post rendering at natural size due to missing `xs` variant in the avatar component. Added `xs` (20×20px) size variant.
+- **User profile infinite request loop** — Fixed profile and posts APIs being called in an infinite loop on the user profile page. Removed unstable `t` (i18next) reference from `useCallback` dependencies.
+- **Community page infinite request loop** — Same `useCallback` + `t` fix applied to the community page's feed loading functions.
+- **Notifications page infinite request loop** — Same fix applied to the notifications page.
 
 ### Added
 - **Ranking leaderboard** — New `/console/ranking` page with two fun rankings: "屯屯鼠排名" (Hoarder Ranking, highest available balance) and "AI大王排名" (AI King Ranking, highest usage). Features gold/silver/bronze medals for top 3, current-user highlighting, and avatar display. Accessible from the sidebar under "个人中心".
