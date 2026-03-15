@@ -61,13 +61,13 @@ export default function PetStatsPage() {
 
   const statCards = [
     {
-      title: t('总宠物数'),
+      title: t('总魔法生物数'),
       value: stats.total_pets ?? 0,
       icon: PawPrint,
       color: 'text-accent',
     },
     {
-      title: t('活跃训练师'),
+      title: t('活跃巫师'),
       value: stats.total_users ?? 0,
       icon: Users,
       color: 'text-blue-500',

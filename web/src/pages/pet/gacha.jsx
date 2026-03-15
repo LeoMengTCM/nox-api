@@ -215,7 +215,7 @@ export default function PetGacha() {
   const handlePull = async (count) => {
     if (!activePool || pulling) return;
     if (petCount >= petLimit) {
-      showError(t('宠物栏位已满'));
+      showError(t('魔法生物栏位已满'));
       return;
     }
     setPulling(true);
@@ -294,8 +294,8 @@ export default function PetGacha() {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-2xl font-heading text-text-primary">{t('宠物召唤')}</h1>
-          <p className="text-sm text-text-tertiary mt-1">{t('消耗额度召唤新的宠物伙伴')}</p>
+          <h1 className="text-2xl font-heading text-text-primary">{t('魔法召唤')}</h1>
+          <p className="text-sm text-text-tertiary mt-1">{t('消耗额度召唤新的魔法生物')}</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-hover">
@@ -508,7 +508,7 @@ function PoolContent({ pool, pity, pulling, petCount, petLimit, onPull, onShowRa
         </div>
 
         {isFull && (
-          <p className="text-xs text-danger text-center">{t('宠物栏位已满，无法召唤')}</p>
+          <p className="text-xs text-danger text-center">{t('魔法生物栏位已满，无法召唤')}</p>
         )}
       </Card>
 

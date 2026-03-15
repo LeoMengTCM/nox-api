@@ -107,6 +107,9 @@ func GetDispatchHistory(c *gin.Context) {
 		pageSize = 20
 	}
 
+	// Lazy completion: resolve any expired in_progress dispatches before returning history
+	_, _ = service.CheckAndCompleteDispatches(userId)
+
 	dispatches, total, err := model.GetDispatchHistory(userId, page, pageSize)
 	if err != nil {
 		common.ApiErrorMsg(c, "获取派遣历史失败")

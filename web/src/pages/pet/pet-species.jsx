@@ -223,7 +223,7 @@ export default function PetSpeciesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-heading text-2xl font-semibold text-text-primary">
-          {t('宠物物种管理')}
+          {t('魔法生物物种管理')}
         </h1>
         <Button variant="primary" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>
           {t('创建物种')}
@@ -240,7 +240,7 @@ export default function PetSpeciesPage() {
             <EmptyState
               icon={PawPrint}
               title={t('暂无物种')}
-              description={t('点击上方按钮创建第一个宠物物种')}
+              description={t('点击上方按钮创建第一个魔法生物物种')}
             />
           ) : (
             <Table>
@@ -251,7 +251,7 @@ export default function PetSpeciesPage() {
                   <TableHead>{t('名称')}</TableHead>
                   <TableHead className="w-20">{t('稀有度')}</TableHead>
                   <TableHead className="w-20">{t('元素')}</TableHead>
-                  <TableHead className="w-24">{t('初始宠物')}</TableHead>
+                  <TableHead className="w-24">{t('初始生物')}</TableHead>
                   <TableHead className="w-20">{t('状态')}</TableHead>
                   <TableHead className="w-32 text-right">{t('操作')}</TableHead>
                 </TableRow>
@@ -321,7 +321,7 @@ export default function PetSpeciesPage() {
           <DialogHeader>
             <DialogTitle>{editing ? t('编辑物种') : t('创建物种')}</DialogTitle>
             <DialogDescription>
-              {editing ? t('修改宠物物种的属性和配置') : t('配置新宠物物种的基本信息')}
+              {editing ? t('修改魔法生物物种的属性和配置') : t('配置新魔法生物物种的基本信息')}
             </DialogDescription>
           </DialogHeader>
 
@@ -455,8 +455,8 @@ export default function PetSpeciesPage() {
             {/* Switches */}
             <div className="flex items-center gap-6 pt-2">
               <Switch
-                label={t('初始宠物')}
-                description={t('新用户可选择的初始宠物')}
+                label={t('初始生物')}
+                description={t('新用户可选择的初始魔法生物')}
                 checked={form.is_starter}
                 onCheckedChange={(v) => setForm((p) => ({ ...p, is_starter: v }))}
               />

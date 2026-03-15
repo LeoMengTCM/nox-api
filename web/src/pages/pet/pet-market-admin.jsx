@@ -51,7 +51,7 @@ export default function PetMarketAdminPage() {
   return (
     <div className="space-y-6">
       <h1 className="font-heading text-2xl font-semibold text-text-primary">
-        {t('市场监控')}
+        {t('酒吧监控')}
       </h1>
 
       <Card>
@@ -71,9 +71,9 @@ export default function PetMarketAdminPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-16">ID</TableHead>
-                  <TableHead>{t('卖家 ID')}</TableHead>
-                  <TableHead>{t('买家 ID')}</TableHead>
-                  <TableHead>{t('宠物 ID')}</TableHead>
+                  <TableHead>{t('寄售巫师 ID')}</TableHead>
+                  <TableHead>{t('买方巫师 ID')}</TableHead>
+                  <TableHead>{t('魔法生物 ID')}</TableHead>
                   <TableHead>{t('成交价')}</TableHead>
                   <TableHead>{t('手续费')}</TableHead>
                   <TableHead className="w-20">{t('类型')}</TableHead>

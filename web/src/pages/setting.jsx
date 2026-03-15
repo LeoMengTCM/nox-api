@@ -949,7 +949,7 @@ const Setting = () => {
     { key: 'performance', label: '性能设置' },
     { key: 'system', label: '系统设置' },
     { key: 'other', label: '其他设置' },
-    { key: 'pet', label: '宠物设置' },
+    { key: 'pet', label: '神奇动物设置' },
   ];
 
   return (
@@ -1666,16 +1666,16 @@ const Setting = () => {
         {/* Pet Settings */}
         <TabsContent value="pet">
           <Card>
-            <CardHeader><CardTitle>宠物设置</CardTitle></CardHeader>
+            <CardHeader><CardTitle>神奇动物设置</CardTitle></CardHeader>
             <CardContent className="space-y-6">
-              <SectionHeader icon={PawPrint} title="基本设置" description="配置虚拟宠物养成功能" />
+              <SectionHeader icon={PawPrint} title="基本设置" description="配置神奇动物养成功能" />
               <div className="space-y-3">
-                <SettingsField label="启用宠物系统" description="开启后用户可领养和养成虚拟宠物">
+                <SettingsField label="启用神奇动物系统" description="开启后用户可领养和养成魔法生物">
                   <Switch checked={options['pet_setting.enabled'] === 'true'} onCheckedChange={(v) => updateOption('pet_setting.enabled', v ? 'true' : 'false')} />
                 </SettingsField>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-text-primary">每用户宠物上限</label>
-                  <p className="text-xs text-text-tertiary">每个用户最多可同时拥有的宠物数量</p>
+                  <label className="text-sm font-medium text-text-primary">每用户魔法生物上限</label>
+                  <p className="text-xs text-text-tertiary">每个用户最多可同时拥有的魔法生物数量</p>
                   <Input type="number" value={options['pet_setting.max_pets_per_user'] || ''} onChange={(e) => updateOption('pet_setting.max_pets_per_user', e.target.value)} placeholder="20" className="w-40" />
                 </div>
               </div>
@@ -1762,7 +1762,7 @@ const Setting = () => {
                   <Input type="number" value={options['pet_setting.max_star'] || ''} onChange={(e) => updateOption('pet_setting.max_star', e.target.value)} placeholder="5" className="w-full" />
                 </div>
               </div>
-              <div className="text-sm font-medium text-text-primary pt-2">市场参数</div>
+              <div className="text-sm font-medium text-text-primary pt-2">猪头酒吧参数</div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs text-text-secondary">手续费率(%)</label>
@@ -1775,7 +1775,7 @@ const Setting = () => {
               </div>
               <div className="flex justify-end pt-4">
                 <Button variant="primary" onClick={() => saveOptions(['pet_setting.enabled', 'pet_setting.max_pets_per_user', 'pet_setting.play_cooldown_minutes', 'pet_setting.clean_daily_limit', 'pet_setting.clean_boost', 'pet_setting.play_mood_boost', 'pet_setting.feed_exp', 'pet_setting.play_exp', 'pet_setting.clean_exp', 'pet_setting.hunger_decay_per_hour', 'pet_setting.mood_decay_per_hour', 'pet_setting.cleanliness_decay_per_hour', 'pet_setting.level_exp_multiplier', 'pet_setting.evolution_stage1_level', 'pet_setting.evolution_stage2_level', 'pet_setting.hatch_duration_minutes', 'pet_setting.fusion_base_cost', 'pet_setting.max_star', 'pet_setting.market_fee_rate', 'pet_setting.auction_bid_increment'])} loading={saving}>
-                  保存宠物设置
+                  保存神奇动物设置
                 </Button>
               </div>
             </CardContent>

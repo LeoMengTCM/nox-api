@@ -9,10 +9,12 @@ import { cn } from '../../lib/cn';
 import { Card, Spinner, Button } from '../../components/ui';
 import { PetSprite } from '../../components/pet/pet-sprite';
 import { RarityBadge } from '../../components/pet/rarity-badge';
+import { useWizardTitle } from '../../hooks/use-wizard-title';
 
 export default function PetAdopt() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { titleKey } = useWizardTitle();
   const [loading, setLoading] = useState(true);
   const [adopting, setAdopting] = useState(false);
   const [starters, setStarters] = useState([]);
@@ -88,10 +90,10 @@ export default function PetAdopt() {
           </div>
         </div>
         <h1 className="text-2xl font-heading text-text-primary">
-          {t('选择你的第一只伙伴')}
+          {t('选择你的第一只魔法生物')}
         </h1>
         <p className="text-sm text-text-tertiary mt-2">
-          {t('每位训练师可以免费领养一只初始宠物')}
+          {t('每位巫师可以免费领养一只初始魔法生物', { title: t(titleKey) })}
         </p>
       </motion.div>
 
@@ -104,10 +106,10 @@ export default function PetAdopt() {
           transition={{ duration: 0.3, delay: 0.1 }}
         >
           <p className="text-sm text-text-tertiary">
-            {t('暂无可领养的初始宠物')}
+            {t('暂无可领养的初始魔法生物')}
           </p>
           <p className="text-xs text-text-tertiary mt-1">
-            {t('请联系管理员配置初始宠物')}
+            {t('请联系管理员配置初始魔法生物')}
           </p>
         </motion.div>
       ) : (
@@ -242,7 +244,7 @@ export default function PetAdopt() {
           ) : (
             <>
               <Sparkles className="mr-2 h-4 w-4" />
-              {selected ? `${t('领养')} ${t(selectedName)}` : t('请先选择宠物')}
+              {selected ? `${t('领养')} ${t(selectedName)}` : t('请先选择魔法生物')}
             </>
           )}
         </Button>

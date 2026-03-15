@@ -212,7 +212,7 @@ const UserProfile = () => {
                 </span>
                 <span>
                   <strong className="text-text-primary">{petStats.pet_count}</strong>{' '}
-                  <span className="text-text-tertiary">{t('宠物')}</span>
+                  <span className="text-text-tertiary">{t('魔法生物')}</span>
                 </span>
               </div>
             </div>
@@ -238,7 +238,7 @@ const UserProfile = () => {
       <Tabs defaultValue="posts">
         <TabsList>
           <TabsTrigger value="posts">{t('帖子')}</TabsTrigger>
-          <TabsTrigger value="pets">{t('宠物')}</TabsTrigger>
+          <TabsTrigger value="pets">{t('魔法生物')}</TabsTrigger>
         </TabsList>
 
         {/* Posts tab */}
@@ -276,7 +276,7 @@ const UserProfile = () => {
         {/* Pets tab */}
         <TabsContent value="pets">
           {(!petData.pets || petData.pets.length === 0) ? (
-            <EmptyState title={t('该用户还没有宠物')} />
+            <EmptyState title={t('该用户还没有魔法生物')} />
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {petData.pets.map((item) => {

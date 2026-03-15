@@ -222,8 +222,8 @@ export default function PetShop() {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-2xl font-heading text-text-primary">{t('宠物商店')}</h1>
-          <p className="text-sm text-text-tertiary mt-1">{t('购买物品来照顾你的宠物')}</p>
+          <h1 className="text-2xl font-heading text-text-primary">{t('魔法商店')}</h1>
+          <p className="text-sm text-text-tertiary mt-1">{t('购买物品来照顾你的魔法生物')}</p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-hover">
           <Coins className="h-4 w-4 text-amber-500" />

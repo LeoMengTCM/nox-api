@@ -223,11 +223,11 @@ func SeedMissionData() {
 
 	missions := []PetMission{
 		{
-			Name:          "森林探索",
-			Description:   "探索附近的森林，寻找隐藏的宝藏",
+			Name:          "禁忌森林巡逻",
+			Description:   "在禁忌森林边缘巡逻，寻找迷路的魔法生物",
 			Duration:      1800,
 			Difficulty:    1,
-			RequiredLevel: 1,
+			RequiredLevel: 5,
 			MaxDaily:      5,
 			Enabled:       true,
 			StatWeights: mustMarshal(map[string]float64{
@@ -241,11 +241,11 @@ func SeedMissionData() {
 			UpdatedAt: now,
 		},
 		{
-			Name:          "矿洞冒险",
-			Description:   "深入黑暗的矿洞，挖掘珍贵的矿石",
+			Name:          "霍格莫德探险",
+			Description:   "前往霍格莫德村执行秘密任务",
 			Duration:      3600,
 			Difficulty:    2,
-			RequiredLevel: 5,
+			RequiredLevel: 10,
 			MaxDaily:      3,
 			Enabled:       true,
 			StatWeights: mustMarshal(map[string]float64{
@@ -259,11 +259,11 @@ func SeedMissionData() {
 			UpdatedAt: now,
 		},
 		{
-			Name:          "古塔探秘",
-			Description:   "攀登神秘的古塔，揭开尘封的秘密",
+			Name:          "密室深处",
+			Description:   "深入霍格沃茨密室，面对未知的黑暗生物",
 			Duration:      7200,
 			Difficulty:    3,
-			RequiredLevel: 10,
+			RequiredLevel: 20,
 			MaxDaily:      2,
 			Enabled:       true,
 			StatWeights: mustMarshal(map[string]float64{
@@ -277,11 +277,11 @@ func SeedMissionData() {
 			UpdatedAt: now,
 		},
 		{
-			Name:          "深海远征",
-			Description:   "潜入深海探索沉没的遗迹",
+			Name:          "古灵阁地下金库",
+			Description:   "协助妖精探索古灵阁最深处的远古金库",
 			Duration:      14400,
 			Difficulty:    4,
-			RequiredLevel: 20,
+			RequiredLevel: 35,
 			MaxDaily:      1,
 			Enabled:       true,
 			StatWeights: mustMarshal(map[string]float64{
@@ -295,11 +295,11 @@ func SeedMissionData() {
 			UpdatedAt: now,
 		},
 		{
-			Name:          "龙巢突袭",
-			Description:   "挑战传说中的龙巢，只有最强的宠物才能胜出",
+			Name:          "纽特的皮箱",
+			Description:   "进入纽特·斯卡曼德的魔法皮箱，寻找逃脱的珍稀魔法生物",
 			Duration:      28800,
 			Difficulty:    5,
-			RequiredLevel: 30,
+			RequiredLevel: 50,
 			MaxDaily:      1,
 			Enabled:       true,
 			StatWeights: mustMarshal(map[string]float64{

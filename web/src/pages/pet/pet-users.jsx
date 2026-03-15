@@ -68,7 +68,7 @@ export default function PetUsersPage() {
   return (
     <div className="space-y-6">
       <h1 className="font-heading text-2xl font-semibold text-text-primary">
-        {t('用户宠物查看')}
+        {t('用户魔法生物查看')}
       </h1>
 
       <Card>
@@ -103,8 +103,8 @@ export default function PetUsersPage() {
             ) : pets.length === 0 ? (
               <EmptyState
                 icon={Users}
-                title={t('暂无宠物')}
-                description={t('该用户暂无宠物数据')}
+                title={t('暂无魔法生物')}
+                description={t('该用户暂无魔法生物数据')}
               />
             ) : (
               <Table>

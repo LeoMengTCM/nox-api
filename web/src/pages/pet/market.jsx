@@ -59,7 +59,7 @@ function getSortOptions(t) {
   return [
     { value: 'price_asc', label: t('价格从低到高') },
     { value: 'price_desc', label: t('价格从高到低') },
-    { value: 'time_desc', label: t('最新上架') },
+    { value: 'time_desc', label: t('最新寄售') },
   ];
 }
 
@@ -248,15 +248,15 @@ export default function PetMarket() {
     try {
       const res = await API.post(`/api/pet/market/${buyListing.id}/buy`);
       if (res.data.success) {
-        showSuccess(t('购买成功'));
+        showSuccess(t('交易成功'));
         setBuyDialogOpen(false);
         setBuyListing(null);
         loadBrowse(browsePage);
       } else {
-        showError(res.data.message || t('购买失败'));
+        showError(res.data.message || t('交易失败'));
       }
     } catch {
-      showError(t('购买失败'));
+      showError(t('交易失败'));
     } finally {
       setBuying(false);
     }
@@ -301,7 +301,7 @@ export default function PetMarket() {
     try {
       const res = await API.delete(`/api/pet/market/${listingId}`);
       if (res.data.success) {
-        showSuccess(t('已取消挂单'));
+        showSuccess(t('已取消寄售'));
         loadMyListings(myPage);
       } else {
         showError(res.data.message || t('取消失败'));
@@ -325,7 +325,7 @@ export default function PetMarket() {
         setMyPets(normalPets);
       }
     } catch {
-      showError(t('加载宠物失败'));
+      showError(t('加载魔法生物失败'));
     } finally {
       setMyPetsLoading(false);
     }
@@ -334,7 +334,7 @@ export default function PetMarket() {
   const handleCreate = async () => {
     if (creating) return;
     if (!createForm.pet_id) {
-      showError(t('请选择宠物'));
+      showError(t('请选择魔法生物'));
       return;
     }
     const isAuction = createForm.listing_type === 'auction';
@@ -359,7 +359,7 @@ export default function PetMarket() {
       }
       const res = await API.post('/api/pet/market', body);
       if (res.data.success) {
-        showSuccess(t('挂单成功'));
+        showSuccess(t('寄售成功'));
         setCreateDialogOpen(false);
         setCreateForm({
           pet_id: '',
@@ -371,10 +371,10 @@ export default function PetMarket() {
         loadMyListings(1);
         setTab('my');
       } else {
-        showError(res.data.message || t('挂单失败'));
+        showError(res.data.message || t('寄售失败'));
       }
     } catch {
-      showError(t('挂单失败'));
+      showError(t('寄售失败'));
     } finally {
       setCreating(false);
     }
@@ -413,10 +413,10 @@ export default function PetMarket() {
         transition={{ duration: 0.3 }}
       >
         <h1 className="text-2xl font-heading text-text-primary">
-          {t('交易市场')}
+          {t('猪头酒吧')}
         </h1>
         <p className="text-sm text-text-tertiary mt-1">
-          {t('买卖宠物，发现稀有伙伴')}
+          {t('霍格莫德最隐蔽的交易场所')}
         </p>
       </motion.div>
 
@@ -430,11 +430,11 @@ export default function PetMarket() {
           <TabsList>
             <TabsTrigger value="browse" className="gap-1.5">
               <Store className="h-3.5 w-3.5" />
-              {t('市场')}
+              {t('猪头酒吧')}
             </TabsTrigger>
             <TabsTrigger value="my" className="gap-1.5">
               <Tag className="h-3.5 w-3.5" />
-              {t('我的挂单')}
+              {t('我的寄售')}
             </TabsTrigger>
             <TabsTrigger value="history" className="gap-1.5">
               <Clock className="h-3.5 w-3.5" />
@@ -532,7 +532,7 @@ export default function PetMarket() {
               </div>
             ) : listings.length === 0 ? (
               <div className="py-16 text-center text-sm text-text-tertiary">
-                {t('暂无挂单')}
+                {t('暂无寄售品')}
               </div>
             ) : (
               <>
@@ -573,7 +573,7 @@ export default function PetMarket() {
             <div className="mb-4">
               <Button size="sm" onClick={openCreateDialog} className="gap-1.5">
                 <Plus className="h-3.5 w-3.5" />
-                {t('挂单出售')}
+                {t('寄售魔法生物')}
               </Button>
             </div>
 
@@ -583,7 +583,7 @@ export default function PetMarket() {
               </div>
             ) : myListings.length === 0 ? (
               <div className="py-16 text-center text-sm text-text-tertiary">
-                {t('暂无挂单')}
+                {t('暂无寄售品')}
               </div>
             ) : (
               <>
@@ -646,9 +646,9 @@ export default function PetMarket() {
       <Dialog open={buyDialogOpen} onOpenChange={setBuyDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>{t('确认购买')}</DialogTitle>
+            <DialogTitle>{t('确认交易')}</DialogTitle>
             <DialogDescription>
-              {t('确认以该价格购买此宠物？')}
+              {t('确认以该价格交易此魔法生物？')}
             </DialogDescription>
           </DialogHeader>
           {buyListing && (
@@ -695,7 +695,7 @@ export default function PetMarket() {
               {t('取消')}
             </Button>
             <Button onClick={handleBuy} loading={buying} disabled={buying}>
-              {t('确认购买')}
+              {t('确认交易')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -779,9 +779,9 @@ export default function PetMarket() {
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{t('挂单出售')}</DialogTitle>
+            <DialogTitle>{t('寄售魔法生物')}</DialogTitle>
             <DialogDescription>
-              {t('选择要出售的宠物并设置价格')}
+              {t('选择要寄售的魔法生物并设置价格')}
             </DialogDescription>
           </DialogHeader>
           <div className="py-3 space-y-4">
@@ -792,13 +792,13 @@ export default function PetMarket() {
               </div>
             ) : myPets.length === 0 ? (
               <div className="text-center py-4 text-sm text-text-tertiary">
-                {t('没有可出售的宠物')}
+                {t('没有可寄售的魔法生物')}
               </div>
             ) : (
               <>
                 <div>
                   <label className="text-sm font-medium text-text-primary mb-1.5 block">
-                    {t('选择宠物')}
+                    {t('选择魔法生物')}
                   </label>
                   <div className="max-h-48 overflow-y-auto space-y-1.5 border border-border rounded-lg p-2">
                     {myPets.map((pet) => (
@@ -843,7 +843,7 @@ export default function PetMarket() {
                 {/* Listing type */}
                 <div>
                   <label className="text-sm font-medium text-text-primary mb-1.5 block">
-                    {t('出售类型')}
+                    {t('寄售类型')}
                   </label>
                   <div className="flex items-center gap-2">
                     <button
@@ -912,7 +912,7 @@ export default function PetMarket() {
                 {/* Duration */}
                 <div>
                   <label className="text-sm font-medium text-text-primary mb-1.5 block">
-                    {t('挂单时长')}
+                    {t('寄售时长')}
                   </label>
                   <div className="flex items-center gap-2">
                     {['1', '3', '7'].map((d) => (
@@ -948,7 +948,7 @@ export default function PetMarket() {
               loading={creating}
               disabled={creating || myPets.length === 0}
             >
-              {t('确认挂单')}
+              {t('确认寄售')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1119,7 +1119,7 @@ function ListingCard({ listing, now, t, onBuy, onBid, onPriceTrend }) {
             onClick={onBuy}
             disabled={isExpired}
           >
-            {isExpired ? t('已结束') : t('购买')}
+            {isExpired ? t('已结束') : t('交易')}
           </Button>
         )}
         <Button
@@ -1270,7 +1270,7 @@ function HistoryRow({ item, t }) {
                 : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
             )}
           >
-            {item.is_buyer ? t('买入') : t('卖出')}
+            {item.is_buyer ? t('买入') : t('售出')}
           </span>
         )}
       </div>

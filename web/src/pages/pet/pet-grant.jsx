@@ -136,12 +136,12 @@ export default function PetGrantPage() {
   return (
     <div className="space-y-6">
       <h1 className="font-heading text-2xl font-semibold text-text-primary">
-        {t('发放宠物/物品')}
+        {t('发放魔法生物/物品')}
       </h1>
 
       <Tabs defaultValue="pet">
         <TabsList>
-          <TabsTrigger value="pet">{t('发放宠物')}</TabsTrigger>
+          <TabsTrigger value="pet">{t('发放魔法生物')}</TabsTrigger>
           <TabsTrigger value="item">{t('发放物品')}</TabsTrigger>
         </TabsList>
 
@@ -150,7 +150,7 @@ export default function PetGrantPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Gift className="w-5 h-5 text-accent" />
-                {t('发放宠物')}
+                {t('发放魔法生物')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">

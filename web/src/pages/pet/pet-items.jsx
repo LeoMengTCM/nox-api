@@ -205,7 +205,7 @@ export default function PetItemsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-heading text-2xl font-semibold text-text-primary">
-          {t('宠物物品管理')}
+          {t('魔法物品管理')}
         </h1>
         <Button variant="primary" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>
           {t('创建物品')}
@@ -222,7 +222,7 @@ export default function PetItemsPage() {
             <EmptyState
               icon={Package}
               title={t('暂无物品')}
-              description={t('点击上方按钮创建第一个宠物物品')}
+              description={t('点击上方按钮创建第一个魔法物品')}
             />
           ) : (
             <Table>
@@ -300,7 +300,7 @@ export default function PetItemsPage() {
           <DialogHeader>
             <DialogTitle>{editing ? t('编辑物品') : t('创建物品')}</DialogTitle>
             <DialogDescription>
-              {editing ? t('修改宠物物品的属性和配置') : t('配置新宠物物品的基本信息')}
+              {editing ? t('修改魔法物品的属性和配置') : t('配置新魔法物品的基本信息')}
             </DialogDescription>
           </DialogHeader>
 

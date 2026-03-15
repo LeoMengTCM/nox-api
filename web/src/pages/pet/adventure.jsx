@@ -316,7 +316,7 @@ export default function PetAdventure() {
           {t('冒险')}
         </h1>
         <p className="text-sm text-text-tertiary mt-1">
-          {t('派遣宠物完成任务获取奖励')}
+          {t('派遣魔法生物完成任务获取奖励')}
         </p>
       </motion.div>
 
@@ -411,7 +411,7 @@ export default function PetAdventure() {
       <Dialog open={selectPetOpen} onOpenChange={setSelectPetOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t('选择宠物')}</DialogTitle>
+            <DialogTitle>{t('选择魔法生物')}</DialogTitle>
             <DialogDescription>
               {selectedMission?.name}
               {selectedMission?.required_level > 1 &&
@@ -422,7 +422,7 @@ export default function PetAdventure() {
             {selectedMission &&
             getEligiblePets(selectedMission).length === 0 ? (
               <div className="text-center py-8 text-sm text-text-tertiary">
-                {t('没有可派遣的宠物')}
+                {t('没有可派遣的魔法生物')}
               </div>
             ) : (
               selectedMission &&
@@ -793,7 +793,11 @@ function HistoryList({
                 <span className="text-sm font-medium text-text-primary truncate">
                   {mission?.name || t('任务')}
                 </span>
-                {item.success ? (
+                {item.status === 'in_progress' ? (
+                  <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                    {t('进行中')}
+                  </span>
+                ) : item.success ? (
                   <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
                     {t('成功')}
                   </span>

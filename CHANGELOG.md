@@ -2,6 +2,30 @@
 
 All notable changes to Nox API will be documented in this file.
 
+## [0.1.2] - 2026-03-15
+
+### Harry Potter Theming
+
+This release transforms the pet system into a fully immersive Wizarding World experience.
+
+- **"Pet Paradise" → "Fantastic Beasts"** (神奇动物): Renamed across all UI — sidebar, page titles, descriptions, admin panels. "My Pets" → "My Fantastic Beasts", "Adventurer/Trainer" → "Wizard/Witch".
+- **Wizard/Witch title selector**: Gear icon in the pet pages header lets users choose "Wizard" or "Witch" as their title, persisted in localStorage, dynamically applied everywhere via `useWizardTitle` hook.
+- **Market → "The Hog's Head"** (猪头酒吧): Full rebrand — "list" → "consign", "buyer/seller" → "buyer wizard/consigning wizard", subtitle: "The most secretive trading spot in Hogsmeade".
+- **Adventure missions redesigned**: 5 HP-themed missions — Forbidden Forest Patrol, Hogsmeade Expedition, Chamber of Secrets, Gringotts Vaults, Newt's Suitcase (seed data, new installs only).
+- **Food & potions expanded**: 10 HP-themed items replacing the original 6 (seed data, new installs only):
+  - Food: Pumpkin Juice, Bertie Bott's Beans, Chocolate Frog, Butterbeer, Treacle Tart
+  - Potions: Shrinking Solution, Scouring Solution, Pepperup Potion, Skele-Gro, Felix Felicis
+
+### New Features
+
+- **Batch hatch**: "Hatch All" button on the creatures list page detects all ready-to-hatch eggs, shows a confirmation plan, then executes sequentially with a progress overlay.
+
+### Bug Fixes
+
+- **Adventure dispatch shows result immediately**: `GetDispatchHistory` was missing the lazy-completion call (`CheckAndCompleteDispatches`), so in-progress dispatches with default `success=false` appeared as "failed". Now correctly shows "In Progress" badge until the mission timer expires.
+
+---
+
 ## [0.1.1] - 2026-03-15
 
 ### New Features

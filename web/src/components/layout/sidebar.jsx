@@ -319,14 +319,14 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
 
   const petItems = useMemo(() => {
     return [
-      { text: t('宠物'), itemKey: 'pet', alwaysShow: true },
+      { text: t('我的生物'), itemKey: 'pet', alwaysShow: true },
       { text: t('商店'), itemKey: 'pet-shop', alwaysShow: true },
       { text: t('背包'), itemKey: 'pet-inventory', alwaysShow: true },
       { text: t('召唤'), itemKey: 'pet-gacha', alwaysShow: true },
       { text: t('融合'), itemKey: 'pet-fusion', alwaysShow: true },
       { text: t('冒险'), itemKey: 'pet-adventure', alwaysShow: true },
-      { text: t('市场'), itemKey: 'pet-market', alwaysShow: true },
-      { text: t('宠物排行'), itemKey: 'pet-ranking', alwaysShow: true },
+      { text: t('猪头酒吧'), itemKey: 'pet-market', alwaysShow: true },
+      { text: t('生物排行'), itemKey: 'pet-ranking', alwaysShow: true },
     ];
   }, [t]);
 
@@ -341,9 +341,9 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
       { text: t('系统设置'), itemKey: 'setting', needsRoot: true },
       { text: t('卡池管理'), itemKey: 'gacha-pools', needsAdmin: true },
       { text: t('任务管理'), itemKey: 'missions-admin', needsAdmin: true },
-      { text: t('宠物数据'), itemKey: 'pet-users-admin', needsAdmin: true },
-      { text: t('宠物发放'), itemKey: 'pet-grant-admin', needsAdmin: true },
-      { text: t('市场监控'), itemKey: 'pet-market-admin', needsAdmin: true },
+      { text: t('生物数据'), itemKey: 'pet-users-admin', needsAdmin: true },
+      { text: t('生物发放'), itemKey: 'pet-grant-admin', needsAdmin: true },
+      { text: t('酒吧监控'), itemKey: 'pet-market-admin', needsAdmin: true },
       { text: t('统计面板'), itemKey: 'pet-stats-admin', needsAdmin: true },
       { text: t('物种管理'), itemKey: 'pet-species-admin', needsAdmin: true },
       { text: t('物品管理'), itemKey: 'pet-items-admin', needsAdmin: true },
@@ -468,7 +468,7 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
         {petItems.length > 0 && (
           <CollapsibleSection
             sectionKey="pet"
-            label={t('宠物乐园')}
+            label={t('神奇动物')}
             collapsed={collapsed}
             isOpen={!collapsedSections.pet}
             onToggle={() => toggleSection('pet')}

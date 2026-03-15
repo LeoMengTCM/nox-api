@@ -164,7 +164,7 @@ export default function PetFusion() {
     }
 
     if (pairs.length === 0) {
-      showError(t('没有可一键融合的宠物'));
+      showError(t('没有可一键融合的魔法生物'));
       return;
     }
 
@@ -280,7 +280,7 @@ export default function PetFusion() {
       >
         <div>
           <h1 className="text-2xl font-heading text-text-primary">{t('融合升星')}</h1>
-          <p className="text-sm text-text-tertiary mt-1">{t('使用同种宠物进行融合，提升星级和属性')}</p>
+          <p className="text-sm text-text-tertiary mt-1">{t('使用同种魔法生物进行融合，提升星级和属性')}</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="secondary" size="sm" onClick={autoSelect} disabled={fusing || batchRunning || mainCandidates.length === 0}>
@@ -335,7 +335,7 @@ export default function PetFusion() {
         <div className="space-y-3">
           <h2 className="text-sm font-medium text-text-primary">{t('选择主宠')}</h2>
           {mainCandidates.length === 0
-            ? <EmptySlot text={t('没有可融合的宠物')} />
+            ? <EmptySlot text={t('没有可融合的魔法生物')} />
             : <PetGrid items={mainCandidates} selectedId={mainData?.id} onSelect={selectMain} />}
         </div>
         {/* Material Pet */}
@@ -345,8 +345,8 @@ export default function PetFusion() {
             ? <EmptySlot text={t('请先选择主宠')} />
             : materialCandidates.length === 0
               ? <Card className="p-8 text-center space-y-2">
-                  <p className="text-sm text-text-tertiary">{t('没有同种宠物可作为材料')}</p>
-                  <p className="text-sm text-text-tertiary py-4 text-center">{t('融合需要相同物种的宠物作为素材')}</p>
+                  <p className="text-sm text-text-tertiary">{t('没有同种魔法生物可作为材料')}</p>
+                  <p className="text-sm text-text-tertiary py-4 text-center">{t('融合需要相同物种的魔法生物作为素材')}</p>
                 </Card>
               : <PetGrid items={materialCandidates} selectedId={materialData?.id} onSelect={selectMaterial}
                   excludedIds={excludedIds} onToggleExclude={toggleExclude} />}
@@ -414,7 +414,7 @@ export default function PetFusion() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{t('一键融合计划')}</DialogTitle>
-            <DialogDescription>{t('以下宠物将自动融合，点击 × 可移除不想融合的组合')}</DialogDescription>
+            <DialogDescription>{t('以下魔法生物将自动融合，点击 x 可移除不想融合的组合')}</DialogDescription>
           </DialogHeader>
           <div className="max-h-64 overflow-y-auto space-y-2 py-2">
             {batchPlan?.pairs.map((pair, idx) => {
@@ -514,7 +514,7 @@ export default function PetFusion() {
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3">
-              <span className="text-sm text-amber-700 dark:text-amber-400">{t('材料宠物将被消耗')}</span>
+              <span className="text-sm text-amber-700 dark:text-amber-400">{t('材料魔法生物将被消耗')}</span>
             </div>
             {materialData && (
               <div className="flex items-center gap-3 rounded-lg bg-surface-hover px-4 py-3">

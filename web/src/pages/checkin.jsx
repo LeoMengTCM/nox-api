@@ -281,7 +281,7 @@ export default function CheckinPage() {
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/10 text-accent">
                 <PawPrint className="h-4 w-4" />
               </div>
-              <h3 className="text-sm font-medium text-text-primary">{t('宠物奖励')}</h3>
+              <h3 className="text-sm font-medium text-text-primary">{t('魔法生物奖励')}</h3>
             </div>
 
             <div className="space-y-2">
@@ -343,7 +343,7 @@ export default function CheckinPage() {
       {isCurrentMonth(currentDate) && !checkedInToday && (
         <div className="text-center">
           <p className="text-xs text-text-tertiary">
-            {t('连续签到可获得更多宠物奖励')}
+            {t('连续签到可获得更多魔法生物奖励')}
           </p>
         </div>
       )}

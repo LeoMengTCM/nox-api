@@ -7,6 +7,7 @@ import { Card } from '../../components/ui';
 import { API } from '../../lib/api';
 import { showError } from '../../lib/utils';
 import { UserContext } from '../../contexts/user-context';
+import { useWizardTitle } from '../../hooks/use-wizard-title';
 
 const MEDAL_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];
 
@@ -94,6 +95,7 @@ function PetRankingBoard({ title, icon: Icon, iconColor, data, currentUserId, va
 
 export default function PetRanking() {
   const { t } = useTranslation();
+  const { titleKey } = useWizardTitle();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
     level_ranking: [],
@@ -125,8 +127,8 @@ export default function PetRanking() {
     return (
       <div className="p-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-heading text-text-primary">{t('宠物排行')}</h1>
-          <p className="text-sm text-text-tertiary mt-1">{t('看看谁是最强训练师')}</p>
+          <h1 className="text-2xl font-heading text-text-primary">{t('生物排行')}</h1>
+          <p className="text-sm text-text-tertiary mt-1">{t('看看谁是最强巫师', { title: t(titleKey) })}</p>
         </div>
         <div className="grid gap-6 lg:grid-cols-3">
           {[0, 1, 2].map((i) => (
@@ -145,8 +147,8 @@ export default function PetRanking() {
       transition={{ duration: 0.3 }}
     >
       <div>
-        <h1 className="text-2xl font-heading text-text-primary">{t('宠物排行')}</h1>
-        <p className="text-sm text-text-tertiary mt-1">{t('看看谁是最强训练师')}</p>
+        <h1 className="text-2xl font-heading text-text-primary">{t('生物排行')}</h1>
+        <p className="text-sm text-text-tertiary mt-1">{t('看看谁是最强巫师', { title: t(titleKey) })}</p>
       </div>
       <div className="grid gap-6 lg:grid-cols-3">
         <PetRankingBoard
@@ -155,16 +157,16 @@ export default function PetRanking() {
           iconColor="#F59E0B"
           data={data.level_ranking || []}
           currentUserId={currentUserId}
-          valueLabel={t('单只宠物最高等级')}
+          valueLabel={t('单只魔法生物最高等级')}
           renderValue={(entry) => `Lv.${entry.value}`}
         />
         <PetRankingBoard
-          title={t('宠物收集')}
+          title={t('生物收集')}
           icon={PawPrint}
           iconColor="#8B5CF6"
           data={data.count_ranking || []}
           currentUserId={currentUserId}
-          valueLabel={t('拥有宠物最多的训练师')}
+          valueLabel={t('拥有魔法生物最多的巫师', { title: t(titleKey) })}
           renderValue={(entry) => `${entry.value} ${t('只')}`}
         />
         <PetRankingBoard
@@ -173,7 +175,7 @@ export default function PetRanking() {
           iconColor="#EF4444"
           data={data.star_ranking || []}
           currentUserId={currentUserId}
-          valueLabel={t('宠物总星级最高')}
+          valueLabel={t('魔法生物总星级最高')}
           renderValue={(entry) => `${entry.value} \u2605`}
         />
       </div>

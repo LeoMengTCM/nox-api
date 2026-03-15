@@ -322,7 +322,7 @@ export default function PetDetail() {
     try {
       const res = await API.delete(`/api/pet/my/${id}`);
       if (res.data.success) {
-        showSuccess(t('宠物已放养'));
+        showSuccess(t('魔法生物已放归'));
         navigate('/console/pet');
       } else {
         showError(res.data.message);
@@ -389,7 +389,7 @@ export default function PetDetail() {
           className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          {t('我的宠物')}
+          {t('我的神奇动物')}
         </button>
       </motion.div>
 
@@ -558,7 +558,7 @@ export default function PetDetail() {
             <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3">
               <AlertTriangle size={16} className="shrink-0 text-amber-500" />
               <span className="text-sm text-amber-700 dark:text-amber-400">
-                {t('宠物虚弱中，请先喂养恢复状态')}
+                {t('魔法生物虚弱中，请先喂养恢复状态')}
               </span>
             </div>
           )}
@@ -579,7 +579,7 @@ export default function PetDetail() {
               ) : (
                 <>
                   <p className="text-sm text-text-secondary">
-                    {hatchCountdown === 0 ? t('可以孵化了！') : t('你的宠物还在蛋中，点击孵化让它破壳而出！')}
+                    {hatchCountdown === 0 ? t('可以孵化了！') : t('你的魔法生物还在蛋中，点击孵化让它破壳而出！')}
                   </p>
                   <Button onClick={handleHatch} disabled={interacting}>
                     {interacting ? t('加载中') : t('孵化')}
@@ -660,7 +660,7 @@ export default function PetDetail() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('选择食物')}</DialogTitle>
-            <DialogDescription>{t('选择背包中的食物喂养宠物')}</DialogDescription>
+            <DialogDescription>{t('选择背包中的食物喂养魔法生物')}</DialogDescription>
           </DialogHeader>
           <div className="py-2 max-h-64 overflow-y-auto space-y-2">
             {loadingInventory ? (
@@ -746,7 +746,7 @@ export default function PetDetail() {
           <DialogHeader>
             <DialogTitle>{t('确认放养')}</DialogTitle>
             <DialogDescription>
-              {t('放养后宠物将永久消失，此操作不可撤销。确定要放养')} {displayName} {t('吗？')}
+              {t('放归后魔法生物将永久消失，此操作不可撤销。确定要放归')} {displayName} {t('吗？')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

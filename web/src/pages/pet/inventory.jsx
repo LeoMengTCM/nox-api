@@ -292,7 +292,7 @@ export default function PetInventory() {
       <Dialog open={useDialogOpen} onOpenChange={setUseDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t('选择宠物使用')}</DialogTitle>
+            <DialogTitle>{t('选择魔法生物使用')}</DialogTitle>
             <DialogDescription>
               {selectedItem?.name}
             </DialogDescription>
@@ -300,7 +300,7 @@ export default function PetInventory() {
           <div className="py-2 max-h-80 overflow-y-auto space-y-2">
             {usablePets.length === 0 ? (
               <div className="text-center py-8 text-sm text-text-tertiary">
-                {t('没有可使用的宠物')}
+                {t('没有可使用的魔法生物')}
               </div>
             ) : (
               usablePets.map((pet) => (

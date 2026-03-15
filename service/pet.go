@@ -715,6 +715,11 @@ func ComputePetSummary(pet *model.UserPet, speciesOpt ...*model.PetSpecies) map[
 	}
 	if pet.Stage == 0 && pet.HatchedAt != nil {
 		result["hatch_ready_at"] = pet.HatchedAt
+		remaining := time.Until(*pet.HatchedAt).Seconds()
+		if remaining < 0 {
+			remaining = 0
+		}
+		result["hatch_countdown"] = int(remaining)
 	}
 	return result
 }
