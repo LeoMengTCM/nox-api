@@ -194,7 +194,6 @@ function MultiResult({ results, onDone }) {
     <div className="flex flex-col items-center gap-4 max-w-lg w-full" onClick={onDone}>
       <div className="grid grid-cols-5 gap-3 w-full">
         {results.map((r, i) => {
-          const isHighRarity = r.rarity === 'SSR' || r.rarity === 'SR';
           return (
             <div
               key={i}
@@ -368,9 +367,9 @@ export function GachaAnimation({ results, mode = 'single', onComplete }) {
         }
         .gacha-ssr-border {
           background: rgba(251,191,36,0.08);
-          ring: 1px solid rgba(251,191,36,0.4);
           outline: 1px solid rgba(251,191,36,0.4);
-          animation: gacha-ssr-glow 2s ease-in-out infinite;
+          animation: gacha-grid-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+                     gacha-ssr-glow 2s ease-in-out infinite;
         }
 
         @keyframes gacha-pity-bounce-kf {

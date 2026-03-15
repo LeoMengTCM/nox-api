@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Swords, Shield, Zap, Clover, ArrowRight, Plus, Sparkles } from 'lucide-react';
+import { Coins, Swords, Shield, Zap, Clover, ArrowRight, Plus, Sparkles, Wand2, X } from 'lucide-react';
 import { API } from '../../lib/api';
 import { showError, showSuccess, renderQuota } from '../../lib/utils';
 import { cn } from '../../lib/cn';
@@ -31,6 +31,7 @@ export default function PetFusion() {
   const [fusing, setFusing] = useState(false);
   const [fusionAnim, setFusionAnim] = useState(false);
   const [fusionResult, setFusionResult] = useState(null);
+  const [excludedIds, setExcludedIds] = useState(new Set());
 
   const loadData = async () => {
     setLoading(true);
@@ -82,6 +83,60 @@ export default function PetFusion() {
   const selectMain = (pet) => { setMainPet(pet); setMaterialPet(null); setFusionResult(null); };
   const selectMaterial = (pet) => { setMaterialPet(pet); setFusionResult(null); };
 
+  const toggleExclude = (petId) => {
+    setExcludedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(petId)) next.delete(petId);
+      else next.add(petId);
+      return next;
+    });
+  };
+
+  const autoSelect = () => {
+    // Helper: get eligible materials for a given main pet, respecting excludedIds
+    const getMaterials = (main) => {
+      const mainD = petOf(main);
+      return pets
+        .filter((p) => {
+          const d = petOf(p);
+          return d.id !== mainD.id && d.species_id === mainD.species_id
+            && !d.is_primary && !['dispatched', 'listed'].includes(d.state)
+            && !excludedIds.has(d.id);
+        })
+        .sort((a, b) => petOf(a).star - petOf(b).star);
+    };
+
+    if (mainPet) {
+      // Main already selected -> auto-pick lowest-star material
+      const candidates = getMaterials(mainPet);
+      if (candidates.length === 0) {
+        showError(t('没有可用的融合素材'));
+        return;
+      }
+      setMaterialPet(candidates[0]);
+      setFusionResult(null);
+    } else {
+      // No main selected -> pick the main with the most available materials, then lowest-star material
+      const eligible = mainCandidates.filter((p) => !excludedIds.has(petOf(p).id));
+      let bestMain = null;
+      let bestMaterials = [];
+      for (const candidate of eligible) {
+        const mats = getMaterials(candidate);
+        if (mats.length > bestMaterials.length) {
+          bestMain = candidate;
+          bestMaterials = mats;
+        }
+      }
+      if (!bestMain || bestMaterials.length === 0) {
+        showError(t('没有可一键融合的宠物'));
+        return;
+      }
+      setMainPet(bestMain);
+      setMaterialPet(bestMaterials[0]);
+      setFusionResult(null);
+    }
+  };
+
   const handleFusion = async () => {
     if (!mainData || !materialData || fusing) return;
     setFusing(true);
@@ -131,9 +186,14 @@ export default function PetFusion() {
           <h1 className="text-2xl font-heading text-text-primary">{t('融合升星')}</h1>
           <p className="text-sm text-text-tertiary mt-1">{t('使用同种宠物进行融合，提升星级和属性')}</p>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-hover">
-          <Coins className="h-4 w-4 text-amber-500" />
-          <span className="text-sm font-medium text-text-primary">{renderQuota(quota)}</span>
+        <div className="flex items-center gap-3">
+          <Button variant="secondary" size="sm" onClick={autoSelect} disabled={fusing || mainCandidates.length === 0}>
+            <Wand2 className="mr-1.5 h-3.5 w-3.5" />{t('一键融合')}
+          </Button>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-hover">
+            <Coins className="h-4 w-4 text-amber-500" />
+            <span className="text-sm font-medium text-text-primary">{renderQuota(quota)}</span>
+          </div>
         </div>
       </motion.div>
 
@@ -192,7 +252,8 @@ export default function PetFusion() {
                   <p className="text-sm text-text-tertiary">{t('没有同种宠物可作为材料')}</p>
                   <p className="text-sm text-text-tertiary py-4 text-center">{t('融合需要相同物种的宠物作为素材')}</p>
                 </Card>
-              : <PetGrid items={materialCandidates} selectedId={materialData?.id} onSelect={selectMaterial} />}
+              : <PetGrid items={materialCandidates} selectedId={materialData?.id} onSelect={selectMaterial}
+                  excludedIds={excludedIds} onToggleExclude={toggleExclude} />}
         </div>
       </motion.div>
 
@@ -313,20 +374,44 @@ function EmptySlot({ text }) {
   );
 }
 
-function PetGrid({ items, selectedId, onSelect }) {
+function PetGrid({ items, selectedId, onSelect, excludedIds, onToggleExclude }) {
+  const { t } = useTranslation();
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
       {items.map((entry) => {
         const pet = petOf(entry);
+        const isExcluded = excludedIds?.has(pet.id);
         return (
           <Card
             key={pet.id}
             className={cn(
-              'p-3 cursor-pointer transition-all hover:border-border-strong',
+              'p-3 cursor-pointer transition-all hover:border-border-strong relative',
               selectedId === pet.id && 'border-accent ring-1 ring-accent/30 bg-accent/5',
+              isExcluded && 'opacity-40',
             )}
-            onClick={() => onSelect(entry)}
+            onClick={() => {
+              if (isExcluded) {
+                onToggleExclude?.(pet.id);
+              } else {
+                onSelect(entry);
+              }
+            }}
           >
+            {onToggleExclude && !isExcluded && (
+              <button
+                type="button"
+                className="absolute top-1 right-1 p-0.5 rounded-full bg-surface-hover hover:bg-red-100 dark:hover:bg-red-900/30 text-text-tertiary hover:text-red-500 transition-colors z-10"
+                onClick={(e) => { e.stopPropagation(); onToggleExclude(pet.id); }}
+                title="Exclude"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+            {isExcluded && (
+              <div className="absolute inset-0 flex items-center justify-center z-10">
+                <span className="text-[10px] text-text-tertiary bg-surface/80 px-2 py-0.5 rounded">{t('已排除')}</span>
+              </div>
+            )}
             <div className="flex flex-col items-center gap-2">
               <PetSprite visualKey={pet.visual_key} stage={pet.stage} size="sm" />
               <div className="text-center min-w-0 w-full">

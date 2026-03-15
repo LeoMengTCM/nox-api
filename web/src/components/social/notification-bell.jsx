@@ -47,7 +47,19 @@ const NotificationBell = () => {
 
   useEffect(() => {
     if (dropdownOpen && isLoggedIn) {
-      loadRecentNotifications();
+      // Mark all as read first, then load notifications so they appear as read
+      if (unreadCount > 0) {
+        API.put('/api/social/notifications/read-all')
+          .then(() => {
+            refresh();
+            loadRecentNotifications();
+          })
+          .catch(() => {
+            loadRecentNotifications();
+          });
+      } else {
+        loadRecentNotifications();
+      }
     }
   }, [dropdownOpen, isLoggedIn]);
 

@@ -102,6 +102,36 @@ func (channel *Channel) GetKeys() []string {
 	return keys
 }
 
+// MaskedKey returns a masked version of the channel key for display purposes.
+// For single keys: shows first 4 and last 4 characters with asterisks in between.
+// For multi-key channels: masks the first key and appends the total key count.
+func (channel *Channel) MaskedKey() string {
+	if channel.Key == "" {
+		return ""
+	}
+	keys := channel.GetKeys()
+	if len(keys) == 0 {
+		return ""
+	}
+	masked := maskSingleKey(keys[0])
+	if len(keys) > 1 {
+		masked = fmt.Sprintf("%s (共 %d 个密钥)", masked, len(keys))
+	}
+	return masked
+}
+
+// maskSingleKey masks a single key string, keeping first 2 and last 4 characters visible.
+func maskSingleKey(key string) string {
+	key = strings.TrimSpace(key)
+	if key == "" {
+		return ""
+	}
+	if len(key) <= 6 {
+		return strings.Repeat("*", len(key))
+	}
+	return key[:2] + "****" + key[len(key)-4:]
+}
+
 func (channel *Channel) GetNextEnabledKey() (string, int, *types.NewAPIError) {
 	// If not in multi-key mode, return the original key string directly.
 	if !channel.ChannelInfo.IsMultiKey {

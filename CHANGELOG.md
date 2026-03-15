@@ -2,7 +2,27 @@
 
 All notable changes to Nox API will be documented in this file.
 
-## [0.1.0] - 2026-03-15
+## [0.1.1] - 2026-03-15
+
+### New Features
+
+- **One-click fusion** — Auto-select optimal fusion materials with a single tap. Picks same-species pets by lowest star rating, excluding primary/dispatched/listed pets. Users can manually exclude specific pets and restore them. (`web/src/pages/pet/fusion.jsx`)
+- **Sidebar collapsible sections** — Each sidebar group can now be collapsed/expanded by clicking its header. Defaults to collapsed, with smooth 200ms height transition animation. Collapse state persisted in localStorage. (`web/src/components/layout/sidebar.jsx`)
+
+### Bug Fixes
+
+- **Notification badge never clears** — Opening the notification dropdown now calls the mark-all-read API and refreshes the unread count to zero, so the red badge disappears after reading. (`web/src/components/social/notification-bell.jsx`)
+- **SSR gacha result invisible** — Fixed a CSS animation override where `.gacha-ssr-border`'s `animation` property clobbered the `gacha-grid-pop` opacity transition, keeping SSR cards permanently at `opacity: 0`. Now uses comma-separated composite animation. (`web/src/components/pet/gacha-animation.jsx`)
+- **Channel model group list truncated** — ScrollArea Viewport now inherits the parent's `max-height` constraint via `max-h-[inherit]`, enabling proper scrolling when the model list overflows. (`web/src/components/ui/scroll-area.jsx`)
+- **Channel edit forces key re-entry** — Backend now returns a masked key (e.g. `sk****abcd`) on GET and preserves the original key when the update payload sends an empty string. Frontend shows the masked key as a hint and skips key validation in edit mode. (`controller/channel.go`, `model/channel.go`, `web/src/pages/channel.jsx`)
+
+### i18n
+
+- Added translations for "一键融合", "没有可用的融合素材", "没有可一键融合的宠物", "已排除", "工作台" across all 7 locales (zh-CN, zh-TW, en, ja, fr, ru, vi).
+
+---
+
+## [0.1.0] - 2026-03-13
 
 First major milestone release. Nox API now ships with a complete pet companion system, a community platform, daily check-in rewards, and dozens of quality-of-life improvements.
 

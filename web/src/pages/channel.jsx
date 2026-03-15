@@ -242,16 +242,33 @@ export default function ChannelPage() {
     setDialogOpen(true);
   };
 
-  const openEditDialog = (channel) => {
+  const openEditDialog = async (channel) => {
     setEditingChannel(channel);
     let setting = {};
     try {
       if (channel.setting) setting = JSON.parse(channel.setting);
     } catch { /* ignore */ }
+
+    // Fetch channel detail to get masked_key for display
+    let maskedKey = '';
+    try {
+      const res = await API.get(`/api/channel/${channel.id}`);
+      if (res.data?.success) {
+        maskedKey = res.data.masked_key || '';
+        // Use fresh data from API if available
+        const detail = res.data.data;
+        if (detail) {
+          try {
+            if (detail.setting) setting = JSON.parse(detail.setting);
+          } catch { /* ignore */ }
+        }
+      }
+    } catch { /* ignore, use list data */ }
+
     setFormData({
       name: channel.name || '',
       type: channel.type || 1,
-      key: channel.key || '',
+      key: '',
       base_url: channel.base_url || '',
       models: channel.models || '',
       group: channel.group || 'default',
@@ -260,6 +277,7 @@ export default function ChannelPage() {
       system_prompt: setting.system_prompt || '',
       system_prompt_override: setting.system_prompt_override || false,
       _rawSetting: setting,
+      _maskedKey: maskedKey,
     });
     setDialogOpen(true);
   };
@@ -307,7 +325,7 @@ export default function ChannelPage() {
       showError('请输入渠道名称');
       return;
     }
-    if (!formData.key) {
+    if (!editingChannel && !formData.key) {
       showError('请输入密钥');
       return;
     }
@@ -650,10 +668,15 @@ export default function ChannelPage() {
                 <div>
                   <label className="block text-text-primary text-sm font-medium mb-1">
                     密钥
+                    {editingChannel && formData._maskedKey && (
+                      <span className="ml-2 text-text-tertiary font-normal text-xs">
+                        当前: {formData._maskedKey}（留空保持不变）
+                      </span>
+                    )}
                   </label>
                   <textarea
                     className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="请输入密钥"
+                    placeholder={editingChannel && formData._maskedKey ? `${formData._maskedKey}（留空保持不变，输入新值则替换）` : '请输入密钥'}
                     rows={3}
                     value={formData.key}
                     onChange={(e) => handleFormChange('key', e.target.value)}

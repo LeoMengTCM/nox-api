@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -17,6 +17,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Trophy,
   CalendarCheck,
   MessageCircle,
@@ -126,6 +127,78 @@ const routerMap = {
   'pet-items-admin': '/console/admin/pet-items',
 };
 
+const COLLAPSED_SECTIONS_KEY = 'sidebar-collapsed-sections';
+
+function getInitialCollapsedSections() {
+  try {
+    const saved = localStorage.getItem(COLLAPSED_SECTIONS_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  // Default: all sections collapsed
+  return { console: true, chat: true, personal: true, pet: true, admin: true };
+}
+
+const CollapsibleSection = ({ sectionKey, label, collapsed: sidebarCollapsed, isOpen, onToggle, children }) => {
+  const contentRef = useRef(null);
+  const [height, setHeight] = useState(isOpen ? 'auto' : '0px');
+  const isInitialRender = useRef(true);
+
+  useEffect(() => {
+    if (isInitialRender.current) {
+      isInitialRender.current = false;
+      setHeight(isOpen ? 'auto' : '0px');
+      return;
+    }
+    if (!contentRef.current) return;
+    if (isOpen) {
+      const scrollH = contentRef.current.scrollHeight;
+      setHeight(`${scrollH}px`);
+      const timer = setTimeout(() => setHeight('auto'), 200);
+      return () => clearTimeout(timer);
+    } else {
+      setHeight(`${contentRef.current.scrollHeight}px`);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setHeight('0px'));
+      });
+    }
+  }, [isOpen]);
+
+  if (sidebarCollapsed) {
+    return (
+      <div>
+        <div className="my-2 mx-3 h-px bg-white/10" />
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-4 py-2 text-[11px] uppercase tracking-wider text-sidebar-text/60 hover:text-sidebar-text/80 transition-colors select-none group"
+      >
+        <span>{label}</span>
+        <ChevronDown
+          size={14}
+          strokeWidth={1.8}
+          className={cn(
+            'transition-transform duration-200',
+            isOpen ? 'rotate-0' : '-rotate-90'
+          )}
+        />
+      </button>
+      <div
+        ref={contentRef}
+        className="overflow-hidden transition-[height] duration-200 ease-in-out"
+        style={{ height }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
+
 const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
   const { t } = useTranslation();
   const location = useLocation();
@@ -138,6 +211,18 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
 
   const [selectedKey, setSelectedKey] = useState('detail');
   const routerMapState = routerMap;
+
+  const [collapsedSections, setCollapsedSections] = useState(getInitialCollapsedSections);
+
+  const toggleSection = useCallback((sectionKey) => {
+    setCollapsedSections((prev) => {
+      const next = { ...prev, [sectionKey]: !prev[sectionKey] };
+      try {
+        localStorage.setItem(COLLAPSED_SECTIONS_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
 
   // Sync selected key with current route
   useEffect(() => {
@@ -314,7 +399,7 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
     return content;
   };
 
-  // Group label renderer
+  // Group label renderer (only used for the first section without a header)
   const GroupLabel = ({ label }) => {
     if (collapsed) return <div className="my-2 mx-3 h-px bg-white/10" />;
     return (
@@ -336,51 +421,77 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
       <div className="flex-1 overflow-y-auto overflow-x-hidden py-3 px-2 space-y-0.5">
         {/* Dashboard */}
         {hasSectionVisibleModules('console') && workspaceItems.length > 0 && (
-          <div>
+          <CollapsibleSection
+            sectionKey="console"
+            label={t('工作台')}
+            collapsed={collapsed}
+            isOpen={!collapsedSections.console}
+            onToggle={() => toggleSection('console')}
+          >
             {workspaceItems.map((item) => (
               <NavItem key={item.itemKey} item={item} />
             ))}
-          </div>
+          </CollapsibleSection>
         )}
 
         {/* Chat & Playground */}
         {hasSectionVisibleModules('chat') && chatMenuItems.length > 0 && (
-          <div>
-            <GroupLabel label={t('聊天')} />
+          <CollapsibleSection
+            sectionKey="chat"
+            label={t('聊天')}
+            collapsed={collapsed}
+            isOpen={!collapsedSections.chat}
+            onToggle={() => toggleSection('chat')}
+          >
             {chatMenuItems.map((item) => (
               <NavItem key={item.itemKey} item={item} />
             ))}
-          </div>
+          </CollapsibleSection>
         )}
 
         {/* Personal / Finance */}
         {hasSectionVisibleModules('personal') && financeItems.length > 0 && (
-          <div>
-            <GroupLabel label={t('个人中心')} />
+          <CollapsibleSection
+            sectionKey="personal"
+            label={t('个人中心')}
+            collapsed={collapsed}
+            isOpen={!collapsedSections.personal}
+            onToggle={() => toggleSection('personal')}
+          >
             {financeItems.map((item) => (
               <NavItem key={item.itemKey} item={item} />
             ))}
-          </div>
+          </CollapsibleSection>
         )}
 
         {/* Pet section */}
         {petItems.length > 0 && (
-          <div>
-            <GroupLabel label={t('宠物乐园')} />
+          <CollapsibleSection
+            sectionKey="pet"
+            label={t('宠物乐园')}
+            collapsed={collapsed}
+            isOpen={!collapsedSections.pet}
+            onToggle={() => toggleSection('pet')}
+          >
             {petItems.map((item) => (
               <NavItem key={item.itemKey} item={item} />
             ))}
-          </div>
+          </CollapsibleSection>
         )}
 
         {/* Admin section */}
         {isAdmin() && hasSectionVisibleModules('admin') && adminItems.length > 0 && (
-          <div>
-            <GroupLabel label={t('管理员')} />
+          <CollapsibleSection
+            sectionKey="admin"
+            label={t('管理员')}
+            collapsed={collapsed}
+            isOpen={!collapsedSections.admin}
+            onToggle={() => toggleSection('admin')}
+          >
             {adminItems.map((item) => (
               <NavItem key={item.itemKey} item={item} />
             ))}
-          </div>
+          </CollapsibleSection>
         )}
       </div>
 

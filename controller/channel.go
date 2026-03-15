@@ -364,18 +364,23 @@ func GetChannel(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	channel, err := model.GetChannelById(id, false)
+	// Fetch with key included so we can compute the masked version
+	channel, err := model.GetChannelById(id, true)
 	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
+	maskedKey := ""
 	if channel != nil {
+		maskedKey = channel.MaskedKey()
 		clearChannelInfo(channel)
+		channel.Key = ""
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "",
-		"data":    channel,
+		"success":    true,
+		"message":    "",
+		"data":       channel,
+		"masked_key": maskedKey,
 	})
 	return
 }
@@ -867,6 +872,11 @@ func UpdateChannel(c *gin.Context) {
 
 	// Always copy the original ChannelInfo so that fields like IsMultiKey and MultiKeySize are retained.
 	channel.ChannelInfo = originChannel.ChannelInfo
+
+	// If the client did not send a new key (empty string), preserve the original key from DB.
+	if channel.Key == "" {
+		channel.Key = originChannel.Key
+	}
 
 	// If the request explicitly specifies a new MultiKeyMode, apply it on top of the original info.
 	if channel.MultiKeyMode != nil && *channel.MultiKeyMode != "" {
