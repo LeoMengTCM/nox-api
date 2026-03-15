@@ -59,15 +59,15 @@ function SettingsTab() {
 
         const games = {};
         GAME_KEYS.forEach((g) => {
-          const key = `CasinoGame_${g}`;
+          const key = `casino_setting.${g}_enabled`;
           games[g] = opts[key] === 'true' || opts[key] === true;
         });
 
         setSettings({
-          enabled: opts.CasinoEnabled === 'true' || opts.CasinoEnabled === true,
-          min_bet: parseInt(opts.CasinoMinBet) || 0,
-          max_bet: parseInt(opts.CasinoMaxBet) || 0,
-          daily_loss_limit: parseInt(opts.CasinoDailyLossLimit) || 0,
+          enabled: opts['casino_setting.enabled'] === 'true' || opts['casino_setting.enabled'] === true,
+          min_bet: parseInt(opts['casino_setting.min_bet']) || 0,
+          max_bet: parseInt(opts['casino_setting.max_bet']) || 0,
+          daily_loss_limit: parseInt(opts['casino_setting.daily_loss_limit']) || 0,
           games,
         });
       }
@@ -82,14 +82,14 @@ function SettingsTab() {
     setSaving(true);
     try {
       const pairs = [
-        { key: 'CasinoEnabled', value: String(settings.enabled) },
-        { key: 'CasinoMinBet', value: String(settings.min_bet) },
-        { key: 'CasinoMaxBet', value: String(settings.max_bet) },
-        { key: 'CasinoDailyLossLimit', value: String(settings.daily_loss_limit) },
+        { key: 'casino_setting.enabled', value: String(settings.enabled) },
+        { key: 'casino_setting.min_bet', value: String(settings.min_bet) },
+        { key: 'casino_setting.max_bet', value: String(settings.max_bet) },
+        { key: 'casino_setting.daily_loss_limit', value: String(settings.daily_loss_limit) },
       ];
 
       GAME_KEYS.forEach((g) => {
-        pairs.push({ key: `CasinoGame_${g}`, value: String(!!settings.games[g]) });
+        pairs.push({ key: `casino_setting.${g}_enabled`, value: String(!!settings.games[g]) });
       });
 
       const errors = [];

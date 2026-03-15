@@ -325,7 +325,6 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
       { text: t('每日签到'), itemKey: 'checkin', alwaysShow: true },
       { text: t('社区'), itemKey: 'community', alwaysShow: true },
       { text: t('排行榜'), itemKey: 'ranking', alwaysShow: true },
-      { text: t('韦斯莱赌坊'), itemKey: 'casino', alwaysShow: true },
       { text: t('个人设置'), itemKey: 'personal' },
     ];
     return items.filter((item) => item.alwaysShow || isModuleVisible('personal', item.itemKey));
@@ -478,6 +477,11 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
             ))}
           </CollapsibleSection>
         )}
+
+        {/* Casino — standalone entry */}
+        <div className="px-2 py-0.5">
+          <NavItem item={{ text: t('韦斯莱赌坊'), itemKey: 'casino' }} />
+        </div>
 
         {/* Pet section */}
         {petItems.length > 0 && (
