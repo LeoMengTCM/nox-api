@@ -366,6 +366,83 @@ func SetApiRouter(router *gin.Engine) {
 			socialAdminRoute.PUT("/comment/:id/status", controller.AdminUpdateSocialCommentStatus)
 		}
 
+		// Pet system routes
+		petRoute := apiRouter.Group("/pet")
+		petRoute.Use(middleware.UserAuth())
+		{
+			petRoute.GET("/status", controller.GetPetStatus)
+			petRoute.GET("/species", controller.GetSpeciesList)
+			petRoute.POST("/adopt", controller.AdoptStarter)
+			petRoute.GET("/my", controller.GetMyPets)
+			petRoute.GET("/my/:id", controller.GetMyPetDetail)
+			petRoute.PUT("/my/:id/primary", controller.SetPrimaryPet)
+			petRoute.PUT("/my/:id/rename", controller.RenamePet)
+			petRoute.POST("/my/:id/feed", controller.FeedPet)
+			petRoute.POST("/my/:id/play", controller.PlayWithPet)
+			petRoute.POST("/my/:id/clean", controller.CleanPet)
+			petRoute.POST("/my/:id/hatch", controller.HatchPet)
+			petRoute.POST("/my/:id/evolve", controller.EvolvePet)
+			petRoute.POST("/my/:id/use_item", controller.UseItem)
+			petRoute.DELETE("/my/:id", controller.ReleasePet)
+			petRoute.GET("/shop", controller.GetShopItems)
+			petRoute.POST("/shop/buy", controller.BuyItem)
+			petRoute.GET("/inventory", controller.GetMyInventory)
+			// Gacha
+			petRoute.GET("/gacha/pools", controller.GetGachaPools)
+			petRoute.POST("/gacha/pull", controller.GachaPull)
+			petRoute.GET("/gacha/history", controller.GetGachaHistory)
+			petRoute.GET("/gacha/pity", controller.GetPityInfo)
+			// Fusion
+			petRoute.POST("/fusion", controller.FusePet)
+			// Missions & Dispatch
+			petRoute.GET("/missions", controller.GetMissions)
+			petRoute.POST("/dispatch", controller.DispatchPet)
+			petRoute.GET("/dispatches", controller.GetDispatches)
+			petRoute.POST("/dispatch/:id/collect", controller.CollectReward)
+			petRoute.GET("/dispatch/history", controller.GetDispatchHistory)
+			// Social / Public
+			petRoute.GET("/user/:userId", controller.GetPublicPets)
+			petRoute.GET("/ranking", controller.GetPetRanking)
+			// Market
+			petRoute.GET("/market", controller.GetMarketListings)
+			petRoute.GET("/market/my", controller.GetMyMarketListings)
+			petRoute.GET("/market/history", controller.GetMyTransactions)
+			petRoute.GET("/market/price/:speciesId", controller.GetMarketPriceHistory)
+			petRoute.GET("/market/:id", controller.GetListingDetail)
+			petRoute.POST("/market", controller.CreateMarketListing)
+			petRoute.POST("/market/:id/buy", controller.BuyMarketListing)
+			petRoute.POST("/market/:id/bid", controller.PlaceMarketBid)
+			petRoute.DELETE("/market/:id", controller.CancelMarketListing)
+		}
+		petAdminRoute := apiRouter.Group("/pet/admin")
+		petAdminRoute.Use(middleware.AdminAuth())
+		{
+			petAdminRoute.GET("/species", controller.AdminGetAllSpecies)
+			petAdminRoute.POST("/species", controller.AdminCreateSpecies)
+			petAdminRoute.PUT("/species", controller.AdminUpdateSpecies)
+			petAdminRoute.DELETE("/species/:id", controller.AdminDeleteSpecies)
+			petAdminRoute.GET("/items", controller.AdminGetAllItems)
+			petAdminRoute.POST("/items", controller.AdminCreateItem)
+			petAdminRoute.PUT("/items", controller.AdminUpdateItem)
+			petAdminRoute.DELETE("/items/:id", controller.AdminDeleteItem)
+			// Gacha pools
+			petAdminRoute.GET("/gacha/pools", controller.AdminGetGachaPools)
+			petAdminRoute.POST("/gacha/pools", controller.AdminCreateGachaPool)
+			petAdminRoute.PUT("/gacha/pools", controller.AdminUpdateGachaPool)
+			petAdminRoute.DELETE("/gacha/pools/:id", controller.AdminDeleteGachaPool)
+			// Missions
+			petAdminRoute.GET("/missions", controller.AdminGetAllMissions)
+			petAdminRoute.POST("/missions", controller.AdminCreateMission)
+			petAdminRoute.PUT("/missions", controller.AdminUpdateMission)
+			petAdminRoute.DELETE("/missions/:id", controller.AdminDeleteMission)
+			// Market admin
+			petAdminRoute.GET("/users/:id/pets", controller.AdminGetUserPets)
+			petAdminRoute.POST("/grant", controller.AdminGrantPet)
+			petAdminRoute.POST("/grant-item", controller.AdminGrantItem)
+			petAdminRoute.GET("/market/recent", controller.AdminGetRecentMarketTransactions)
+			petAdminRoute.GET("/stats", controller.AdminGetPetStats)
+		}
+
 		vendorRoute := apiRouter.Group("/vendors")
 		vendorRoute.Use(middleware.AdminAuth())
 		{

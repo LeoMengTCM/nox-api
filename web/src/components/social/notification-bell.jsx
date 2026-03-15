@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Bell } from 'lucide-react';
 import { cn } from '../../lib/cn';
@@ -77,7 +77,7 @@ const NotificationBell = () => {
   if (!isLoggedIn) return null;
 
   return (
-    <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+    <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen} modal={false}>
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
@@ -112,9 +112,12 @@ const NotificationBell = () => {
                     'flex items-start gap-2.5 px-3 py-2.5 cursor-pointer',
                     !notif.is_read && 'bg-accent/5'
                   )}
-                  onClick={() => {
+                  onSelect={(e) => {
+                    e.preventDefault();
                     if (notif.type === 'follow') {
                       navigate(`/console/user/${notif.actor_id}`);
+                    } else if (notif.post_id) {
+                      navigate(`/console/community?post=${notif.post_id}`);
                     }
                     setDropdownOpen(false);
                   }}
@@ -153,20 +156,23 @@ const NotificationBell = () => {
         <div className="flex items-center justify-between px-3 py-2">
           <button
             className="text-xs text-text-tertiary hover:text-text-primary transition-colors"
-            onClick={(e) => {
+            onPointerDown={(e) => {
               e.stopPropagation();
               handleMarkAllRead();
             }}
           >
             {t('标记全部已读')}
           </button>
-          <Link
-            to="/console/notifications"
+          <button
             className="text-xs text-accent hover:underline"
-            onClick={() => setDropdownOpen(false)}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              setDropdownOpen(false);
+              navigate('/console/notifications');
+            }}
           >
             {t('查看全部通知')}
-          </Link>
+          </button>
         </div>
       </DropdownMenuContent>
     </DropdownMenu>

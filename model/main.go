@@ -286,6 +286,20 @@ func migrateDB() error {
 		&SocialComment{},
 		&SocialBookmark{},
 		&SocialNotification{},
+		&PetSpecies{},
+		&UserPet{},
+		&PetItem{},
+		&UserPetItem{},
+		&GachaPool{},
+		&GachaHistory{},
+		&UserPityCounter{},
+		&PetMission{},
+		&PetDispatch{},
+		&PetActivity{},
+		&PetMarketListing{},
+		&PetMarketBid{},
+		&PetMarketTransaction{},
+		&PetPriceHistory{},
 	)
 	if err != nil {
 		return err
@@ -299,6 +313,12 @@ func migrateDB() error {
 			return err
 		}
 	}
+
+	// Seed initial pet data (idempotent — only inserts when tables are empty)
+	SeedPetData()
+	SeedGachaData()
+	SeedMissionData()
+
 	return nil
 }
 
@@ -340,6 +360,20 @@ func migrateDBFast() error {
 		{&SocialComment{}, "SocialComment"},
 		{&SocialBookmark{}, "SocialBookmark"},
 		{&SocialNotification{}, "SocialNotification"},
+		{&PetSpecies{}, "PetSpecies"},
+		{&UserPet{}, "UserPet"},
+		{&PetItem{}, "PetItem"},
+		{&UserPetItem{}, "UserPetItem"},
+		{&GachaPool{}, "GachaPool"},
+		{&GachaHistory{}, "GachaHistory"},
+		{&UserPityCounter{}, "UserPityCounter"},
+		{&PetMission{}, "PetMission"},
+		{&PetDispatch{}, "PetDispatch"},
+		{&PetActivity{}, "PetActivity"},
+		{&PetMarketListing{}, "PetMarketListing"},
+		{&PetMarketBid{}, "PetMarketBid"},
+		{&PetMarketTransaction{}, "PetMarketTransaction"},
+		{&PetPriceHistory{}, "PetPriceHistory"},
 	}
 	// 动态计算migration数量，确保errChan缓冲区足够大
 	errChan := make(chan error, len(migrations))

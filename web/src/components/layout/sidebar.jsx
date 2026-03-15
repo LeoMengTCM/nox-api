@@ -20,6 +20,16 @@ import {
   Trophy,
   CalendarCheck,
   MessageCircle,
+  PawPrint,
+  ShoppingBag,
+  Dices,
+  Merge,
+  Compass,
+  Crown,
+  Store,
+  BarChart3,
+  Dna,
+  Package,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { isAdmin, isRoot } from '../../lib/utils';
@@ -52,6 +62,22 @@ const iconMap = {
   ranking: Trophy,
   checkin: CalendarCheck,
   community: MessageCircle,
+  pet: PawPrint,
+  'pet-shop': ShoppingBag,
+  'pet-gacha': Dices,
+  'pet-fusion': Merge,
+  'pet-adventure': Compass,
+  'pet-inventory': Package,
+  'pet-ranking': Crown,
+  'gacha-pools': Dices,
+  'missions-admin': Compass,
+  'pet-market': Store,
+  'pet-users-admin': Users,
+  'pet-grant-admin': Gift,
+  'pet-market-admin': Store,
+  'pet-stats-admin': BarChart3,
+  'pet-species-admin': Dna,
+  'pet-items-admin': Package,
 };
 
 const getIcon = (itemKey, size = 18) => {
@@ -82,6 +108,22 @@ const routerMap = {
   ranking: '/console/ranking',
   checkin: '/console/checkin',
   community: '/console/community',
+  pet: '/console/pet',
+  'pet-shop': '/console/pet/shop',
+  'pet-gacha': '/console/pet/gacha',
+  'pet-fusion': '/console/pet/fusion',
+  'pet-adventure': '/console/pet/adventure',
+  'pet-ranking': '/console/pet/ranking',
+  'gacha-pools': '/console/admin/gacha-pools',
+  'missions-admin': '/console/admin/missions',
+  'pet-inventory': '/console/pet/inventory',
+  'pet-market': '/console/pet/market',
+  'pet-users-admin': '/console/admin/pet-users',
+  'pet-grant-admin': '/console/admin/pet-grant',
+  'pet-market-admin': '/console/admin/pet-market',
+  'pet-stats-admin': '/console/admin/pet-stats',
+  'pet-species-admin': '/console/admin/pet-species',
+  'pet-items-admin': '/console/admin/pet-items',
 };
 
 const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
@@ -103,6 +145,27 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
     let matchingKey = Object.keys(routerMap).find(
       (key) => routerMap[key] === currentPath,
     );
+
+    // Match sub-routes to parent (e.g. /console/pet/123 -> pet)
+    if (!matchingKey && currentPath.startsWith('/console/pet')) {
+      if (currentPath === '/console/pet/shop') {
+        matchingKey = 'pet-shop';
+      } else if (currentPath === '/console/pet/gacha') {
+        matchingKey = 'pet-gacha';
+      } else if (currentPath === '/console/pet/fusion') {
+        matchingKey = 'pet-fusion';
+      } else if (currentPath === '/console/pet/adventure') {
+        matchingKey = 'pet-adventure';
+      } else if (currentPath === '/console/pet/ranking') {
+        matchingKey = 'pet-ranking';
+      } else if (currentPath === '/console/pet/market') {
+        matchingKey = 'pet-market';
+      } else if (currentPath === '/console/pet/inventory') {
+        matchingKey = 'pet-inventory';
+      } else {
+        matchingKey = 'pet';
+      }
+    }
 
     if (matchingKey) {
       setSelectedKey(matchingKey);
@@ -169,6 +232,19 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
     return items.filter((item) => item.alwaysShow || isModuleVisible('personal', item.itemKey));
   }, [t, isModuleVisible]);
 
+  const petItems = useMemo(() => {
+    return [
+      { text: t('宠物'), itemKey: 'pet', alwaysShow: true },
+      { text: t('商店'), itemKey: 'pet-shop', alwaysShow: true },
+      { text: t('背包'), itemKey: 'pet-inventory', alwaysShow: true },
+      { text: t('召唤'), itemKey: 'pet-gacha', alwaysShow: true },
+      { text: t('融合'), itemKey: 'pet-fusion', alwaysShow: true },
+      { text: t('冒险'), itemKey: 'pet-adventure', alwaysShow: true },
+      { text: t('市场'), itemKey: 'pet-market', alwaysShow: true },
+      { text: t('宠物排行'), itemKey: 'pet-ranking', alwaysShow: true },
+    ];
+  }, [t]);
+
   const adminItems = useMemo(() => {
     const items = [
       { text: t('渠道管理'), itemKey: 'channel', needsAdmin: true },
@@ -178,6 +254,14 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
       { text: t('兑换码管理'), itemKey: 'redemption', needsAdmin: true },
       { text: t('用户管理'), itemKey: 'user', needsAdmin: true },
       { text: t('系统设置'), itemKey: 'setting', needsRoot: true },
+      { text: t('卡池管理'), itemKey: 'gacha-pools', needsAdmin: true },
+      { text: t('任务管理'), itemKey: 'missions-admin', needsAdmin: true },
+      { text: t('宠物数据'), itemKey: 'pet-users-admin', needsAdmin: true },
+      { text: t('宠物发放'), itemKey: 'pet-grant-admin', needsAdmin: true },
+      { text: t('市场监控'), itemKey: 'pet-market-admin', needsAdmin: true },
+      { text: t('统计面板'), itemKey: 'pet-stats-admin', needsAdmin: true },
+      { text: t('物种管理'), itemKey: 'pet-species-admin', needsAdmin: true },
+      { text: t('物品管理'), itemKey: 'pet-items-admin', needsAdmin: true },
     ];
     return items.filter((item) => {
       if (item.needsRoot && !isRoot()) return false;
@@ -274,6 +358,16 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
           <div>
             <GroupLabel label={t('个人中心')} />
             {financeItems.map((item) => (
+              <NavItem key={item.itemKey} item={item} />
+            ))}
+          </div>
+        )}
+
+        {/* Pet section */}
+        {petItems.length > 0 && (
+          <div>
+            <GroupLabel label={t('宠物乐园')} />
+            {petItems.map((item) => (
               <NavItem key={item.itemKey} item={item} />
             ))}
           </div>

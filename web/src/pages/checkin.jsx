@@ -12,6 +12,10 @@ import {
   ChevronRight,
   Check,
   Coins,
+  PawPrint,
+  Star,
+  Zap,
+  Package,
 } from 'lucide-react';
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
@@ -55,6 +59,7 @@ export default function CheckinPage() {
   const [data, setData] = useState(null);
   const [checkedInToday, setCheckedInToday] = useState(false);
   const [enabled, setEnabled] = useState(true);
+  const [petRewards, setPetRewards] = useState(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -106,6 +111,10 @@ export default function CheckinPage() {
         const awarded = res.data.data?.quota_awarded;
         showSuccess('签到成功' + (awarded ? `，获得 ${renderQuota(awarded)}` : ''));
         setCheckedInToday(true);
+        // Capture pet rewards if present
+        if (res.data.data?.pet_rewards) {
+          setPetRewards(res.data.data.pet_rewards);
+        }
         // Refresh data
         fetchCheckinStatus(monthKey);
       } else {
@@ -258,6 +267,85 @@ export default function CheckinPage() {
             )}
           </button>
         </motion.div>
+      )}
+
+      {/* Pet rewards after checkin */}
+      {petRewards && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.08 }}
+        >
+          <Card className="p-5 max-w-md mx-auto">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/10 text-accent">
+                <PawPrint className="h-4 w-4" />
+              </div>
+              <h3 className="text-sm font-medium text-text-primary">{t('宠物奖励')}</h3>
+            </div>
+
+            <div className="space-y-2">
+              {/* Items received */}
+              {petRewards.items?.length > 0 && (
+                <div className="space-y-1">
+                  {petRewards.items.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-sm text-text-secondary">
+                      <Package className="h-3.5 w-3.5 text-text-tertiary" />
+                      <span>{item.item_name}</span>
+                      <span className="text-text-tertiary">x{item.quantity}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* EXP awarded */}
+              {petRewards.exp_awarded > 0 && (
+                <div className="flex items-center gap-2 text-sm text-text-secondary">
+                  <Zap className="h-3.5 w-3.5 text-amber-500" />
+                  <span>+{petRewards.exp_awarded} EXP</span>
+                  {petRewards.pet_name && (
+                    <span className="text-text-tertiary">→ {petRewards.pet_name}</span>
+                  )}
+                </div>
+              )}
+
+              {/* Level up */}
+              {petRewards.leveled_up && (
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.3, delay: 0.2 }}
+                  className="flex items-center gap-2 text-sm font-medium text-amber-500"
+                >
+                  <Star className="h-4 w-4 fill-amber-500" />
+                  <span>{t('升级了！')}</span>
+                </motion.div>
+              )}
+
+              {/* Evolution */}
+              {petRewards.evolved && (
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.4, delay: 0.3 }}
+                  className="flex items-center gap-2 text-sm font-medium text-purple-500"
+                >
+                  <Sparkles className="h-4 w-4 text-purple-500" />
+                  <span>{t('进化了！')}</span>
+                </motion.div>
+              )}
+            </div>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Checkin tip */}
+      {isCurrentMonth(currentDate) && !checkedInToday && (
+        <div className="text-center">
+          <p className="text-xs text-text-tertiary">
+            {t('连续签到可获得更多宠物奖励')}
+          </p>
+        </div>
       )}
 
       {/* Calendar */}

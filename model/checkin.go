@@ -177,3 +177,20 @@ func GetUserCheckinStats(userId int, month string) (map[string]interface{}, erro
 		"records":          checkinRecords,  // 本月签到记录详情（不含id和user_id）
 	}, nil
 }
+
+// GetConsecutiveCheckinDays returns how many consecutive days (including today)
+// the user has checked in. Starts from today and counts backwards.
+func GetConsecutiveCheckinDays(userId int) int {
+	today := time.Now()
+	streak := 0
+	for i := 0; i < 365; i++ {
+		date := today.AddDate(0, 0, -i).Format("2006-01-02")
+		var count int64
+		DB.Model(&Checkin{}).Where("user_id = ? AND checkin_date = ?", userId, date).Count(&count)
+		if count == 0 {
+			break
+		}
+		streak++
+	}
+	return streak
+}

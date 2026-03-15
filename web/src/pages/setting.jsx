@@ -54,6 +54,7 @@ import {
   Shield,
   Send,
   MessageSquareMore,
+  PawPrint,
 } from 'lucide-react';
 
 // Generic settings section component
@@ -948,6 +949,7 @@ const Setting = () => {
     { key: 'performance', label: '性能设置' },
     { key: 'system', label: '系统设置' },
     { key: 'other', label: '其他设置' },
+    { key: 'pet', label: '宠物设置' },
   ];
 
   return (
@@ -1656,6 +1658,125 @@ const Setting = () => {
               </SettingsField>
               <div className="flex justify-end pt-4">
                 <Button variant="primary" onClick={() => saveOptions(['DebugEnabled', 'DataDashboardEnabled'])} loading={saving}>保存</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Pet Settings */}
+        <TabsContent value="pet">
+          <Card>
+            <CardHeader><CardTitle>宠物设置</CardTitle></CardHeader>
+            <CardContent className="space-y-6">
+              <SectionHeader icon={PawPrint} title="基本设置" description="配置虚拟宠物养成功能" />
+              <div className="space-y-3">
+                <SettingsField label="启用宠物系统" description="开启后用户可领养和养成虚拟宠物">
+                  <Switch checked={options['pet_setting.enabled'] === 'true'} onCheckedChange={(v) => updateOption('pet_setting.enabled', v ? 'true' : 'false')} />
+                </SettingsField>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-text-primary">每用户宠物上限</label>
+                  <p className="text-xs text-text-tertiary">每个用户最多可同时拥有的宠物数量</p>
+                  <Input type="number" value={options['pet_setting.max_pets_per_user'] || ''} onChange={(e) => updateOption('pet_setting.max_pets_per_user', e.target.value)} placeholder="20" className="w-40" />
+                </div>
+              </div>
+              <Separator />
+              <div className="text-sm font-medium text-text-primary pt-2">互动参数</div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary">玩耍冷却(分钟)</label>
+                  <Input type="number" value={options['pet_setting.play_cooldown_minutes'] || ''} onChange={(e) => updateOption('pet_setting.play_cooldown_minutes', e.target.value)} placeholder="5" className="w-full" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary">每日清洁上限</label>
+                  <Input type="number" value={options['pet_setting.clean_daily_limit'] || ''} onChange={(e) => updateOption('pet_setting.clean_daily_limit', e.target.value)} placeholder="3" className="w-full" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary">清洁增量</label>
+                  <Input type="number" value={options['pet_setting.clean_boost'] || ''} onChange={(e) => updateOption('pet_setting.clean_boost', e.target.value)} placeholder="20" className="w-full" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary">玩耍心情增量</label>
+                  <Input type="number" value={options['pet_setting.play_mood_boost'] || ''} onChange={(e) => updateOption('pet_setting.play_mood_boost', e.target.value)} placeholder="10" className="w-full" />
+                </div>
+              </div>
+              <div className="text-sm font-medium text-text-primary pt-2">EXP 奖励</div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary">喂食EXP</label>
+                  <Input type="number" value={options['pet_setting.feed_exp'] || ''} onChange={(e) => updateOption('pet_setting.feed_exp', e.target.value)} placeholder="15" className="w-full" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary">玩耍EXP</label>
+                  <Input type="number" value={options['pet_setting.play_exp'] || ''} onChange={(e) => updateOption('pet_setting.play_exp', e.target.value)} placeholder="10" className="w-full" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary">清洁EXP</label>
+                  <Input type="number" value={options['pet_setting.clean_exp'] || ''} onChange={(e) => updateOption('pet_setting.clean_exp', e.target.value)} placeholder="5" className="w-full" />
+                </div>
+              </div>
+              <div className="text-sm font-medium text-text-primary pt-2">状态衰减</div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary">饥饿衰减/h</label>
+                  <Input type="number" value={options['pet_setting.hunger_decay_per_hour'] || ''} onChange={(e) => updateOption('pet_setting.hunger_decay_per_hour', e.target.value)} placeholder="4" className="w-full" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary">心情衰减/h</label>
+                  <Input type="number" value={options['pet_setting.mood_decay_per_hour'] || ''} onChange={(e) => updateOption('pet_setting.mood_decay_per_hour', e.target.value)} placeholder="3" className="w-full" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary">洁净衰减/h</label>
+                  <Input type="number" value={options['pet_setting.cleanliness_decay_per_hour'] || ''} onChange={(e) => updateOption('pet_setting.cleanliness_decay_per_hour', e.target.value)} placeholder="2" className="w-full" />
+                </div>
+              </div>
+              <div className="text-sm font-medium text-text-primary pt-2">升级进化</div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary">升级公式倍数</label>
+                  <Input type="number" value={options['pet_setting.level_exp_multiplier'] || ''} onChange={(e) => updateOption('pet_setting.level_exp_multiplier', e.target.value)} placeholder="100" className="w-full" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary">一阶进化等级</label>
+                  <Input type="number" value={options['pet_setting.evolution_stage1_level'] || ''} onChange={(e) => updateOption('pet_setting.evolution_stage1_level', e.target.value)} placeholder="10" className="w-full" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary">二阶进化等级</label>
+                  <Input type="number" value={options['pet_setting.evolution_stage2_level'] || ''} onChange={(e) => updateOption('pet_setting.evolution_stage2_level', e.target.value)} placeholder="30" className="w-full" />
+                </div>
+              </div>
+              <div className="text-sm font-medium text-text-primary pt-2">孵化</div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary">孵化时长(分钟)</label>
+                  <Input type="number" value={options['pet_setting.hatch_duration_minutes'] || ''} onChange={(e) => updateOption('pet_setting.hatch_duration_minutes', e.target.value)} placeholder="30" className="w-full" />
+                </div>
+              </div>
+              <div className="text-sm font-medium text-text-primary pt-2">融合参数</div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary">融合基础费用</label>
+                  <Input type="number" value={options['pet_setting.fusion_base_cost'] || ''} onChange={(e) => updateOption('pet_setting.fusion_base_cost', e.target.value)} placeholder="200" className="w-full" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary">最大星级</label>
+                  <Input type="number" value={options['pet_setting.max_star'] || ''} onChange={(e) => updateOption('pet_setting.max_star', e.target.value)} placeholder="5" className="w-full" />
+                </div>
+              </div>
+              <div className="text-sm font-medium text-text-primary pt-2">市场参数</div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary">手续费率(%)</label>
+                  <Input type="number" step="0.01" value={options['pet_setting.market_fee_rate'] || ''} onChange={(e) => updateOption('pet_setting.market_fee_rate', e.target.value)} placeholder="0.05" className="w-full" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary">竞拍最低加价(%)</label>
+                  <Input type="number" step="0.01" value={options['pet_setting.auction_bid_increment'] || ''} onChange={(e) => updateOption('pet_setting.auction_bid_increment', e.target.value)} placeholder="0.05" className="w-full" />
+                </div>
+              </div>
+              <div className="flex justify-end pt-4">
+                <Button variant="primary" onClick={() => saveOptions(['pet_setting.enabled', 'pet_setting.max_pets_per_user', 'pet_setting.play_cooldown_minutes', 'pet_setting.clean_daily_limit', 'pet_setting.clean_boost', 'pet_setting.play_mood_boost', 'pet_setting.feed_exp', 'pet_setting.play_exp', 'pet_setting.clean_exp', 'pet_setting.hunger_decay_per_hour', 'pet_setting.mood_decay_per_hour', 'pet_setting.cleanliness_decay_per_hour', 'pet_setting.level_exp_multiplier', 'pet_setting.evolution_stage1_level', 'pet_setting.evolution_stage2_level', 'pet_setting.hatch_duration_minutes', 'pet_setting.fusion_base_cost', 'pet_setting.max_star', 'pet_setting.market_fee_rate', 'pet_setting.auction_bid_increment'])} loading={saving}>
+                  保存宠物设置
+                </Button>
               </div>
             </CardContent>
           </Card>

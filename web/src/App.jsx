@@ -49,6 +49,24 @@ const Checkin = lazy(() => import('./pages/checkin'));
 const Community = lazy(() => import('./pages/community'));
 const UserProfile = lazy(() => import('./pages/user-profile'));
 const Notifications = lazy(() => import('./pages/notifications'));
+const PetIndex = lazy(() => import('./pages/pet/index'));
+const PetDetail = lazy(() => import('./pages/pet/detail'));
+const PetAdopt = lazy(() => import('./pages/pet/adopt'));
+const PetSpeciesAdmin = lazy(() => import('./pages/pet/pet-species'));
+const PetItemsAdmin = lazy(() => import('./pages/pet/pet-items'));
+const PetShop = lazy(() => import('./pages/pet/shop'));
+const PetGacha = lazy(() => import('./pages/pet/gacha'));
+const PetFusion = lazy(() => import('./pages/pet/fusion'));
+const PetRanking = lazy(() => import('./pages/pet/ranking'));
+const PetAdventure = lazy(() => import('./pages/pet/adventure'));
+const GachaPoolsAdmin = lazy(() => import('./pages/pet/gacha-pools'));
+const MissionsAdmin = lazy(() => import('./pages/pet/missions-admin'));
+const PetMarket = lazy(() => import('./pages/pet/market'));
+const PetUsersAdmin = lazy(() => import('./pages/pet/pet-users'));
+const PetGrantAdmin = lazy(() => import('./pages/pet/pet-grant'));
+const PetMarketAdmin = lazy(() => import('./pages/pet/pet-market-admin'));
+const PetStatsAdmin = lazy(() => import('./pages/pet/pet-stats'));
+const PetInventory = lazy(() => import('./pages/pet/inventory'));
 
 const Loading = () => (
   <div className="flex h-screen items-center justify-center bg-background">
@@ -134,6 +152,16 @@ function App() {
           <Route path="/console/checkin" element={<PrivateRoute><Page><Checkin /></Page></PrivateRoute>} />
           <Route path="/console/community" element={<PrivateRoute><Page><Community /></Page></PrivateRoute>} />
           <Route path="/console/notifications" element={<PrivateRoute><Page><Notifications /></Page></PrivateRoute>} />
+          <Route path="/console/pet" element={<PrivateRoute><Page><PetIndex /></Page></PrivateRoute>} />
+          <Route path="/console/pet/adopt" element={<PrivateRoute><Page><PetAdopt /></Page></PrivateRoute>} />
+          <Route path="/console/pet/shop" element={<PrivateRoute><Page><PetShop /></Page></PrivateRoute>} />
+          <Route path="/console/pet/gacha" element={<PrivateRoute><Page><PetGacha /></Page></PrivateRoute>} />
+          <Route path="/console/pet/fusion" element={<PrivateRoute><Page><PetFusion /></Page></PrivateRoute>} />
+          <Route path="/console/pet/ranking" element={<PrivateRoute><Page><PetRanking /></Page></PrivateRoute>} />
+          <Route path="/console/pet/adventure" element={<PrivateRoute><Page><PetAdventure /></Page></PrivateRoute>} />
+          <Route path="/console/pet/market" element={<PrivateRoute><Page><PetMarket /></Page></PrivateRoute>} />
+          <Route path="/console/pet/inventory" element={<PrivateRoute><Page><PetInventory /></Page></PrivateRoute>} />
+          <Route path="/console/pet/:id" element={<PrivateRoute><Page><PetDetail /></Page></PrivateRoute>} />
           <Route path="/console/user/:id" element={<PrivateRoute><Page><UserProfile /></Page></PrivateRoute>} />
           <Route path="/console/playground" element={<PrivateRoute><Page><Playground /></Page></PrivateRoute>} />
           <Route path="/console/midjourney" element={<PrivateRoute><Page><Midjourney /></Page></PrivateRoute>} />
@@ -145,6 +173,14 @@ function App() {
           <Route path="/console/models" element={<AdminRoute><Page><ModelPage /></Page></AdminRoute>} />
           <Route path="/console/deployment" element={<AdminRoute><Page><ModelDeployment /></Page></AdminRoute>} />
           <Route path="/console/subscription" element={<AdminRoute><Page><Subscription /></Page></AdminRoute>} />
+          <Route path="/console/admin/pet-species" element={<AdminRoute><Page><PetSpeciesAdmin /></Page></AdminRoute>} />
+          <Route path="/console/admin/pet-items" element={<AdminRoute><Page><PetItemsAdmin /></Page></AdminRoute>} />
+          <Route path="/console/admin/gacha-pools" element={<AdminRoute><Page><GachaPoolsAdmin /></Page></AdminRoute>} />
+          <Route path="/console/admin/missions" element={<AdminRoute><Page><MissionsAdmin /></Page></AdminRoute>} />
+          <Route path="/console/admin/pet-users" element={<AdminRoute><Page><PetUsersAdmin /></Page></AdminRoute>} />
+          <Route path="/console/admin/pet-grant" element={<AdminRoute><Page><PetGrantAdmin /></Page></AdminRoute>} />
+          <Route path="/console/admin/pet-market" element={<AdminRoute><Page><PetMarketAdmin /></Page></AdminRoute>} />
+          <Route path="/console/admin/pet-stats" element={<AdminRoute><Page><PetStatsAdmin /></Page></AdminRoute>} />
         </Route>
 
         {/* 404 */}
