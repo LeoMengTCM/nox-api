@@ -32,6 +32,11 @@ export default function PetFusion() {
   const [fusionAnim, setFusionAnim] = useState(false);
   const [fusionResult, setFusionResult] = useState(null);
   const [excludedIds, setExcludedIds] = useState(new Set());
+  // Batch fusion state
+  const [batchPlan, setBatchPlan] = useState(null); // { pairs: [{main, material, cost}], totalCost }
+  const [batchConfirmOpen, setBatchConfirmOpen] = useState(false);
+  const [batchRunning, setBatchRunning] = useState(false);
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0, results: [] });
 
   const loadData = async () => {
     setLoading(true);
@@ -93,48 +98,139 @@ export default function PetFusion() {
   };
 
   const autoSelect = () => {
-    // Helper: get eligible materials for a given main pet, respecting excludedIds
-    const getMaterials = (main) => {
-      const mainD = petOf(main);
-      return pets
-        .filter((p) => {
-          const d = petOf(p);
-          return d.id !== mainD.id && d.species_id === mainD.species_id
-            && !d.is_primary && !['dispatched', 'listed'].includes(d.state)
-            && !excludedIds.has(d.id);
-        })
-        .sort((a, b) => petOf(a).star - petOf(b).star);
-    };
+    // Build batch fusion plan: group by species, pair highest-star main with lowest-star materials
+    const available = pets.filter((p) => {
+      const d = petOf(p);
+      return d.star < 5 && ['normal', 'weak'].includes(d.state)
+        && !d.is_primary && !['dispatched', 'listed'].includes(d.state)
+        && !excludedIds.has(d.id);
+    });
 
-    if (mainPet) {
-      // Main already selected -> auto-pick lowest-star material
-      const candidates = getMaterials(mainPet);
-      if (candidates.length === 0) {
-        showError(t('没有可用的融合素材'));
-        return;
+    // Group by species_id
+    const groups = {};
+    for (const entry of available) {
+      const d = petOf(entry);
+      if (!groups[d.species_id]) groups[d.species_id] = [];
+      groups[d.species_id].push(entry);
+    }
+
+    // Also include primary pets as potential mains (they can be main but not material)
+    const primaryPets = pets.filter((p) => {
+      const d = petOf(p);
+      return d.is_primary && d.star < 5 && ['normal', 'weak'].includes(d.state)
+        && !excludedIds.has(d.id);
+    });
+    for (const entry of primaryPets) {
+      const d = petOf(entry);
+      if (!groups[d.species_id]) groups[d.species_id] = [];
+      // Avoid duplicates
+      if (!groups[d.species_id].some((e) => petOf(e).id === d.id)) {
+        groups[d.species_id].push(entry);
       }
-      setMaterialPet(candidates[0]);
-      setFusionResult(null);
-    } else {
-      // No main selected -> pick the main with the most available materials, then lowest-star material
-      const eligible = mainCandidates.filter((p) => !excludedIds.has(petOf(p).id));
-      let bestMain = null;
-      let bestMaterials = [];
-      for (const candidate of eligible) {
-        const mats = getMaterials(candidate);
-        if (mats.length > bestMaterials.length) {
-          bestMain = candidate;
-          bestMaterials = mats;
+    }
+
+    const pairs = [];
+    for (const speciesId of Object.keys(groups)) {
+      const group = [...groups[speciesId]];
+      if (group.length < 2) continue;
+
+      // Sort: highest star first (pick as main), then by id for stability
+      group.sort((a, b) => petOf(b).star - petOf(a).star || petOf(a).id - petOf(b).id);
+
+      // Greedily pair: pick highest-star non-primary-only as main, lowest-star non-primary as material
+      const used = new Set();
+      // Try pairing from both ends
+      const sortedForMain = [...group]; // highest star first
+      const sortedForMaterial = [...group].reverse(); // lowest star first
+
+      for (const mainEntry of sortedForMain) {
+        const mainD = petOf(mainEntry);
+        if (used.has(mainD.id)) continue;
+        if (mainD.star >= 5) continue;
+
+        for (const matEntry of sortedForMaterial) {
+          const matD = petOf(matEntry);
+          if (used.has(matD.id)) continue;
+          if (matD.id === mainD.id) continue;
+          if (matD.is_primary) continue; // primary can't be material
+
+          const cost = (mainD.star + 1) * 200000;
+          pairs.push({ main: mainEntry, material: matEntry, cost });
+          used.add(mainD.id);
+          used.add(matD.id);
+          break;
         }
       }
-      if (!bestMain || bestMaterials.length === 0) {
-        showError(t('没有可一键融合的宠物'));
-        return;
-      }
-      setMainPet(bestMain);
-      setMaterialPet(bestMaterials[0]);
-      setFusionResult(null);
     }
+
+    if (pairs.length === 0) {
+      showError(t('没有可一键融合的宠物'));
+      return;
+    }
+
+    const totalCost = pairs.reduce((sum, p) => sum + p.cost, 0);
+    setBatchPlan({ pairs, totalCost });
+    setBatchConfirmOpen(true);
+  };
+
+  const removeBatchPair = (index) => {
+    setBatchPlan((prev) => {
+      if (!prev) return null;
+      const newPairs = prev.pairs.filter((_, i) => i !== index);
+      if (newPairs.length === 0) return null;
+      return { pairs: newPairs, totalCost: newPairs.reduce((s, p) => s + p.cost, 0) };
+    });
+    // Close dialog if no pairs left
+    if (batchPlan && batchPlan.pairs.length <= 1) {
+      setBatchConfirmOpen(false);
+    }
+  };
+
+  const executeBatchFusion = async () => {
+    if (!batchPlan || batchRunning) return;
+    setBatchConfirmOpen(false);
+    setBatchRunning(true);
+    const total = batchPlan.pairs.length;
+    setBatchProgress({ current: 0, total, results: [] });
+
+    const results = [];
+    for (let i = 0; i < total; i++) {
+      const pair = batchPlan.pairs[i];
+      const mainD = petOf(pair.main);
+      const matD = petOf(pair.material);
+      setBatchProgress((prev) => ({ ...prev, current: i + 1 }));
+
+      try {
+        const res = await API.post('/api/pet/fusion', {
+          pet_id: mainD.id, material_pet_id: matD.id,
+        });
+        if (res.data.success) {
+          results.push({ pair, success: true });
+        } else {
+          results.push({ pair, success: false, error: res.data.message });
+        }
+      } catch {
+        results.push({ pair, success: false, error: t('融合失败') });
+      }
+
+      setBatchProgress((prev) => ({ ...prev, results: [...results] }));
+      // Small delay between fusions for DB consistency
+      if (i < total - 1) await new Promise((r) => setTimeout(r, 300));
+    }
+
+    const successCount = results.filter((r) => r.success).length;
+    if (successCount > 0) {
+      showSuccess(t('批量融合完成') + `: ${successCount}/${total}`);
+    }
+    if (successCount < total) {
+      showError(t('部分融合失败') + `: ${total - successCount}/${total}`);
+    }
+
+    setBatchPlan(null);
+    setBatchRunning(false);
+    setMainPet(null);
+    setMaterialPet(null);
+    loadData();
   };
 
   const handleFusion = async () => {
@@ -187,7 +283,7 @@ export default function PetFusion() {
           <p className="text-sm text-text-tertiary mt-1">{t('使用同种宠物进行融合，提升星级和属性')}</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="secondary" size="sm" onClick={autoSelect} disabled={fusing || mainCandidates.length === 0}>
+          <Button variant="secondary" size="sm" onClick={autoSelect} disabled={fusing || batchRunning || mainCandidates.length === 0}>
             <Wand2 className="mr-1.5 h-3.5 w-3.5" />{t('一键融合')}
           </Button>
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-hover">
@@ -308,6 +404,102 @@ export default function PetFusion() {
               {quota < fusionCost && (
                 <p className="text-xs text-red-500 text-center">{t('余额不足')}</p>
               )}
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Batch Fusion Confirm Dialog */}
+      <Dialog open={batchConfirmOpen} onOpenChange={(open) => { if (!batchRunning) setBatchConfirmOpen(open); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{t('一键融合计划')}</DialogTitle>
+            <DialogDescription>{t('以下宠物将自动融合，点击 × 可移除不想融合的组合')}</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-64 overflow-y-auto space-y-2 py-2">
+            {batchPlan?.pairs.map((pair, idx) => {
+              const mainD = petOf(pair.main);
+              const matD = petOf(pair.material);
+              return (
+                <div key={idx} className="flex items-center gap-3 rounded-lg bg-surface-hover px-3 py-2">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <PetSprite visualKey={mainD.visual_key} stage={mainD.stage} size="xs" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-text-primary truncate">{mainD.nickname || mainD.species_name || '???'}</p>
+                      <StarDisplay star={mainD.star} size="sm" />
+                    </div>
+                  </div>
+                  <Plus className="h-3 w-3 text-text-tertiary shrink-0" />
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <PetSprite visualKey={matD.visual_key} stage={matD.stage} size="xs" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-text-primary truncate">{matD.nickname || matD.species_name || '???'}</p>
+                      <span className="text-[10px] text-red-500">{t('素材')}</span>
+                    </div>
+                  </div>
+                  <ArrowRight className="h-3 w-3 text-accent shrink-0" />
+                  <StarDisplay star={mainD.star + 1} size="sm" />
+                  <span className="text-xs text-text-secondary whitespace-nowrap">{renderQuota(pair.cost)}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeBatchPair(idx)}
+                    className="p-0.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-text-tertiary hover:text-red-500 transition-colors shrink-0"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-surface-hover border-t border-border">
+            <span className="text-sm text-text-secondary">{t('共 {{count}} 组融合', { count: batchPlan?.pairs.length || 0 })}</span>
+            <div className="flex items-center gap-2">
+              <Coins className="h-3.5 w-3.5 text-amber-500" />
+              <span className="text-sm font-semibold text-text-primary">{renderQuota(batchPlan?.totalCost || 0)}</span>
+            </div>
+          </div>
+          {batchPlan && quota < batchPlan.totalCost && (
+            <p className="text-xs text-red-500 text-center">{t('余额不足，将按顺序执行直到余额耗尽')}</p>
+          )}
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setBatchConfirmOpen(false)}>{t('取消')}</Button>
+            <Button onClick={executeBatchFusion} disabled={!batchPlan || batchPlan.pairs.length === 0}>
+              <Sparkles className="mr-2 h-4 w-4" />{t('开始融合')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Batch Fusion Progress Overlay */}
+      <AnimatePresence>
+        {batchRunning && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          >
+            <Card className="p-6 w-full max-w-sm space-y-4">
+              <h3 className="text-lg font-heading text-text-primary text-center">{t('批量融合中...')}</h3>
+              <div className="w-full bg-surface-hover rounded-full h-3 overflow-hidden">
+                <motion.div
+                  className="h-full bg-accent rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
+              <p className="text-sm text-text-secondary text-center">
+                {batchProgress.current} / {batchProgress.total}
+              </p>
+              <div className="max-h-40 overflow-y-auto space-y-1">
+                {batchProgress.results.map((r, i) => {
+                  const mainD = petOf(r.pair.main);
+                  return (
+                    <div key={i} className={cn('text-xs px-2 py-1 rounded', r.success ? 'text-green-600 bg-green-50 dark:bg-green-950/30' : 'text-red-500 bg-red-50 dark:bg-red-950/30')}>
+                      {mainD.nickname || mainD.species_name} — {r.success ? t('成功') : r.error}
+                    </div>
+                  );
+                })}
+              </div>
             </Card>
           </motion.div>
         )}
