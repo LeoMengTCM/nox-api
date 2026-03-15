@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -14,6 +14,8 @@ import { PetCard } from '../components/pet/pet-card';
 import { API } from '../lib/api';
 import { showError, showSuccess } from '../lib/utils';
 import { renderQuota } from '../lib/utils';
+
+const RARITY_WEIGHT = { SSR: 0, SR: 1, R: 2, N: 3 };
 
 const UserProfile = () => {
   const { id } = useParams();
@@ -152,6 +154,19 @@ const UserProfile = () => {
   const primaryPet = petData.pets?.find(p => p.pet?.is_primary || p.is_primary);
   const petStats = petData.stats || { pet_count: 0, max_level: 0, total_stars: 0 };
 
+  const sortedPets = useMemo(() => {
+    if (!petData.pets) return [];
+    return [...petData.pets].sort((a, b) => {
+      const pa = (a.pet || a);
+      const pb = (b.pet || b);
+      const ra = RARITY_WEIGHT[pa.rarity] ?? 4;
+      const rb = RARITY_WEIGHT[pb.rarity] ?? 4;
+      if (ra !== rb) return ra - rb;
+      if ((pb.star || 0) !== (pa.star || 0)) return (pb.star || 0) - (pa.star || 0);
+      return (pb.level || 1) - (pa.level || 1);
+    });
+  }, [petData.pets]);
+
   return (
     <div className="max-w-2xl mx-auto py-6 px-4 space-y-5">
       {/* Profile Header */}
@@ -275,11 +290,11 @@ const UserProfile = () => {
 
         {/* Pets tab */}
         <TabsContent value="pets">
-          {(!petData.pets || petData.pets.length === 0) ? (
+          {sortedPets.length === 0 ? (
             <EmptyState title={t('该用户还没有魔法生物')} />
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {petData.pets.map((item) => {
+              {sortedPets.map((item) => {
                 const pet = item.pet || item;
                 return (
                   <PetCard

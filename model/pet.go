@@ -38,13 +38,15 @@ type UserPet struct {
 	Exp          int        `json:"exp" gorm:"default:0"`
 	Stage        int        `json:"stage" gorm:"default:0"` // 0=蛋, 1=幼生, 2=成熟
 	Star         int        `json:"star" gorm:"default:0"`
-	Stats        string     `json:"stats" gorm:"type:text"` // JSON: current computed stats
-	Status       string     `json:"status" gorm:"type:text"` // JSON: {hunger:100, mood:100, cleanliness:100}
+	Rarity       string     `json:"rarity" gorm:"type:varchar(8);default:''"` // override species rarity after transcendence
+	Stats        string     `json:"stats" gorm:"type:text"`                   // JSON: current computed stats
+	Status       string     `json:"status" gorm:"type:text"`                  // JSON: {hunger:100, mood:100, cleanliness:100}
 	IsPrimary    bool       `json:"is_primary" gorm:"default:false"`
 	State        string     `json:"state" gorm:"type:varchar(16);default:'normal'"` // normal, weak, dispatched, listed
 	LastFedAt    *time.Time `json:"last_fed_at"`
 	LastPlayedAt *time.Time `json:"last_played_at"`
 	HatchedAt    *time.Time `json:"hatched_at"`
+	LastXpTick   int64      `json:"last_xp_tick" gorm:"bigint;default:0"` // unix timestamp: last passive XP calculation
 	CreatedAt    int64      `json:"created_at" gorm:"bigint"`
 	UpdatedAt    int64      `json:"updated_at" gorm:"bigint"`
 }
@@ -330,6 +332,124 @@ func mustMarshal(v any) string {
 	return string(data)
 }
 
+// petSeedItems returns the canonical list of pet shop items (v0.1.2 HP-themed).
+func petSeedItems(now int64) []PetItem {
+	return []PetItem{
+		// ========== Food (restores hunger) ==========
+		{
+			Name:        "南瓜汁",
+			Description: "霍格沃茨餐桌上的经典饮品，清甜可口，恢复少量饥饿值",
+			Type:        "food",
+			Rarity:      "N",
+			Price:       30000,
+			Enabled:     true,
+			Effect:      mustMarshal(map[string]int{"hunger": 20}),
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		},
+		{
+			Name:        "比比多味豆",
+			Description: "每一颗都是惊喜——可能是草莓味，也可能是耳屎味",
+			Type:        "food",
+			Rarity:      "N",
+			Price:       60000,
+			Enabled:     true,
+			Effect:      mustMarshal(map[string]int{"hunger": 30}),
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		},
+		{
+			Name:        "巧克力蛙",
+			Description: "附赠一张巫师卡片！浓郁的巧克力让宠物精神焕发",
+			Type:        "food",
+			Rarity:      "R",
+			Price:       100000,
+			Enabled:     true,
+			Effect:      mustMarshal(map[string]int{"hunger": 40, "mood": 10}),
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		},
+		{
+			Name:        "太妃糖布丁",
+			Description: "哈利·波特的最爱！霍格沃茨大厅招牌甜点，恢复大量饥饿值",
+			Type:        "food",
+			Rarity:      "SR",
+			Price:       180000,
+			Enabled:     true,
+			Effect:      mustMarshal(map[string]int{"hunger": 60, "mood": 10}),
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		},
+		{
+			Name:        "黄油啤酒",
+			Description: "三把扫帚酒吧的招牌饮品，温暖的奶油泡沫让宠物心满意足",
+			Type:        "food",
+			Rarity:      "R",
+			Price:       120000,
+			Enabled:     true,
+			Effect:      mustMarshal(map[string]int{"hunger": 30, "mood": 25}),
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		},
+		// ========== Potions (restores mood, cleanliness, or special) ==========
+		{
+			Name:        "缩身药水",
+			Description: "斯内普教授二年级课程的经典药剂，便宜实用，提振精神",
+			Type:        "potion",
+			Rarity:      "N",
+			Price:       50000,
+			Enabled:     true,
+			Effect:      mustMarshal(map[string]int{"mood": 25}),
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		},
+		{
+			Name:        "提神药剂",
+			Description: "庞弗雷夫人的常备药品，一剂下去耳朵冒烟，精神百倍",
+			Type:        "potion",
+			Rarity:      "R",
+			Price:       100000,
+			Enabled:     true,
+			Effect:      mustMarshal(map[string]int{"mood": 45}),
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		},
+		{
+			Name:        "清洁魔药",
+			Description: "强力清洁配方，一瓶搞定所有污渍，让宠物光洁如新",
+			Type:        "potion",
+			Rarity:      "N",
+			Price:       75000,
+			Enabled:     true,
+			Effect:      mustMarshal(map[string]int{"cleanliness": 45}),
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		},
+		{
+			Name:        "生骨药",
+			Description: "味道糟糕但效果拔群，能全方位恢复宠物的状态",
+			Type:        "potion",
+			Rarity:      "SR",
+			Price:       200000,
+			Enabled:     true,
+			Effect:      mustMarshal(map[string]int{"hunger": 20, "mood": 20, "cleanliness": 20}),
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		},
+		{
+			Name:        "福灵剂",
+			Description: "传说中的液体幸运——金色琼浆大幅提升宠物所有状态",
+			Type:        "potion",
+			Rarity:      "SSR",
+			Price:       500000,
+			Enabled:     true,
+			Effect:      mustMarshal(map[string]int{"hunger": 40, "mood": 40, "cleanliness": 40}),
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		},
+	}
+}
+
 // SeedPetData populates initial pet species and items if the tables are empty.
 // This function is idempotent — it only inserts when pet_species has zero rows.
 func SeedPetData() {
@@ -588,132 +708,29 @@ func SeedPetData() {
 		}
 	}
 
-	// Seed items (only when pet_items is empty)
+	// Seed items — reseed if the current items don't match (e.g. upgrade from old items)
+	seedItems := petSeedItems(now)
 	var itemCount int64
 	DB.Model(&PetItem{}).Count(&itemCount)
 	if itemCount > 0 {
-		return
+		// Check if items need upgrade: look for a known v0.1.2 item
+		var marker int64
+		DB.Model(&PetItem{}).Where("name = ?", seedItems[0].Name).Count(&marker)
+		if marker == 0 {
+			// Old items detected — clear and reseed.
+			// Remove user inventory entries that reference old items, then delete old items.
+			common.SysLog("upgrading pet shop items to v0.1.2...")
+			DB.Where("1 = 1").Delete(&UserPetItem{})
+			DB.Where("1 = 1").Delete(&PetItem{})
+			itemCount = 0
+		}
 	}
-
-	items := []PetItem{
-		// ========== Food (restores hunger) ==========
-		{
-			Name:        "南瓜汁",
-			Description: "霍格沃茨餐桌上的经典饮品，清甜可口，恢复少量饥饿值",
-			Type:        "food",
-			Rarity:      "N",
-			Price:       30000,
-			Enabled:     true,
-			Effect:      mustMarshal(map[string]int{"hunger": 20}),
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		},
-		{
-			Name:        "比比多味豆",
-			Description: "每一颗都是惊喜——可能是草莓味，也可能是耳屎味",
-			Type:        "food",
-			Rarity:      "N",
-			Price:       60000,
-			Enabled:     true,
-			Effect:      mustMarshal(map[string]int{"hunger": 30}),
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		},
-		{
-			Name:        "巧克力蛙",
-			Description: "附赠一张巫师卡片！浓郁的巧克力让宠物精神焕发",
-			Type:        "food",
-			Rarity:      "R",
-			Price:       100000,
-			Enabled:     true,
-			Effect:      mustMarshal(map[string]int{"hunger": 40, "mood": 10}),
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		},
-		{
-			Name:        "太妃糖布丁",
-			Description: "哈利·波特的最爱！霍格沃茨大厅招牌甜点，恢复大量饥饿值",
-			Type:        "food",
-			Rarity:      "SR",
-			Price:       180000,
-			Enabled:     true,
-			Effect:      mustMarshal(map[string]int{"hunger": 60, "mood": 10}),
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		},
-		{
-			Name:        "黄油啤酒",
-			Description: "三把扫帚酒吧的招牌饮品，温暖的奶油泡沫让宠物心满意足",
-			Type:        "food",
-			Rarity:      "R",
-			Price:       120000,
-			Enabled:     true,
-			Effect:      mustMarshal(map[string]int{"hunger": 30, "mood": 25}),
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		},
-		// ========== Potions (restores mood, cleanliness, or special) ==========
-		{
-			Name:        "缩身药水",
-			Description: "斯内普教授二年级课程的经典药剂，便宜实用，提振精神",
-			Type:        "potion",
-			Rarity:      "N",
-			Price:       50000,
-			Enabled:     true,
-			Effect:      mustMarshal(map[string]int{"mood": 25}),
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		},
-		{
-			Name:        "提神药剂",
-			Description: "庞弗雷夫人的常备药品，一剂下去耳朵冒烟，精神百倍",
-			Type:        "potion",
-			Rarity:      "R",
-			Price:       100000,
-			Enabled:     true,
-			Effect:      mustMarshal(map[string]int{"mood": 45}),
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		},
-		{
-			Name:        "清洁魔药",
-			Description: "强力清洁配方，一瓶搞定所有污渍，让宠物光洁如新",
-			Type:        "potion",
-			Rarity:      "N",
-			Price:       75000,
-			Enabled:     true,
-			Effect:      mustMarshal(map[string]int{"cleanliness": 45}),
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		},
-		{
-			Name:        "生骨药",
-			Description: "味道糟糕但效果拔群，能全方位恢复宠物的状态",
-			Type:        "potion",
-			Rarity:      "SR",
-			Price:       200000,
-			Enabled:     true,
-			Effect:      mustMarshal(map[string]int{"hunger": 20, "mood": 20, "cleanliness": 20}),
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		},
-		{
-			Name:        "福灵剂",
-			Description: "传说中的液体幸运——金色琼浆大幅提升宠物所有状态",
-			Type:        "potion",
-			Rarity:      "SSR",
-			Price:       500000,
-			Enabled:     true,
-			Effect:      mustMarshal(map[string]int{"hunger": 40, "mood": 40, "cleanliness": 40}),
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		},
-	}
-
-	for i := range items {
-		if err := DB.Create(&items[i]).Error; err != nil {
-			common.SysError("failed to seed pet item: " + err.Error())
-			return
+	if itemCount == 0 {
+		for i := range seedItems {
+			if err := DB.Create(&seedItems[i]).Error; err != nil {
+				common.SysError("failed to seed pet item: " + err.Error())
+				return
+			}
 		}
 	}
 

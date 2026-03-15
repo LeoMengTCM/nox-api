@@ -23,6 +23,9 @@ type PetSetting struct {
 	MoodDecayPerHour        int `json:"mood_decay_per_hour"`        // 心情衰减/h
 	CleanlinessDecayPerHour int `json:"cleanliness_decay_per_hour"` // 洁净衰减/h
 
+	// 自然增长
+	PassiveXpPerHour int `json:"passive_xp_per_hour"` // 挂机每小时自然获得的 XP
+
 	// 升级进化
 	LevelExpMultiplier   int `json:"level_exp_multiplier"`   // 升级公式倍数
 	EvolutionStage1Level int `json:"evolution_stage1_level"` // 一阶进化等级
@@ -55,6 +58,7 @@ var petSetting = PetSetting{
 	HungerDecayPerHour:      4,
 	MoodDecayPerHour:        3,
 	CleanlinessDecayPerHour: 2,
+	PassiveXpPerHour:        5,
 	LevelExpMultiplier:      100,
 	EvolutionStage1Level:    10,
 	EvolutionStage2Level:    30,
@@ -159,6 +163,13 @@ func GetCleanlinessDecayPerHour() int {
 		return 2
 	}
 	return petSetting.CleanlinessDecayPerHour
+}
+
+func GetPassiveXpPerHour() int {
+	if petSetting.PassiveXpPerHour <= 0 {
+		return 5
+	}
+	return petSetting.PassiveXpPerHour
 }
 
 // ── 升级进化 ──

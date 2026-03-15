@@ -2,6 +2,26 @@
 
 All notable changes to Nox API will be documented in this file.
 
+## [0.1.3] - 2026-03-15
+
+### New Features
+
+- **XP passive growth**: Pets now gain XP automatically over time (default 5 XP/hour, max 24h accumulation). Lazy-calculated on each query — no cron needed. Configurable via admin `PassiveXpPerHour` setting. (`service/pet.go`, `model/pet.go`, `setting/operation_setting/pet_setting.go`)
+- **Rarity transcendence**: Two max-star (5★) same-species pets can fuse to upgrade rarity tier — N→R, R→SR, SR→SSR. Star resets to 0, level preserved (higher of two), stats recomputed with rarity multiplier (1.3x–1.4x). New "Transcend" tab in fusion page with purple-gold theme and batch support. (`POST /api/pet/transcend`, `service/pet_gacha.go`, `web/src/pages/pet/fusion.jsx`)
+
+### Improvements
+
+- **Adventure dispatch sorted by success rate**: Pet selection list now sorted highest success rate first, making it easier to pick the best candidate. (`web/src/pages/pet/adventure.jsx`)
+- **Pet list sorted by rarity**: My Fantastic Beasts and user profile pages now sort SSR → SR → R → N, then by star desc, then level desc. (`web/src/pages/pet/index.jsx`, `web/src/pages/user-profile.jsx`)
+- **Batch buttons more prominent**: One-click fusion and batch hatch buttons upgraded with gradient backgrounds, pulse animation, and shadow for better visibility. (`web/src/pages/pet/fusion.jsx`, `web/src/pages/pet/index.jsx`)
+- **Star-up stat scaling increased**: Changed from flat +10%/star to progressive scaling — 1★ +15%, 2★ +35%, 3★ +60%, 4★ +100%, 5★ +150% (2.5x base). Growth feels much more rewarding now. (`service/pet.go`)
+
+### Bug Fixes
+
+- **Shop still showing old items**: Added upgrade migration that detects legacy items (普通饲料, etc.) and replaces them with HP-themed items on startup. Idempotent — safe to run multiple times. (`model/pet.go`)
+
+---
+
 ## [0.1.2] - 2026-03-15
 
 ### Harry Potter Theming

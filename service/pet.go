@@ -111,9 +111,34 @@ func ComputeCurrentStatus(pet *model.UserPet) map[string]int {
 	return statusMap
 }
 
-// recomputeStats recalculates pet stats based on species base_stats, level, stage, and star.
-// Formula: stat = base * (1 + 0.05*(level-1)) * stageMultiplier * (1 + 0.1*star)
+// starMultiplier returns the stat multiplier for a given star rating.
+// Progressive scaling so higher stars feel significantly stronger:
+//
+//	0★ = 1.00x, 1★ = 1.15x, 2★ = 1.35x, 3★ = 1.60x, 4★ = 2.00x, 5★ = 2.50x
+func starMultiplier(star int) float64 {
+	switch star {
+	case 1:
+		return 1.15
+	case 2:
+		return 1.35
+	case 3:
+		return 1.60
+	case 4:
+		return 2.00
+	case 5:
+		return 2.50
+	default:
+		return 1.0
+	}
+}
+
+// recomputeStats recalculates pet stats based on species base_stats, level, stage, star, and rarity override.
+// Formula: stat = base * rarityMult * (1 + 0.05*(level-1)) * stageMultiplier * starMultiplier
 func recomputeStats(pet *model.UserPet, species *model.PetSpecies) {
+	if pet.Rarity != "" && pet.Rarity != species.Rarity {
+		recomputeStatsWithRarity(pet, species, pet.Rarity)
+		return
+	}
 	var baseStats map[string]float64
 	if species.BaseStats != "" {
 		_ = common.Unmarshal([]byte(species.BaseStats), &baseStats)
@@ -122,7 +147,7 @@ func recomputeStats(pet *model.UserPet, species *model.PetSpecies) {
 		return
 	}
 
-	mult := (1.0 + 0.05*float64(pet.Level-1)) * stageMultiplier(pet.Stage) * (1.0 + 0.1*float64(pet.Star))
+	mult := (1.0 + 0.05*float64(pet.Level-1)) * stageMultiplier(pet.Stage) * starMultiplier(pet.Star)
 
 	computed := make(map[string]int, len(baseStats))
 	for k, v := range baseStats {
@@ -133,10 +158,107 @@ func recomputeStats(pet *model.UserPet, species *model.PetSpecies) {
 	pet.Stats = string(data)
 }
 
+// recomputeStatsWithRarity recalculates stats applying a rarity upgrade multiplier.
+// Used during transcendence when the pet's rarity changes.
+func recomputeStatsWithRarity(pet *model.UserPet, species *model.PetSpecies, newRarity string) {
+	var baseStats map[string]float64
+	if species.BaseStats != "" {
+		_ = common.Unmarshal([]byte(species.BaseStats), &baseStats)
+	}
+	if baseStats == nil {
+		return
+	}
+
+	// Compute cumulative rarity multiplier from species rarity to newRarity
+	rarityMult := 1.0
+	current := species.Rarity
+	for current != newRarity && current != "" {
+		switch current {
+		case "N":
+			rarityMult *= 1.4
+			current = "R"
+		case "R":
+			rarityMult *= 1.3
+			current = "SR"
+		case "SR":
+			rarityMult *= 1.35
+			current = "SSR"
+		default:
+			current = ""
+		}
+	}
+
+	mult := rarityMult * (1.0 + 0.05*float64(pet.Level-1)) * stageMultiplier(pet.Stage) * starMultiplier(pet.Star)
+
+	computed := make(map[string]int, len(baseStats))
+	for k, v := range baseStats {
+		computed[k] = int(math.Round(v * mult))
+	}
+
+	data, _ := common.Marshal(computed)
+	pet.Stats = string(data)
+}
+
+// petEffectiveRarity returns the pet's effective rarity, preferring pet-level override.
+func petEffectiveRarity(pet *model.UserPet, species *model.PetSpecies) string {
+	if pet.Rarity != "" {
+		return pet.Rarity
+	}
+	if species != nil {
+		return species.Rarity
+	}
+	return "N"
+}
+
 // expToNextLevel returns the EXP required to go from level to level+1.
 // Formula: level * 100
 func expToNextLevel(level int) int {
 	return level * operation_setting.GetLevelExpMultiplier()
+}
+
+// applyPassiveXp calculates and grants time-based passive XP using lazy evaluation.
+// Only applies to hatched pets (stage > 0). Caps at 24 hours of accumulated XP.
+// Uses UpdateColumn for concurrency safety instead of Save.
+func applyPassiveXp(pet *model.UserPet) {
+	// Only hatched pets earn passive XP
+	if pet.Stage <= 0 {
+		return
+	}
+
+	now := time.Now().Unix()
+
+	// First time: initialize last_xp_tick without granting XP
+	if pet.LastXpTick == 0 {
+		pet.LastXpTick = now
+		model.DB.Model(&model.UserPet{}).Where("id = ?", pet.Id).
+			UpdateColumn("last_xp_tick", now)
+		return
+	}
+
+	elapsed := now - pet.LastXpTick
+	hours := int(elapsed / 3600)
+	if hours < 1 {
+		return
+	}
+
+	// Cap at 24 hours to prevent excessive accumulation
+	if hours > 24 {
+		hours = 24
+	}
+
+	xpGain := hours * operation_setting.GetPassiveXpPerHour()
+	if xpGain <= 0 {
+		return
+	}
+
+	// Update last_xp_tick: advance by the hours actually counted
+	newTick := pet.LastXpTick + int64(hours)*3600
+	pet.LastXpTick = newTick
+	model.DB.Model(&model.UserPet{}).Where("id = ?", pet.Id).
+		UpdateColumn("last_xp_tick", newTick)
+
+	// Grant XP (handles level-ups internally)
+	AddExp(pet, xpGain)
 }
 
 // AddExp grants experience points to a pet, handling level-ups and auto-evolution.
@@ -606,6 +728,9 @@ func GetPetDetail(userId int, petId int) (map[string]interface{}, error) {
 		return nil, errors.New("宠物不存在")
 	}
 
+	// Apply passive XP before computing status
+	applyPassiveXp(pet)
+
 	species, err := model.GetSpeciesById(pet.SpeciesId)
 	if err != nil {
 		return nil, errors.New("物种信息不存在")
@@ -639,7 +764,7 @@ func GetPetDetail(userId int, petId int) (map[string]interface{}, error) {
 		"next_level_exp":    nextLevelExp,
 		"exp_progress":      math.Round(expProgress*100) / 100,
 		"clean_count_today": cleanCountToday,
-		"rarity":            species.Rarity,
+		"rarity":            petEffectiveRarity(pet, species),
 	}
 	if pet.Stage == 0 && pet.HatchedAt != nil {
 		result["hatch_ready_at"] = pet.HatchedAt
@@ -655,6 +780,9 @@ func GetPetDetail(userId int, petId int) (map[string]interface{}, error) {
 // ComputePetSummary returns a lightweight summary of a pet with computed status.
 // An optional species parameter can be passed to avoid an extra DB query.
 func ComputePetSummary(pet *model.UserPet, speciesOpt ...*model.PetSpecies) map[string]interface{} {
+	// Apply passive XP before computing status
+	applyPassiveXp(pet)
+
 	computedStatus := ComputeCurrentStatus(pet)
 	nextLevelExp := expToNextLevel(pet.Level)
 	var expProgress float64
@@ -682,6 +810,10 @@ func ComputePetSummary(pet *model.UserPet, speciesOpt ...*model.PetSpecies) map[
 		visualKey = species.VisualKey
 		rarity = species.Rarity
 		element = species.Element
+	}
+	// Pet-level rarity override (from transcendence)
+	if pet.Rarity != "" {
+		rarity = pet.Rarity
 	}
 
 	result := map[string]interface{}{

@@ -193,6 +193,35 @@ func FusePet(c *gin.Context) {
 	})
 }
 
+// TranscendPet 评级超越：两只满星同种同稀有度宠物 → 提升稀有度
+func TranscendPet(c *gin.Context) {
+	var req struct {
+		PetId         int `json:"pet_id"`
+		MaterialPetId int `json:"material_pet_id"`
+	}
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		common.ApiErrorMsg(c, "无效的请求参数")
+		return
+	}
+	if req.PetId <= 0 || req.MaterialPetId <= 0 {
+		common.ApiErrorMsg(c, "无效的宠物 ID")
+		return
+	}
+
+	userId := c.GetInt("id")
+	result, err := service.TranscendPet(userId, req.PetId, req.MaterialPetId)
+	if err != nil {
+		common.ApiErrorMsg(c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "评级超越成功",
+		"data":    result,
+	})
+}
+
 // ==================== Admin Gacha Pools ====================
 
 // AdminGetGachaPools 管理员获取所有卡池

@@ -394,6 +394,7 @@ func SetApiRouter(router *gin.Engine) {
 			petRoute.GET("/gacha/pity", controller.GetPityInfo)
 			// Fusion
 			petRoute.POST("/fusion", controller.FusePet)
+			petRoute.POST("/transcend", controller.TranscendPet)
 			// Missions & Dispatch
 			petRoute.GET("/missions", controller.GetMissions)
 			petRoute.POST("/dispatch", controller.DispatchPet)

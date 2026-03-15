@@ -16,6 +16,18 @@ import { RarityBadge } from '../../components/pet/rarity-badge';
 import { WizardTitleSetting } from '../../components/pet/wizard-title-setting';
 import { useWizardTitle } from '../../hooks/use-wizard-title';
 
+const RARITY_WEIGHT = { SSR: 0, SR: 1, R: 2, N: 3 };
+
+function sortPetsByRarity(list) {
+  return [...list].sort((a, b) => {
+    const ra = RARITY_WEIGHT[a.rarity] ?? 4;
+    const rb = RARITY_WEIGHT[b.rarity] ?? 4;
+    if (ra !== rb) return ra - rb;
+    if ((b.star || 0) !== (a.star || 0)) return (b.star || 0) - (a.star || 0);
+    return (b.level || 1) - (a.level || 1);
+  });
+}
+
 export default function PetIndex() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -68,6 +80,8 @@ export default function PetIndex() {
     () => pets.filter((p) => p.stage === 0 && (p.hatch_countdown ?? 0) === 0),
     [pets],
   );
+
+  const sortedPets = useMemo(() => sortPetsByRarity(pets), [pets]);
 
   const startBatchHatch = () => {
     const eggs = pets.filter((p) => p.stage === 0 && (p.hatch_countdown ?? 0) === 0);
@@ -209,8 +223,13 @@ export default function PetIndex() {
         </div>
         <div className="flex items-center gap-3">
           {hatchableEggs.length > 0 && (
-            <Button variant="secondary" size="sm" onClick={startBatchHatch} disabled={batchHatchRunning}>
-              <Egg className="mr-1.5 h-3.5 w-3.5" />{t('一键孵化')}
+            <Button
+              size="default"
+              className="bg-gradient-to-r from-accent to-amber-500 hover:from-accent/90 hover:to-amber-500/90 text-white shadow-md animate-pulse"
+              onClick={startBatchHatch}
+              disabled={batchHatchRunning}
+            >
+              <Egg className="mr-1.5 h-4 w-4" />{t('一键孵化')}
             </Button>
           )}
           <WizardTitleSetting />
@@ -236,7 +255,7 @@ export default function PetIndex() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.05 }}
         >
-          {pets.map((pet) => (
+          {sortedPets.map((pet) => (
             <PetCard
               key={pet.id}
               pet={pet}

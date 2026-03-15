@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Swords, Shield, Zap, Clover, ArrowRight, Plus, Sparkles, Wand2, X } from 'lucide-react';
+import { Coins, Swords, Shield, Zap, Clover, ArrowRight, Plus, Sparkles, Wand2, X, Crown } from 'lucide-react';
 import { API } from '../../lib/api';
 import { showError, showSuccess, renderQuota } from '../../lib/utils';
 import { cn } from '../../lib/cn';
@@ -20,11 +20,17 @@ function parseStats(raw) {
 
 const petOf = (entry) => entry.pet ?? entry;
 
+const RARITY_ORDER = { N: 0, R: 1, SR: 2, SSR: 3 };
+const NEXT_RARITY = { N: 'R', R: 'SR', SR: 'SSR' };
+const RARITY_STAT_MULT = { N: 1.4, R: 1.3, SR: 1.35 };
+const TRANSCEND_COST = 6 * 200000 * 3; // (maxStar+1) * baseCost * 3
+
 export default function PetFusion() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [pets, setPets] = useState([]);
   const [quota, setQuota] = useState(0);
+  const [mode, setMode] = useState('fusion'); // 'fusion' | 'transcend'
   const [mainPet, setMainPet] = useState(null);
   const [materialPet, setMaterialPet] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -33,7 +39,7 @@ export default function PetFusion() {
   const [fusionResult, setFusionResult] = useState(null);
   const [excludedIds, setExcludedIds] = useState(new Set());
   // Batch fusion state
-  const [batchPlan, setBatchPlan] = useState(null); // { pairs: [{main, material, cost}], totalCost }
+  const [batchPlan, setBatchPlan] = useState(null);
   const [batchConfirmOpen, setBatchConfirmOpen] = useState(false);
   const [batchRunning, setBatchRunning] = useState(false);
   const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0, results: [] });
@@ -57,33 +63,90 @@ export default function PetFusion() {
 
   useEffect(() => { loadData(); }, []);
 
+  // Reset selections when mode changes
+  useEffect(() => {
+    setMainPet(null);
+    setMaterialPet(null);
+    setFusionResult(null);
+  }, [mode]);
+
+  // ===== Fusion mode candidates =====
   const mainCandidates = useMemo(
-    () => pets.filter((p) => {
-      const d = petOf(p);
-      return d.star < 5 && ['normal', 'weak'].includes(d.state);
-    }),
-    [pets],
+    () => mode === 'fusion'
+      ? pets.filter((p) => {
+          const d = petOf(p);
+          return d.star < 5 && ['normal', 'weak'].includes(d.state);
+        })
+      : [],
+    [pets, mode],
   );
 
   const materialCandidates = useMemo(() => {
-    if (!mainPet) return [];
+    if (mode !== 'fusion' || !mainPet) return [];
     const main = petOf(mainPet);
     return pets.filter((p) => {
       const d = petOf(p);
       return d.id !== main.id && d.species_id === main.species_id
         && !d.is_primary && !['dispatched', 'listed'].includes(d.state);
     });
-  }, [pets, mainPet]);
+  }, [pets, mainPet, mode]);
+
+  // ===== Transcend mode candidates =====
+  const transcendMainCandidates = useMemo(
+    () => mode === 'transcend'
+      ? pets.filter((p) => {
+          const d = petOf(p);
+          return d.star >= 5
+            && ['normal', 'weak'].includes(d.state)
+            && (d.rarity || 'N') !== 'SSR';
+        })
+      : [],
+    [pets, mode],
+  );
+
+  const transcendMaterialCandidates = useMemo(() => {
+    if (mode !== 'transcend' || !mainPet) return [];
+    const main = petOf(mainPet);
+    const mainRarity = main.rarity || 'N';
+    return pets.filter((p) => {
+      const d = petOf(p);
+      return d.id !== main.id
+        && d.species_id === main.species_id
+        && (d.rarity || 'N') === mainRarity
+        && d.star >= 5
+        && !d.is_primary
+        && !['dispatched', 'listed'].includes(d.state);
+    });
+  }, [pets, mainPet, mode]);
+
+  const isTranscend = mode === 'transcend';
+  const activeMains = isTranscend ? transcendMainCandidates : mainCandidates;
+  const activeMaterials = isTranscend ? transcendMaterialCandidates : materialCandidates;
 
   const mainData = mainPet ? petOf(mainPet) : null;
   const materialData = materialPet ? petOf(materialPet) : null;
-  const fusionCost = mainData ? (mainData.star + 1) * 200000 : 0;
+
+  const fusionCost = isTranscend
+    ? TRANSCEND_COST
+    : (mainData ? (mainData.star + 1) * 200000 : 0);
+
   const mainStats = mainData ? parseStats(mainData.stats) : {};
+
   const projectedStats = useMemo(() => {
     const s = { ...mainStats };
-    for (const k of Object.keys(s)) if (typeof s[k] === 'number') s[k] = Math.round(s[k] * 1.1);
+    if (isTranscend && mainData) {
+      const rarity = mainData.rarity || 'N';
+      const mult = RARITY_STAT_MULT[rarity] || 1.0;
+      // After transcend: star resets to 0 (starMult goes from 2.5 to 1.0), but rarity mult applies
+      // Approximate: new_stat = current_stat / 2.5 * mult (star reset from 5 to 0)
+      for (const k of Object.keys(s)) {
+        if (typeof s[k] === 'number') s[k] = Math.round(s[k] / 2.5 * mult);
+      }
+    } else {
+      for (const k of Object.keys(s)) if (typeof s[k] === 'number') s[k] = Math.round(s[k] * 1.1);
+    }
     return s;
-  }, [mainStats]);
+  }, [mainStats, isTranscend, mainData]);
 
   const selectMain = (pet) => { setMainPet(pet); setMaterialPet(null); setFusionResult(null); };
   const selectMaterial = (pet) => { setMaterialPet(pet); setFusionResult(null); };
@@ -97,24 +160,24 @@ export default function PetFusion() {
     });
   };
 
+  // ===== Batch fusion =====
   const autoSelect = () => {
-    // Build batch fusion plan: group by species, pair highest-star main with lowest-star materials
+    if (isTranscend) {
+      autoSelectTranscend();
+      return;
+    }
     const available = pets.filter((p) => {
       const d = petOf(p);
       return d.star < 5 && ['normal', 'weak'].includes(d.state)
         && !d.is_primary && !['dispatched', 'listed'].includes(d.state)
         && !excludedIds.has(d.id);
     });
-
-    // Group by species_id
     const groups = {};
     for (const entry of available) {
       const d = petOf(entry);
       if (!groups[d.species_id]) groups[d.species_id] = [];
       groups[d.species_id].push(entry);
     }
-
-    // Also include primary pets as potential mains (they can be main but not material)
     const primaryPets = pets.filter((p) => {
       const d = petOf(p);
       return d.is_primary && d.star < 5 && ['normal', 'weak'].includes(d.state)
@@ -123,37 +186,27 @@ export default function PetFusion() {
     for (const entry of primaryPets) {
       const d = petOf(entry);
       if (!groups[d.species_id]) groups[d.species_id] = [];
-      // Avoid duplicates
       if (!groups[d.species_id].some((e) => petOf(e).id === d.id)) {
         groups[d.species_id].push(entry);
       }
     }
-
     const pairs = [];
     for (const speciesId of Object.keys(groups)) {
       const group = [...groups[speciesId]];
       if (group.length < 2) continue;
-
-      // Sort: highest star first (pick as main), then by id for stability
       group.sort((a, b) => petOf(b).star - petOf(a).star || petOf(a).id - petOf(b).id);
-
-      // Greedily pair: pick highest-star non-primary-only as main, lowest-star non-primary as material
       const used = new Set();
-      // Try pairing from both ends
-      const sortedForMain = [...group]; // highest star first
-      const sortedForMaterial = [...group].reverse(); // lowest star first
-
+      const sortedForMain = [...group];
+      const sortedForMaterial = [...group].reverse();
       for (const mainEntry of sortedForMain) {
         const mainD = petOf(mainEntry);
         if (used.has(mainD.id)) continue;
         if (mainD.star >= 5) continue;
-
         for (const matEntry of sortedForMaterial) {
           const matD = petOf(matEntry);
           if (used.has(matD.id)) continue;
           if (matD.id === mainD.id) continue;
-          if (matD.is_primary) continue; // primary can't be material
-
+          if (matD.is_primary) continue;
           const cost = (mainD.star + 1) * 200000;
           pairs.push({ main: mainEntry, material: matEntry, cost });
           used.add(mainD.id);
@@ -162,12 +215,56 @@ export default function PetFusion() {
         }
       }
     }
-
     if (pairs.length === 0) {
       showError(t('没有可一键融合的魔法生物'));
       return;
     }
+    const totalCost = pairs.reduce((sum, p) => sum + p.cost, 0);
+    setBatchPlan({ pairs, totalCost });
+    setBatchConfirmOpen(true);
+  };
 
+  const autoSelectTranscend = () => {
+    const available = pets.filter((p) => {
+      const d = petOf(p);
+      return d.star >= 5
+        && ['normal', 'weak'].includes(d.state)
+        && (d.rarity || 'N') !== 'SSR'
+        && !excludedIds.has(d.id);
+    });
+    // Group by species_id + rarity
+    const groups = {};
+    for (const entry of available) {
+      const d = petOf(entry);
+      const key = `${d.species_id}_${d.rarity || 'N'}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(entry);
+    }
+    const pairs = [];
+    for (const key of Object.keys(groups)) {
+      const group = [...groups[key]];
+      if (group.length < 2) continue;
+      // Sort by id for stability
+      group.sort((a, b) => petOf(a).id - petOf(b).id);
+      const used = new Set();
+      for (let i = 0; i < group.length; i++) {
+        const mainD = petOf(group[i]);
+        if (used.has(mainD.id)) continue;
+        for (let j = i + 1; j < group.length; j++) {
+          const matD = petOf(group[j]);
+          if (used.has(matD.id)) continue;
+          if (matD.is_primary) continue;
+          pairs.push({ main: group[i], material: group[j], cost: TRANSCEND_COST, isTranscend: true });
+          used.add(mainD.id);
+          used.add(matD.id);
+          break;
+        }
+      }
+    }
+    if (pairs.length === 0) {
+      showError(t('没有可一键超越的魔法生物'));
+      return;
+    }
     const totalCost = pairs.reduce((sum, p) => sum + p.cost, 0);
     setBatchPlan({ pairs, totalCost });
     setBatchConfirmOpen(true);
@@ -180,7 +277,6 @@ export default function PetFusion() {
       if (newPairs.length === 0) return null;
       return { pairs: newPairs, totalCost: newPairs.reduce((s, p) => s + p.cost, 0) };
     });
-    // Close dialog if no pairs left
     if (batchPlan && batchPlan.pairs.length <= 1) {
       setBatchConfirmOpen(false);
     }
@@ -200,8 +296,9 @@ export default function PetFusion() {
       const matD = petOf(pair.material);
       setBatchProgress((prev) => ({ ...prev, current: i + 1 }));
 
+      const endpoint = pair.isTranscend ? '/api/pet/transcend' : '/api/pet/fusion';
       try {
-        const res = await API.post('/api/pet/fusion', {
+        const res = await API.post(endpoint, {
           pet_id: mainD.id, material_pet_id: matD.id,
         });
         if (res.data.success) {
@@ -210,21 +307,18 @@ export default function PetFusion() {
           results.push({ pair, success: false, error: res.data.message });
         }
       } catch {
-        results.push({ pair, success: false, error: t('融合失败') });
+        results.push({ pair, success: false, error: pair.isTranscend ? t('超越失败') : t('融合失败') });
       }
 
       setBatchProgress((prev) => ({ ...prev, results: [...results] }));
-      // Small delay between fusions for DB consistency
       if (i < total - 1) await new Promise((r) => setTimeout(r, 300));
     }
 
     const successCount = results.filter((r) => r.success).length;
-    if (successCount > 0) {
-      showSuccess(t('批量融合完成') + `: ${successCount}/${total}`);
-    }
-    if (successCount < total) {
-      showError(t('部分融合失败') + `: ${total - successCount}/${total}`);
-    }
+    const label = batchPlan.pairs[0]?.isTranscend ? t('批量超越完成') : t('批量融合完成');
+    const failLabel = batchPlan.pairs[0]?.isTranscend ? t('部分超越失败') : t('部分融合失败');
+    if (successCount > 0) showSuccess(label + `: ${successCount}/${total}`);
+    if (successCount < total) showError(failLabel + `: ${total - successCount}/${total}`);
 
     setBatchPlan(null);
     setBatchRunning(false);
@@ -237,8 +331,9 @@ export default function PetFusion() {
     if (!mainData || !materialData || fusing) return;
     setFusing(true);
     setConfirmOpen(false);
+    const endpoint = isTranscend ? '/api/pet/transcend' : '/api/pet/fusion';
     try {
-      const res = await API.post('/api/pet/fusion', {
+      const res = await API.post(endpoint, {
         pet_id: mainData.id, material_pet_id: materialData.id,
       });
       if (res.data.success) {
@@ -247,20 +342,36 @@ export default function PetFusion() {
         setTimeout(() => {
           setFusionAnim(false);
           setFusing(false);
-          showSuccess(t('融合成功'));
+          showSuccess(isTranscend ? t('评级超越成功') : t('融合成功'));
           setMainPet(null);
           setMaterialPet(null);
           loadData();
         }, 2200);
       } else {
         setFusing(false);
-        showError(res.data.message || t('融合失败'));
+        showError(res.data.message || (isTranscend ? t('超越失败') : t('融合失败')));
       }
     } catch {
       setFusing(false);
-      showError(t('融合失败'));
+      showError(isTranscend ? t('超越失败') : t('融合失败'));
     }
   };
+
+  // Transcend count for badge
+  const transcendableCount = useMemo(() => {
+    const maxStarPets = pets.filter((p) => {
+      const d = petOf(p);
+      return d.star >= 5 && (d.rarity || 'N') !== 'SSR' && ['normal', 'weak'].includes(d.state);
+    });
+    // Group by species + rarity, count pairs
+    const groups = {};
+    for (const entry of maxStarPets) {
+      const d = petOf(entry);
+      const key = `${d.species_id}_${d.rarity || 'N'}`;
+      groups[key] = (groups[key] || 0) + 1;
+    }
+    return Object.values(groups).reduce((sum, c) => sum + Math.floor(c / 2), 0);
+  }, [pets]);
 
   if (loading) {
     return (
@@ -279,12 +390,24 @@ export default function PetFusion() {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-2xl font-heading text-text-primary">{t('融合升星')}</h1>
-          <p className="text-sm text-text-tertiary mt-1">{t('使用同种魔法生物进行融合，提升星级和属性')}</p>
+          <h1 className="text-2xl font-heading text-text-primary">
+            {isTranscend ? t('评级超越') : t('融合升星')}
+          </h1>
+          <p className="text-sm text-text-tertiary mt-1">
+            {isTranscend
+              ? t('两只满星同种魔法生物可超越稀有度')
+              : t('使用同种魔法生物进行融合，提升星级和属性')}
+          </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="secondary" size="sm" onClick={autoSelect} disabled={fusing || batchRunning || mainCandidates.length === 0}>
-            <Wand2 className="mr-1.5 h-3.5 w-3.5" />{t('一键融合')}
+          <Button
+            size="default"
+            className="bg-gradient-to-r from-accent to-purple-500 hover:from-accent/90 hover:to-purple-500/90 text-white shadow-md animate-pulse"
+            onClick={autoSelect}
+            disabled={fusing || batchRunning || (isTranscend ? transcendMainCandidates.length === 0 : activeMains.length === 0)}
+          >
+            <Wand2 className="mr-1.5 h-4 w-4" />
+            {isTranscend ? t('一键超越') : t('一键融合')}
           </Button>
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-hover">
             <Coins className="h-4 w-4 text-amber-500" />
@@ -292,6 +415,41 @@ export default function PetFusion() {
           </div>
         </div>
       </motion.div>
+
+      {/* Mode Tabs */}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setMode('fusion')}
+          className={cn(
+            'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+            mode === 'fusion'
+              ? 'bg-accent text-white shadow-sm'
+              : 'bg-surface-hover text-text-secondary hover:text-text-primary',
+          )}
+        >
+          <Sparkles className="inline mr-1.5 h-3.5 w-3.5" />
+          {t('普通融合')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode('transcend')}
+          className={cn(
+            'px-4 py-2 rounded-lg text-sm font-medium transition-all relative',
+            mode === 'transcend'
+              ? 'bg-gradient-to-r from-purple-500 to-amber-500 text-white shadow-sm'
+              : 'bg-surface-hover text-text-secondary hover:text-text-primary',
+          )}
+        >
+          <Crown className="inline mr-1.5 h-3.5 w-3.5" />
+          {t('评级超越')}
+          {transcendableCount > 0 && mode !== 'transcend' && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
+              {transcendableCount}
+            </span>
+          )}
+        </button>
+      </div>
 
       {/* Fusion animation overlay */}
       <AnimatePresence>
@@ -311,12 +469,14 @@ export default function PetFusion() {
                   <PetSprite visualKey={materialData.visual_key} stage={materialData.stage} size="lg" />
                 </div>
               )}
-              <div className="fusion-flash" />
+              <div className={isTranscend ? 'fusion-flash-transcend' : 'fusion-flash'} />
               {fusionResult && (
                 <div className="fusion-reveal">
                   <PetSprite visualKey={mainData?.visual_key} stage={mainData?.stage} size="lg" />
                   <div className="mt-3 flex justify-center">
-                    <StarDisplay star={(mainData?.star ?? 0) + 1} size="md" />
+                    {isTranscend
+                      ? <RarityBadge rarity={NEXT_RARITY[mainData?.rarity || 'N'] || 'SSR'} />
+                      : <StarDisplay star={(mainData?.star ?? 0) + 1} size="md" />}
                   </div>
                 </div>
               )}
@@ -334,40 +494,63 @@ export default function PetFusion() {
         {/* Main Pet */}
         <div className="space-y-3">
           <h2 className="text-sm font-medium text-text-primary">{t('选择主宠')}</h2>
-          {mainCandidates.length === 0
-            ? <EmptySlot text={t('没有可融合的魔法生物')} />
-            : <PetGrid items={mainCandidates} selectedId={mainData?.id} onSelect={selectMain} />}
+          {activeMains.length === 0
+            ? <EmptySlot text={isTranscend ? t('没有满星可超越的魔法生物') : t('没有可融合的魔法生物')} />
+            : <PetGrid items={activeMains} selectedId={mainData?.id} onSelect={selectMain}
+                showTranscendHint={isTranscend} />}
         </div>
         {/* Material Pet */}
         <div className="space-y-3">
           <h2 className="text-sm font-medium text-text-primary">{t('选择素材')}</h2>
           {!mainPet
             ? <EmptySlot text={t('请先选择主宠')} />
-            : materialCandidates.length === 0
+            : activeMaterials.length === 0
               ? <Card className="p-8 text-center space-y-2">
-                  <p className="text-sm text-text-tertiary">{t('没有同种魔法生物可作为材料')}</p>
-                  <p className="text-sm text-text-tertiary py-4 text-center">{t('融合需要相同物种的魔法生物作为素材')}</p>
+                  <p className="text-sm text-text-tertiary">
+                    {isTranscend
+                      ? t('没有满星同种同稀有度的魔法生物')
+                      : t('没有同种魔法生物可作为材料')}
+                  </p>
+                  <p className="text-sm text-text-tertiary py-4 text-center">
+                    {isTranscend
+                      ? t('超越需要两只满星且同种同稀有度的魔法生物')
+                      : t('融合需要相同物种的魔法生物作为素材')}
+                  </p>
                 </Card>
-              : <PetGrid items={materialCandidates} selectedId={materialData?.id} onSelect={selectMaterial}
-                  excludedIds={excludedIds} onToggleExclude={toggleExclude} />}
+              : <PetGrid items={activeMaterials} selectedId={materialData?.id} onSelect={selectMaterial}
+                  excludedIds={excludedIds} onToggleExclude={toggleExclude} showTranscendHint={isTranscend} />}
         </div>
       </motion.div>
 
-      {/* Fusion Preview */}
+      {/* Preview */}
       <AnimatePresence>
         {mainData && materialData && (
           <motion.div
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 16 }} transition={{ duration: 0.3 }}
           >
-            <Card className="p-6 space-y-5">
+            <Card className={cn('p-6 space-y-5', isTranscend && 'border-purple-300 dark:border-purple-700')}>
               <div className="flex items-center justify-center gap-6 flex-wrap">
-                <PetPreviewCol pet={mainData} sub={<StarDisplay star={mainData.star} size="sm" />} />
+                <PetPreviewCol
+                  pet={mainData}
+                  sub={isTranscend
+                    ? <RarityBadge rarity={mainData.rarity || 'N'} />
+                    : <StarDisplay star={mainData.star} size="sm" />}
+                />
                 <Plus className="h-6 w-6 text-text-tertiary" />
                 <PetPreviewCol pet={materialData} sub={<span className="text-[11px] text-text-tertiary">{t('素材')}</span>} />
                 <ArrowRight className="h-6 w-6 text-accent" />
-                <PetPreviewCol pet={mainData} accent sub={<StarDisplay star={mainData.star + 1} size="sm" />}>
-                  <Sparkles className="absolute -top-1 -right-1 h-4 w-4 text-amber-500" />
+                <PetPreviewCol pet={mainData} accent sub={
+                  isTranscend
+                    ? <div className="flex items-center gap-1.5">
+                        <RarityBadge rarity={NEXT_RARITY[mainData.rarity || 'N'] || 'SSR'} />
+                        <StarDisplay star={0} size="sm" />
+                      </div>
+                    : <StarDisplay star={mainData.star + 1} size="sm" />
+                }>
+                  {isTranscend
+                    ? <Crown className="absolute -top-1 -right-1 h-4 w-4 text-purple-500" />
+                    : <Sparkles className="absolute -top-1 -right-1 h-4 w-4 text-amber-500" />}
                 </PetPreviewCol>
               </div>
 
@@ -380,25 +563,45 @@ export default function PetFusion() {
                   <StatCompare icon={Zap} label={t('速度')} before={mainStats.speed} after={projectedStats.speed} />
                   <StatCompare icon={Clover} label={t('幸运')} before={mainStats.luck} after={projectedStats.luck} />
                 </div>
+                {isTranscend && (
+                  <p className="text-xs text-text-tertiary text-center mt-2">
+                    {t('超越后星级重置为0，属性将随升星再次提升')}
+                  </p>
+                )}
               </div>
 
               {/* Cost + Confirm */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-3 border-t border-border">
                 <div className="flex items-center gap-6">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-text-secondary">{t('星级')}:</span>
-                    <StarDisplay star={mainData.star} size="sm" />
-                    <ArrowRight className="h-3.5 w-3.5 text-text-tertiary" />
-                    <StarDisplay star={mainData.star + 1} size="sm" />
-                  </div>
+                  {isTranscend ? (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-text-secondary">{t('稀有度')}:</span>
+                      <RarityBadge rarity={mainData.rarity || 'N'} />
+                      <ArrowRight className="h-3.5 w-3.5 text-text-tertiary" />
+                      <RarityBadge rarity={NEXT_RARITY[mainData.rarity || 'N'] || 'SSR'} />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-text-secondary">{t('星级')}:</span>
+                      <StarDisplay star={mainData.star} size="sm" />
+                      <ArrowRight className="h-3.5 w-3.5 text-text-tertiary" />
+                      <StarDisplay star={mainData.star + 1} size="sm" />
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-text-secondary">{t('费用')}:</span>
                     <Coins className="h-3.5 w-3.5 text-amber-500" />
                     <span className="font-medium text-text-primary">{renderQuota(fusionCost)}</span>
                   </div>
                 </div>
-                <Button onClick={() => setConfirmOpen(true)} disabled={fusing || quota < fusionCost}>
-                  <Sparkles className="mr-2 h-4 w-4" />{t('融合')}
+                <Button
+                  onClick={() => setConfirmOpen(true)}
+                  disabled={fusing || quota < fusionCost}
+                  className={isTranscend ? 'bg-gradient-to-r from-purple-500 to-amber-500 hover:from-purple-500/90 hover:to-amber-500/90 text-white' : ''}
+                >
+                  {isTranscend
+                    ? <><Crown className="mr-2 h-4 w-4" />{t('超越')}</>
+                    : <><Sparkles className="mr-2 h-4 w-4" />{t('融合')}</>}
                 </Button>
               </div>
               {quota < fusionCost && (
@@ -413,8 +616,14 @@ export default function PetFusion() {
       <Dialog open={batchConfirmOpen} onOpenChange={(open) => { if (!batchRunning) setBatchConfirmOpen(open); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{t('一键融合计划')}</DialogTitle>
-            <DialogDescription>{t('以下魔法生物将自动融合，点击 x 可移除不想融合的组合')}</DialogDescription>
+            <DialogTitle>
+              {batchPlan?.pairs[0]?.isTranscend ? t('一键超越计划') : t('一键融合计划')}
+            </DialogTitle>
+            <DialogDescription>
+              {batchPlan?.pairs[0]?.isTranscend
+                ? t('以下满星魔法生物将自动超越稀有度')
+                : t('以下魔法生物将自动融合，点击 x 可移除不想融合的组合')}
+            </DialogDescription>
           </DialogHeader>
           <div className="max-h-64 overflow-y-auto space-y-2 py-2">
             {batchPlan?.pairs.map((pair, idx) => {
@@ -426,7 +635,9 @@ export default function PetFusion() {
                     <PetSprite visualKey={mainD.visual_key} stage={mainD.stage} size="xs" />
                     <div className="min-w-0">
                       <p className="text-xs font-medium text-text-primary truncate">{mainD.nickname || mainD.species_name || '???'}</p>
-                      <StarDisplay star={mainD.star} size="sm" />
+                      {pair.isTranscend
+                        ? <RarityBadge rarity={mainD.rarity || 'N'} />
+                        : <StarDisplay star={mainD.star} size="sm" />}
                     </div>
                   </div>
                   <Plus className="h-3 w-3 text-text-tertiary shrink-0" />
@@ -438,7 +649,9 @@ export default function PetFusion() {
                     </div>
                   </div>
                   <ArrowRight className="h-3 w-3 text-accent shrink-0" />
-                  <StarDisplay star={mainD.star + 1} size="sm" />
+                  {pair.isTranscend
+                    ? <RarityBadge rarity={NEXT_RARITY[mainD.rarity || 'N'] || 'SSR'} />
+                    : <StarDisplay star={mainD.star + 1} size="sm" />}
                   <span className="text-xs text-text-secondary whitespace-nowrap">{renderQuota(pair.cost)}</span>
                   <button
                     type="button"
@@ -452,7 +665,11 @@ export default function PetFusion() {
             })}
           </div>
           <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-surface-hover border-t border-border">
-            <span className="text-sm text-text-secondary">{t('共 {{count}} 组融合', { count: batchPlan?.pairs.length || 0 })}</span>
+            <span className="text-sm text-text-secondary">
+              {batchPlan?.pairs[0]?.isTranscend
+                ? t('共 {{count}} 组超越', { count: batchPlan?.pairs.length || 0 })
+                : t('共 {{count}} 组融合', { count: batchPlan?.pairs.length || 0 })}
+            </span>
             <div className="flex items-center gap-2">
               <Coins className="h-3.5 w-3.5 text-amber-500" />
               <span className="text-sm font-semibold text-text-primary">{renderQuota(batchPlan?.totalCost || 0)}</span>
@@ -463,8 +680,14 @@ export default function PetFusion() {
           )}
           <DialogFooter>
             <Button variant="secondary" onClick={() => setBatchConfirmOpen(false)}>{t('取消')}</Button>
-            <Button onClick={executeBatchFusion} disabled={!batchPlan || batchPlan.pairs.length === 0}>
-              <Sparkles className="mr-2 h-4 w-4" />{t('开始融合')}
+            <Button
+              onClick={executeBatchFusion}
+              disabled={!batchPlan || batchPlan.pairs.length === 0}
+              className={batchPlan?.pairs[0]?.isTranscend ? 'bg-gradient-to-r from-purple-500 to-amber-500 text-white' : ''}
+            >
+              {batchPlan?.pairs[0]?.isTranscend
+                ? <><Crown className="mr-2 h-4 w-4" />{t('开始超越')}</>
+                : <><Sparkles className="mr-2 h-4 w-4" />{t('开始融合')}</>}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -478,10 +701,12 @@ export default function PetFusion() {
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
           >
             <Card className="p-6 w-full max-w-sm space-y-4">
-              <h3 className="text-lg font-heading text-text-primary text-center">{t('批量融合中...')}</h3>
+              <h3 className="text-lg font-heading text-text-primary text-center">
+                {batchPlan?.pairs[0]?.isTranscend ? t('批量超越中...') : t('批量融合中...')}
+              </h3>
               <div className="w-full bg-surface-hover rounded-full h-3 overflow-hidden">
                 <motion.div
-                  className="h-full bg-accent rounded-full"
+                  className={cn('h-full rounded-full', batchPlan?.pairs[0]?.isTranscend ? 'bg-purple-500' : 'bg-accent')}
                   initial={{ width: 0 }}
                   animate={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
                   transition={{ duration: 0.3 }}
@@ -509,13 +734,29 @@ export default function PetFusion() {
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>{t('确认融合')}</DialogTitle>
+            <DialogTitle>{isTranscend ? t('确认超越') : t('确认融合')}</DialogTitle>
             <DialogDescription>{t('此操作不可撤销')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
-            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3">
-              <span className="text-sm text-amber-700 dark:text-amber-400">{t('材料魔法生物将被消耗')}</span>
+            <div className={cn(
+              'flex items-center gap-2 rounded-lg px-4 py-3',
+              isTranscend
+                ? 'border border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-950/30'
+                : 'border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30',
+            )}>
+              <span className={cn('text-sm', isTranscend ? 'text-purple-700 dark:text-purple-400' : 'text-amber-700 dark:text-amber-400')}>
+                {isTranscend
+                  ? t('材料魔法生物将被消耗，主宠稀有度提升，星级重置')
+                  : t('材料魔法生物将被消耗')}
+              </span>
             </div>
+            {isTranscend && mainData && (
+              <div className="flex items-center justify-center gap-3 py-2">
+                <RarityBadge rarity={mainData.rarity || 'N'} />
+                <ArrowRight className="h-4 w-4 text-purple-500" />
+                <RarityBadge rarity={NEXT_RARITY[mainData.rarity || 'N'] || 'SSR'} />
+              </div>
+            )}
             {materialData && (
               <div className="flex items-center gap-3 rounded-lg bg-surface-hover px-4 py-3">
                 <PetSprite visualKey={materialData.visual_key} stage={materialData.stage} size="sm" />
@@ -534,7 +775,14 @@ export default function PetFusion() {
           </div>
           <DialogFooter>
             <Button variant="secondary" onClick={() => setConfirmOpen(false)}>{t('取消')}</Button>
-            <Button onClick={handleFusion} loading={fusing} disabled={fusing}>{t('确认融合')}</Button>
+            <Button
+              onClick={handleFusion}
+              loading={fusing}
+              disabled={fusing}
+              className={isTranscend ? 'bg-gradient-to-r from-purple-500 to-amber-500 text-white' : ''}
+            >
+              {isTranscend ? t('确认超越') : t('确认融合')}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -545,12 +793,13 @@ export default function PetFusion() {
         .fusion-left{animation:f-slide-l .8s ease-in-out forwards}
         .fusion-right{animation:f-slide-r .8s ease-in-out forwards}
         .fusion-flash{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,rgba(255,215,0,.8),transparent 70%);opacity:0;animation:f-flash .6s ease-in-out .8s forwards;pointer-events:none}
+        .fusion-flash-transcend{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,rgba(168,85,247,.8),rgba(245,158,11,.6) 50%,transparent 70%);opacity:0;animation:f-flash .6s ease-in-out .8s forwards;pointer-events:none}
         .fusion-reveal{position:absolute;display:flex;flex-direction:column;align-items:center;opacity:0;animation:f-reveal .6s ease-out 1.5s forwards}
         @keyframes f-slide-l{0%{transform:translateX(0);opacity:1}70%{transform:translateX(60px);opacity:1}100%{transform:translateX(60px);opacity:0}}
         @keyframes f-slide-r{0%{transform:translateX(0);opacity:1}70%{transform:translateX(-60px);opacity:1}100%{transform:translateX(-60px);opacity:0}}
         @keyframes f-flash{0%{opacity:0;transform:scale(.3)}50%{opacity:1;transform:scale(1.5)}100%{opacity:0;transform:scale(2)}}
         @keyframes f-reveal{0%{opacity:0;transform:scale(.5)}60%{opacity:1;transform:scale(1.1)}100%{opacity:1;transform:scale(1)}}
-        @media(prefers-reduced-motion:reduce){.fusion-left,.fusion-right,.fusion-flash,.fusion-reveal{animation:none!important}.fusion-left,.fusion-right{opacity:0!important}.fusion-reveal{opacity:1!important}}
+        @media(prefers-reduced-motion:reduce){.fusion-left,.fusion-right,.fusion-flash,.fusion-flash-transcend,.fusion-reveal{animation:none!important}.fusion-left,.fusion-right{opacity:0!important}.fusion-reveal{opacity:1!important}}
       `}</style>
     </div>
   );
@@ -566,7 +815,7 @@ function EmptySlot({ text }) {
   );
 }
 
-function PetGrid({ items, selectedId, onSelect, excludedIds, onToggleExclude }) {
+function PetGrid({ items, selectedId, onSelect, excludedIds, onToggleExclude, showTranscendHint }) {
   const { t } = useTranslation();
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -578,7 +827,9 @@ function PetGrid({ items, selectedId, onSelect, excludedIds, onToggleExclude }) 
             key={pet.id}
             className={cn(
               'p-3 cursor-pointer transition-all hover:border-border-strong relative',
-              selectedId === pet.id && 'border-accent ring-1 ring-accent/30 bg-accent/5',
+              selectedId === pet.id && (showTranscendHint
+                ? 'border-purple-400 ring-1 ring-purple-400/30 bg-purple-50/5'
+                : 'border-accent ring-1 ring-accent/30 bg-accent/5'),
               isExcluded && 'opacity-40',
             )}
             onClick={() => {
@@ -648,8 +899,9 @@ function StatCompare({ icon: Icon, label, before, after }) {
         <div className="flex items-center gap-1.5">
           <span className="text-sm font-medium text-text-primary tabular-nums">{before ?? 0}</span>
           <ArrowRight className="h-3 w-3 text-text-tertiary" />
-          <span className="text-sm font-medium text-accent tabular-nums">{after ?? 0}</span>
+          <span className={cn('text-sm font-medium tabular-nums', diff < 0 ? 'text-amber-500' : 'text-accent')}>{after ?? 0}</span>
           {diff > 0 && <span className="text-[11px] text-green-500 font-medium">+{diff}</span>}
+          {diff < 0 && <span className="text-[11px] text-amber-500 font-medium">{diff}</span>}
         </div>
       </div>
     </div>

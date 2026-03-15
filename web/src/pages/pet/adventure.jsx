@@ -284,14 +284,16 @@ export default function PetAdventure() {
       .map((d) => d.pet_id),
   );
 
-  // Eligible pets for a mission
+  // Eligible pets for a mission, sorted by success rate descending
   const getEligiblePets = (mission) => {
-    return pets.filter(
-      (p) =>
-        p.state === 'normal' &&
-        (p.level || 1) >= (mission.required_level || 1) &&
-        !dispatchedPetIds.has(p.id),
-    );
+    return pets
+      .filter(
+        (p) =>
+          p.state === 'normal' &&
+          (p.level || 1) >= (mission.required_level || 1) &&
+          !dispatchedPetIds.has(p.id),
+      )
+      .sort((a, b) => calculateSuccessRate(b, mission) - calculateSuccessRate(a, mission));
   };
 
   // ── Render ──

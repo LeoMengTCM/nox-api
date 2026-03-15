@@ -403,3 +403,166 @@ func FusePet(userId, petId, materialPetId int) (map[string]interface{}, error) {
 	}, nil
 }
 
+// nextRarity returns the rarity one tier above, or "" if already max.
+func nextRarity(rarity string) string {
+	switch rarity {
+	case "N":
+		return "R"
+	case "R":
+		return "SR"
+	case "SR":
+		return "SSR"
+	default:
+		return ""
+	}
+}
+
+// rarityStatMultiplier returns the stat multiplier when upgrading rarity.
+func rarityStatMultiplier(from string) float64 {
+	switch from {
+	case "N":
+		return 1.4
+	case "R":
+		return 1.3
+	case "SR":
+		return 1.35
+	default:
+		return 1.0
+	}
+}
+
+// TranscendPet transcends two max-star same-species pets into a higher rarity.
+func TranscendPet(userId, petId, materialPetId int) (map[string]interface{}, error) {
+	if !operation_setting.IsPetEnabled() {
+		return nil, errors.New("宠物系统未启用")
+	}
+
+	if petId == materialPetId {
+		return nil, errors.New("不能将宠物与自身超越")
+	}
+
+	maxStar := operation_setting.GetMaxStar()
+
+	// Get both pets
+	pet, err := model.GetUserPetById(userId, petId)
+	if err != nil {
+		return nil, errors.New("主宠物不存在")
+	}
+	material, err := model.GetUserPetById(userId, materialPetId)
+	if err != nil {
+		return nil, errors.New("材料宠物不存在")
+	}
+
+	// Validate same species
+	if pet.SpeciesId != material.SpeciesId {
+		return nil, errors.New("超越需要同种宠物")
+	}
+
+	// Determine effective rarity for both
+	species, err := model.GetSpeciesById(pet.SpeciesId)
+	if err != nil {
+		return nil, errors.New("物种信息不存在")
+	}
+	petRarity := pet.Rarity
+	if petRarity == "" {
+		petRarity = species.Rarity
+	}
+	matRarity := material.Rarity
+	if matRarity == "" {
+		matRarity = species.Rarity
+	}
+
+	// Both must be same rarity
+	if petRarity != matRarity {
+		return nil, errors.New("超越需要相同稀有度的宠物")
+	}
+
+	// Both must be max star
+	if pet.Star < maxStar {
+		return nil, errors.New("主宠物星级未满")
+	}
+	if material.Star < maxStar {
+		return nil, errors.New("材料宠物星级未满")
+	}
+
+	// Cannot transcend SSR
+	if petRarity == "SSR" {
+		return nil, errors.New("SSR 已是最高稀有度，无法超越")
+	}
+
+	newRarity := nextRarity(petRarity)
+	if newRarity == "" {
+		return nil, errors.New("无法确定新稀有度")
+	}
+
+	// Material cannot be primary
+	if material.IsPrimary {
+		return nil, errors.New("展示宠物不能作为材料")
+	}
+
+	// Neither can be dispatched or listed
+	if pet.State == "dispatched" || pet.State == "listed" {
+		return nil, errors.New("主宠物当前状态无法超越")
+	}
+	if material.State == "dispatched" || material.State == "listed" {
+		return nil, errors.New("材料宠物当前状态无法超越")
+	}
+
+	// Cost: (maxStar + 1) * fusionBaseCost * 3
+	cost := (maxStar + 1) * operation_setting.GetFusionBaseCost() * 3
+
+	// Keep higher level
+	newLevel := pet.Level
+	if material.Level > newLevel {
+		newLevel = material.Level
+	}
+
+	statsBefore := pet.Stats
+	rarityBefore := petRarity
+
+	err = model.DB.Transaction(func(tx *gorm.DB) error {
+		// Deduct quota
+		result := tx.Model(&model.User{}).Where("id = ? AND quota >= ?", userId, cost).Update("quota", gorm.Expr("quota - ?", cost))
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return errors.New("额度不足")
+		}
+
+		// Upgrade rarity, reset star, keep higher level
+		pet.Rarity = newRarity
+		pet.Star = 0
+		pet.Level = newLevel
+
+		// Recompute stats: apply rarity multiplier to current base stats
+		recomputeStatsWithRarity(pet, species, newRarity)
+
+		pet.UpdatedAt = time.Now().Unix()
+		if err := tx.Save(pet).Error; err != nil {
+			return err
+		}
+
+		// Delete material pet
+		if err := model.DeleteUserPetInTx(tx, userId, materialPetId); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, errors.New("超越失败: " + err.Error())
+	}
+
+	return map[string]interface{}{
+		"pet":           pet,
+		"stats_before":  statsBefore,
+		"stats_after":   pet.Stats,
+		"rarity_before": rarityBefore,
+		"rarity_after":  newRarity,
+		"level":         pet.Level,
+		"cost":          cost,
+	}, nil
+}
+
