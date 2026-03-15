@@ -300,6 +300,11 @@ func migrateDB() error {
 		&PetMarketBid{},
 		&PetMarketTransaction{},
 		&PetPriceHistory{},
+		&CasinoGameRecord{},
+		&CasinoDailyStats{},
+		&CasinoAchievement{},
+		&CasinoUserAchievement{},
+		&CasinoBigWin{},
 	)
 	if err != nil {
 		return err
@@ -318,6 +323,7 @@ func migrateDB() error {
 	SeedPetData()
 	SeedGachaData()
 	SeedMissionData()
+	SeedDefaultAchievements()
 
 	return nil
 }
@@ -374,6 +380,11 @@ func migrateDBFast() error {
 		{&PetMarketBid{}, "PetMarketBid"},
 		{&PetMarketTransaction{}, "PetMarketTransaction"},
 		{&PetPriceHistory{}, "PetPriceHistory"},
+		{&CasinoGameRecord{}, "CasinoGameRecord"},
+		{&CasinoDailyStats{}, "CasinoDailyStats"},
+		{&CasinoAchievement{}, "CasinoAchievement"},
+		{&CasinoUserAchievement{}, "CasinoUserAchievement"},
+		{&CasinoBigWin{}, "CasinoBigWin"},
 	}
 	// 动态计算migration数量，确保errChan缓冲区足够大
 	errChan := make(chan error, len(migrations))

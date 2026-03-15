@@ -444,6 +444,35 @@ func SetApiRouter(router *gin.Engine) {
 			petAdminRoute.GET("/stats", controller.AdminGetPetStats)
 		}
 
+		// Casino (韦斯莱魔法赌坊) routes
+		casinoRoute := apiRouter.Group("/casino")
+		casinoRoute.Use(middleware.UserAuth())
+		{
+			casinoRoute.GET("/config", controller.GetCasinoConfig)
+			casinoRoute.GET("/me", controller.GetMyCasinoStats)
+			casinoRoute.GET("/history", controller.GetCasinoHistory)
+			casinoRoute.GET("/leaderboard", controller.GetCasinoLeaderboard)
+			casinoRoute.POST("/blackjack/deal", controller.DealBlackjack)
+			casinoRoute.POST("/blackjack/action", controller.BlackjackAction)
+			casinoRoute.POST("/dice/roll", controller.PlayDice)
+			casinoRoute.POST("/roulette/spin", controller.PlayRoulette)
+			casinoRoute.POST("/baccarat/deal", controller.PlayBaccarat)
+			casinoRoute.POST("/slots/spin", controller.PlaySlots)
+			casinoRoute.POST("/poker/deal", controller.DealPoker)
+			casinoRoute.POST("/poker/action", controller.PokerAction)
+			casinoRoute.GET("/achievements", controller.GetAchievements)
+			casinoRoute.POST("/achievements/claim", controller.ClaimAchievement)
+			casinoRoute.GET("/big-wins", controller.GetBigWins)
+		}
+		casinoAdminRoute := apiRouter.Group("/casino/admin")
+		casinoAdminRoute.Use(middleware.AdminAuth())
+		{
+			casinoAdminRoute.GET("/stats", controller.AdminGetCasinoStats)
+			casinoAdminRoute.GET("/users", controller.AdminGetCasinoUsers)
+			casinoAdminRoute.POST("/ban", controller.AdminBanUser)
+			casinoAdminRoute.POST("/toggle", controller.AdminToggleGame)
+		}
+
 		vendorRoute := apiRouter.Group("/vendors")
 		vendorRoute.Use(middleware.AdminAuth())
 		{

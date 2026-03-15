@@ -67,6 +67,17 @@ const PetGrantAdmin = lazy(() => import('./pages/pet/pet-grant'));
 const PetMarketAdmin = lazy(() => import('./pages/pet/pet-market-admin'));
 const PetStatsAdmin = lazy(() => import('./pages/pet/pet-stats'));
 const PetInventory = lazy(() => import('./pages/pet/inventory'));
+const CasinoLobby = lazy(() => import('./pages/casino/lobby'));
+const CasinoBlackjack = lazy(() => import('./pages/casino/blackjack'));
+const CasinoDice = lazy(() => import('./pages/casino/dice'));
+const CasinoRoulette = lazy(() => import('./pages/casino/roulette'));
+const CasinoBaccarat = lazy(() => import('./pages/casino/baccarat'));
+const CasinoSlots = lazy(() => import('./pages/casino/slots'));
+const CasinoPoker = lazy(() => import('./pages/casino/poker'));
+const CasinoAchievements = lazy(() => import('./pages/casino/achievements'));
+const CasinoLeaderboard = lazy(() => import('./pages/casino/leaderboard'));
+const CasinoStats = lazy(() => import('./pages/casino/stats'));
+const AdminCasino = lazy(() => import('./pages/admin/casino'));
 
 const Loading = () => (
   <div className="flex h-screen items-center justify-center bg-background">
@@ -162,6 +173,16 @@ function App() {
           <Route path="/console/pet/market" element={<PrivateRoute><Page><PetMarket /></Page></PrivateRoute>} />
           <Route path="/console/pet/inventory" element={<PrivateRoute><Page><PetInventory /></Page></PrivateRoute>} />
           <Route path="/console/pet/:id" element={<PrivateRoute><Page><PetDetail /></Page></PrivateRoute>} />
+          <Route path="/console/casino" element={<PrivateRoute><Page><CasinoLobby /></Page></PrivateRoute>} />
+          <Route path="/console/casino/blackjack" element={<PrivateRoute><Page><CasinoBlackjack /></Page></PrivateRoute>} />
+          <Route path="/console/casino/dice" element={<PrivateRoute><Page><CasinoDice /></Page></PrivateRoute>} />
+          <Route path="/console/casino/roulette" element={<PrivateRoute><Page><CasinoRoulette /></Page></PrivateRoute>} />
+          <Route path="/console/casino/baccarat" element={<PrivateRoute><Page><CasinoBaccarat /></Page></PrivateRoute>} />
+          <Route path="/console/casino/slots" element={<PrivateRoute><Page><CasinoSlots /></Page></PrivateRoute>} />
+          <Route path="/console/casino/poker" element={<PrivateRoute><Page><CasinoPoker /></Page></PrivateRoute>} />
+          <Route path="/console/casino/achievements" element={<PrivateRoute><Page><CasinoAchievements /></Page></PrivateRoute>} />
+          <Route path="/console/casino/leaderboard" element={<PrivateRoute><Page><CasinoLeaderboard /></Page></PrivateRoute>} />
+          <Route path="/console/casino/stats" element={<PrivateRoute><Page><CasinoStats /></Page></PrivateRoute>} />
           <Route path="/console/user/:id" element={<PrivateRoute><Page><UserProfile /></Page></PrivateRoute>} />
           <Route path="/console/playground" element={<PrivateRoute><Page><Playground /></Page></PrivateRoute>} />
           <Route path="/console/midjourney" element={<PrivateRoute><Page><Midjourney /></Page></PrivateRoute>} />
@@ -181,6 +202,7 @@ function App() {
           <Route path="/console/admin/pet-grant" element={<AdminRoute><Page><PetGrantAdmin /></Page></AdminRoute>} />
           <Route path="/console/admin/pet-market" element={<AdminRoute><Page><PetMarketAdmin /></Page></AdminRoute>} />
           <Route path="/console/admin/pet-stats" element={<AdminRoute><Page><PetStatsAdmin /></Page></AdminRoute>} />
+          <Route path="/console/admin/casino" element={<AdminRoute><Page><AdminCasino /></Page></AdminRoute>} />
         </Route>
 
         {/* 404 */}

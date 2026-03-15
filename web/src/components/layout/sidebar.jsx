@@ -31,6 +31,7 @@ import {
   BarChart3,
   Dna,
   Package,
+  Gem,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { isAdmin, isRoot } from '../../lib/utils';
@@ -79,6 +80,8 @@ const iconMap = {
   'pet-stats-admin': BarChart3,
   'pet-species-admin': Dna,
   'pet-items-admin': Package,
+  casino: Gem,
+  'casino-admin': Gem,
 };
 
 const getIcon = (itemKey, size = 18) => {
@@ -125,6 +128,8 @@ const routerMap = {
   'pet-stats-admin': '/console/admin/pet-stats',
   'pet-species-admin': '/console/admin/pet-species',
   'pet-items-admin': '/console/admin/pet-items',
+  casino: '/console/casino',
+  'casino-admin': '/console/admin/casino',
 };
 
 const COLLAPSED_SECTIONS_KEY = 'sidebar-collapsed-sections';
@@ -252,6 +257,14 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
       }
     }
 
+    // Match casino sub-routes
+    if (!matchingKey && currentPath.startsWith('/console/casino')) {
+      matchingKey = 'casino';
+    }
+    if (!matchingKey && currentPath.startsWith('/console/admin/casino')) {
+      matchingKey = 'casino-admin';
+    }
+
     if (matchingKey) {
       setSelectedKey(matchingKey);
     }
@@ -312,6 +325,7 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
       { text: t('每日签到'), itemKey: 'checkin', alwaysShow: true },
       { text: t('社区'), itemKey: 'community', alwaysShow: true },
       { text: t('排行榜'), itemKey: 'ranking', alwaysShow: true },
+      { text: t('韦斯莱赌坊'), itemKey: 'casino', alwaysShow: true },
       { text: t('个人设置'), itemKey: 'personal' },
     ];
     return items.filter((item) => item.alwaysShow || isModuleVisible('personal', item.itemKey));
@@ -347,6 +361,7 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
       { text: t('统计面板'), itemKey: 'pet-stats-admin', needsAdmin: true },
       { text: t('物种管理'), itemKey: 'pet-species-admin', needsAdmin: true },
       { text: t('物品管理'), itemKey: 'pet-items-admin', needsAdmin: true },
+      { text: t('赌场管理'), itemKey: 'casino-admin', needsAdmin: true },
     ];
     return items.filter((item) => {
       if (item.needsRoot && !isRoot()) return false;

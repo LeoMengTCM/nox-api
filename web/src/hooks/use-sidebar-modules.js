@@ -44,6 +44,7 @@ export const DEFAULT_ADMIN_CONFIG = {
     checkin: true,
     community: true,
     personal: true,
+    casino: true,
   },
   admin: {
     enabled: true,
@@ -54,6 +55,7 @@ export const DEFAULT_ADMIN_CONFIG = {
     user: true,
     subscription: true,
     setting: true,
+    'casino-admin': true,
   },
 };
 
