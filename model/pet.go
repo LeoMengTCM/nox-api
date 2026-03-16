@@ -981,6 +981,17 @@ func SeedPetData() {
 			itemCount = 0
 		}
 	}
+	if itemCount > 0 {
+		// v0.1.5 migration: check if new items exist
+		var v015Marker int64
+		DB.Model(&PetItem{}).Where("name = ?", "冰鼠").Count(&v015Marker)
+		if v015Marker == 0 {
+			common.SysLog("upgrading pet shop items to v0.1.5...")
+			DB.Where("1 = 1").Delete(&UserPetItem{})
+			DB.Where("1 = 1").Delete(&PetItem{})
+			itemCount = 0
+		}
+	}
 	if itemCount == 0 {
 		for i := range seedItems {
 			if err := DB.Create(&seedItems[i]).Error; err != nil {

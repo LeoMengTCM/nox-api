@@ -61,7 +61,8 @@ function parseJson(str, fallback) {
   if (!str) return fallback;
   if (typeof str !== 'string') return str || fallback;
   try {
-    return JSON.parse(str);
+    const parsed = JSON.parse(str);
+    return parsed || fallback;
   } catch {
     return fallback;
   }
@@ -783,7 +784,7 @@ function HistoryList({
       {history.map((item) => {
         const pet = petMap[item.pet_id];
         const mission = missionMap[item.mission_id];
-        const rewards = parseJson(item.rewards_data, []);
+        const rewards = parseJson(item.rewards_data, []) || [];
         return (
           <div
             key={item.id}

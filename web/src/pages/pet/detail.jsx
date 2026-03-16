@@ -581,11 +581,30 @@ export default function PetDetail() {
 
           {/* Weak state warning */}
           {isWeak && (
-            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3">
-              <AlertTriangle size={16} className="shrink-0 text-amber-500" />
-              <span className="text-sm text-amber-700 dark:text-amber-400">
-                {t('魔法生物虚弱中，请先喂养恢复状态')}
-              </span>
+            <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={16} className="shrink-0 text-amber-500" />
+                <span className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                  {t('魔法生物虚弱中，请恢复以下状态')}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2 pl-6">
+                {(computedStatus.hunger ?? 100) < 30 && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-xs text-amber-700 dark:text-amber-300">
+                    <Utensils size={12} />{t('需要喂食')}
+                  </span>
+                )}
+                {(computedStatus.mood ?? 100) < 30 && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-xs text-amber-700 dark:text-amber-300">
+                    <Smile size={12} />{t('需要玩耍')}
+                  </span>
+                )}
+                {(computedStatus.cleanliness ?? 100) < 30 && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-xs text-amber-700 dark:text-amber-300">
+                    <Droplets size={12} />{t('需要清洁')}
+                  </span>
+                )}
+              </div>
             </div>
           )}
 

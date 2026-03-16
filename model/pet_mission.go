@@ -209,7 +209,18 @@ func SeedMissionData() {
 	var count int64
 	DB.Model(&PetMission{}).Count(&count)
 	if count > 0 {
-		return
+		// v0.1.5 migration: check for new missions and updated rewards
+		var v015Marker int64
+		DB.Model(&PetMission{}).Where("name = ?", "黑湖探险").Count(&v015Marker)
+		if v015Marker == 0 {
+			common.SysLog("upgrading missions to v0.1.5...")
+			// Delete old dispatches first (foreign key), then missions
+			DB.Where("1 = 1").Delete(&PetDispatch{})
+			DB.Where("1 = 1").Delete(&PetMission{})
+			// Fall through to reseed below
+		} else {
+			return
+		}
 	}
 
 	common.SysLog("seeding initial pet missions...")

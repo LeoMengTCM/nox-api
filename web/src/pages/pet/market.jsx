@@ -907,6 +907,14 @@ export default function PetMarket() {
                       }))
                     }
                   />
+                  {(() => {
+                    const val = Number(createForm.listing_type === 'auction' ? createForm.min_bid : createForm.price);
+                    return val > 0 ? (
+                      <p className="text-xs text-text-tertiary mt-1">
+                        ≈ {renderQuota(val)}
+                      </p>
+                    ) : null;
+                  })()}
                 </div>
 
                 {/* Duration */}

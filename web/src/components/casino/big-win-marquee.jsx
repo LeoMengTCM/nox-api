@@ -59,7 +59,7 @@ export function BigWinMarquee() {
 
   return (
     <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-[#2D1B4E]/80 via-[#2D1B4E]/60 to-[#2D1B4E]/80 border border-[#C5A55A]/20 py-2.5 px-4">
-      <div className="flex animate-[marquee-scroll_30s_linear_infinite]">
+      <div className="flex animate-[marquee-scroll_15s_linear_infinite]">
         <div className="flex items-center gap-1 text-sm shrink-0 pr-12">
           {items}
         </div>

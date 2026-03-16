@@ -452,7 +452,8 @@ func FeedPet(userId int, petId int, itemId int) (map[string]interface{}, error) 
 	return result, nil
 }
 
-// FeedAllPet feeds a pet with all food items from the user's inventory until hunger >= 100.
+// FeedAllPet feeds a pet with all food and potion items from the user's inventory
+// until hunger, mood, and cleanliness are all >= 100, or items run out.
 func FeedAllPet(userId int, petId int) (map[string]interface{}, error) {
 	if !operation_setting.IsPetEnabled() {
 		return nil, errors.New("宠物系统未启用")
@@ -472,7 +473,7 @@ func FeedAllPet(userId int, petId int) (map[string]interface{}, error) {
 		return nil, errors.New("获取背包失败")
 	}
 
-	// Get all items to filter food
+	// Get all items to filter food and potion
 	allItems, err := model.GetAllItems(false)
 	if err != nil {
 		return nil, errors.New("获取物品信息失败")
@@ -485,6 +486,10 @@ func FeedAllPet(userId int, petId int) (map[string]interface{}, error) {
 	// Compute real-time status
 	statusMap := ComputeCurrentStatus(pet)
 
+	allStatsFull := func() bool {
+		return statusMap["hunger"] >= 100 && statusMap["mood"] >= 100 && statusMap["cleanliness"] >= 100
+	}
+
 	fedCount := 0
 	totalExp := 0
 	anyLeveledUp := false
@@ -492,26 +497,43 @@ func FeedAllPet(userId int, petId int) (map[string]interface{}, error) {
 	itemsUsed := []map[string]interface{}{}
 
 	for _, ui := range userItems {
-		if statusMap["hunger"] >= 100 {
+		if allStatsFull() {
 			break
 		}
 
 		item, ok := itemMap[ui.ItemId]
-		if !ok || item.Type != "food" {
+		if !ok || (item.Type != "food" && item.Type != "potion") {
+			continue
+		}
+
+		// Parse effect once per item type
+		var effectMap map[string]int
+		if item.Effect != "" {
+			_ = common.Unmarshal([]byte(item.Effect), &effectMap)
+		}
+		if len(effectMap) == 0 {
 			continue
 		}
 
 		usedCount := 0
 		for i := 0; i < ui.Quantity; i++ {
-			if statusMap["hunger"] >= 100 {
+			if allStatsFull() {
 				break
 			}
 
-			// Apply food effect
-			var effectMap map[string]int
-			if item.Effect != "" {
-				_ = common.Unmarshal([]byte(item.Effect), &effectMap)
+			// Only use this item if it would improve at least one stat below 100
+			useful := false
+			for k, v := range effectMap {
+				if v > 0 && statusMap[k] < 100 {
+					useful = true
+					break
+				}
 			}
+			if !useful {
+				break
+			}
+
+			// Apply effect
 			for k, v := range effectMap {
 				statusMap[k] += v
 				if statusMap[k] > 100 {
@@ -550,7 +572,7 @@ func FeedAllPet(userId int, petId int) (map[string]interface{}, error) {
 	}
 
 	if fedCount == 0 {
-		return nil, errors.New("背包中没有可用的食物")
+		return nil, errors.New("背包中没有可用的食物或药水")
 	}
 
 	// Update pet status
@@ -689,6 +711,7 @@ func CleanPet(userId int, petId int) (map[string]interface{}, error) {
 
 	statusBytes, _ := common.Marshal(statusMap)
 	pet.Status = string(statusBytes)
+	pet.UpdatedAt = now.Unix()
 
 	if err := model.UpdateUserPet(pet); err != nil {
 		return nil, errors.New("更新宠物状态失败")
