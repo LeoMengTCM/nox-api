@@ -109,7 +109,9 @@ export default function CasinoBlackjack() {
         setPayout(null);
         setNetProfit(null);
 
-        if (d.status === 'complete') {
+        // 后端 status="completed", phase="complete" — 统一判断
+        const isComplete = d.status === 'complete' || d.status === 'completed' || d.phase === 'complete';
+        if (isComplete) {
           setStatus('complete');
           setResult(d.result);
           setPayout(d.payout);
@@ -117,7 +119,7 @@ export default function CasinoBlackjack() {
           refreshBalance();
           loadHistory();
         } else {
-          setStatus(d.status === 'active' ? 'playing' : (d.status || 'playing'));
+          setStatus('playing');
         }
 
         refreshBalance();
@@ -144,14 +146,20 @@ export default function CasinoBlackjack() {
         if (d.dealer_total != null) setDealerTotal(d.dealer_total);
         if (d.current_hand != null) setCurrentHand(d.current_hand);
         if (d.bets) setBets(d.bets);
-        setStatus(d.status === 'active' ? 'playing' : (d.status || 'playing'));
 
-        if (d.status === 'complete') {
+        // 后端 status="completed", phase="complete" — 统一判断
+        const isComplete = d.status === 'complete' || d.status === 'completed' || d.phase === 'complete';
+        if (isComplete) {
+          setStatus('complete');
           setResult(d.result);
           setPayout(d.payout);
           setNetProfit(d.net_profit);
+          if (d.dealer_total != null) setDealerTotal(d.dealer_total);
           refreshBalance();
           loadHistory();
+        } else {
+          // active → playing
+          setStatus('playing');
         }
       } else {
         showError(res.data.message || t('操作失败'));
