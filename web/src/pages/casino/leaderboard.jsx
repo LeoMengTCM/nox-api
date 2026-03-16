@@ -147,7 +147,7 @@ export default function CasinoLeaderboard() {
                     </p>
                     <p className={cn(
                       'text-sm font-medium mt-1',
-                      rankType === 'profit' && (entry.value || 0) < 0 ? 'text-danger' : medal.text,
+                      rankType === 'profit' && (entry.value || 0) < 0 ? 'text-success' : medal.text,
                     )}>
                       {formatValue(entry.value, rankType)}
                     </p>
@@ -192,7 +192,7 @@ export default function CasinoLeaderboard() {
                       </span>
                       <span className={cn(
                         'text-sm font-medium',
-                        rankType === 'profit' && (entry.value || 0) < 0 ? 'text-danger' : 'text-text-primary',
+                        rankType === 'profit' && (entry.value || 0) < 0 ? 'text-success' : 'text-text-primary',
                       )}>
                         {formatValue(entry.value, rankType)}
                       </span>

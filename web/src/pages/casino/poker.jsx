@@ -224,7 +224,7 @@ export default function CasinoPoker() {
           <div>
             <h1 className="text-xl font-heading text-text-primary flex items-center gap-2">
               <Users className="h-5 w-5 text-[#C5A55A]" />
-              {t('\u9B54\u6CD5\u5FB7\u5DDE\u6270\u514B')}
+              {t('魔法德州扑克')}
             </h1>
           </div>
         </div>
@@ -368,7 +368,7 @@ export default function CasinoPoker() {
             <div className="text-center my-3 space-y-1">
               <p className={cn(
                 'text-xl font-heading',
-                result === 'win' ? 'text-[#C5A55A]' : 'text-red-400',
+                result === 'win' ? 'text-[#C5A55A]' : 'text-green-400',
               )}>
                 {t(RESULT_MESSAGES[result])}
               </p>
@@ -380,7 +380,7 @@ export default function CasinoPoker() {
               {netProfit != null && (
                 <p className={cn(
                   'text-sm',
-                  netProfit >= 0 ? 'text-green-400' : 'text-red-400',
+                  netProfit >= 0 ? 'text-red-400' : 'text-green-400',
                 )}>
                   {netProfit >= 0 ? '+' : ''}{renderQuota(netProfit)}
                 </p>
@@ -409,12 +409,21 @@ export default function CasinoPoker() {
             </div>
           )}
 
-          {/* Active player indicator for AI */}
-          {status === 'playing' && activePlayer > 0 && activePlayer <= 3 && (
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/50 text-white/70 text-xs px-3 py-1.5 rounded-lg flex items-center gap-2">
-              <span className="animate-[thinking-pulse_1s_ease-in-out_infinite]">
-                {t(AI_PLAYERS[activePlayer]?.name || '')} {t('\u601D\u8003\u4E2D...')}
-              </span>
+          {/* Turn indicator */}
+          {status === 'playing' && (
+            <div className={cn(
+              'absolute bottom-3 left-1/2 -translate-x-1/2 text-xs px-4 py-2 rounded-lg flex items-center gap-2',
+              activePlayer === 0
+                ? 'bg-[#C5A55A]/20 text-[#C5A55A] ring-1 ring-[#C5A55A]/40'
+                : 'bg-black/50 text-white/70',
+            )}>
+              {activePlayer === 0 ? (
+                <span className="font-medium animate-pulse">{t('轮到你了')}</span>
+              ) : activePlayer > 0 && activePlayer <= 3 ? (
+                <span className="animate-[thinking-pulse_1s_ease-in-out_infinite]">
+                  {t(AI_PLAYERS[activePlayer]?.name || '')} {t('思考中...')}
+                </span>
+              ) : null}
             </div>
           )}
         </div>
@@ -532,12 +541,14 @@ export default function CasinoPoker() {
               )}
 
               {/* Turn indicator */}
-              <p className="text-xs text-center text-[#C5A55A]/70">{t('\u4F60\u7684\u56DE\u5408')}</p>
+              <p className="text-xs text-center text-[#C5A55A] font-medium animate-pulse">{t('轮到你了 — 请选择操作')}</p>
             </div>
           ) : status === 'playing' ? (
             <div className="text-center py-3">
               <p className="text-sm text-text-tertiary animate-[thinking-pulse_1s_ease-in-out_infinite]">
-                {t('\u601D\u8003\u4E2D...')}
+                {activePlayer > 0 && activePlayer <= 3
+                  ? `${t(AI_PLAYERS[activePlayer]?.name || '')} ${t('思考中...')}`
+                  : t('思考中...')}
               </p>
             </div>
           ) : null}
@@ -564,7 +575,7 @@ export default function CasinoPoker() {
                 </div>
                 <span className={cn(
                   'font-medium',
-                  (rec.net_profit || 0) >= 0 ? 'text-success' : 'text-danger',
+                  (rec.net_profit || 0) >= 0 ? 'text-danger' : 'text-success',
                 )}>
                   {(rec.net_profit || 0) >= 0 ? '+' : ''}{renderQuota(rec.net_profit || 0)}
                 </span>

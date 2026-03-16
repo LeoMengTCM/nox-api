@@ -150,15 +150,15 @@ export default function CasinoLobby() {
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
                   {(stats.daily_loss_today || 0) <= 0
-                    ? <TrendingUp className="h-4 w-4 text-green-400" />
-                    : <TrendingDown className="h-4 w-4 text-red-400" />
+                    ? <TrendingUp className="h-4 w-4 text-red-400" />
+                    : <TrendingDown className="h-4 w-4 text-green-400" />
                   }
                 </div>
                 <div>
                   <p className="text-[10px] text-white/50 uppercase">{t('今日盈亏')}</p>
                   <p className={cn(
                     'text-sm font-medium',
-                    (stats.daily_loss_today || 0) <= 0 ? 'text-green-400' : 'text-red-400',
+                    (stats.daily_loss_today || 0) <= 0 ? 'text-red-400' : 'text-green-400',
                   )}>
                     {renderQuota(-(stats.daily_loss_today || 0))}
                   </p>
@@ -172,7 +172,7 @@ export default function CasinoLobby() {
                   <p className="text-[10px] text-white/50 uppercase">{t('总盈亏')}</p>
                   <p className={cn(
                     'text-sm font-medium',
-                    (stats.net_profit || 0) >= 0 ? 'text-green-400' : 'text-red-400',
+                    (stats.net_profit || 0) >= 0 ? 'text-red-400' : 'text-green-400',
                   )}>
                     {renderQuota(stats.net_profit || 0)}
                   </p>
@@ -293,7 +293,7 @@ export default function CasinoLobby() {
                   </span>
                   <span className={cn(
                     'text-sm font-medium',
-                    (entry.value || 0) >= 0 ? 'text-success' : 'text-danger',
+                    (entry.value || 0) >= 0 ? 'text-danger' : 'text-success',
                   )}>
                     {renderQuota(entry.value || 0)}
                   </span>

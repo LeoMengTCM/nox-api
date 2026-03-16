@@ -45,7 +45,7 @@ export function BetControls({ value, onChange, minBet, maxBet, balance, disabled
           className="flex-1"
         />
         <span className="text-xs text-text-secondary whitespace-nowrap">
-          = {renderQuota(numVal)}
+          ≈ {renderQuota(numVal)}
         </span>
       </div>
 

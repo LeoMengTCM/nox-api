@@ -25,7 +25,7 @@ const RESULT_MESSAGES = {
 
 const RESULT_COLORS = {
   win: 'text-[#C5A55A]',
-  lose: 'text-danger',
+  lose: 'text-success',
   push: 'text-text-secondary',
   blackjack: 'text-[#C5A55A]',
 };
@@ -117,7 +117,7 @@ export default function CasinoBlackjack() {
           refreshBalance();
           loadHistory();
         } else {
-          setStatus(d.status || 'playing');
+          setStatus(d.status === 'active' ? 'playing' : (d.status || 'playing'));
         }
 
         refreshBalance();
@@ -144,7 +144,7 @@ export default function CasinoBlackjack() {
         if (d.dealer_total != null) setDealerTotal(d.dealer_total);
         if (d.current_hand != null) setCurrentHand(d.current_hand);
         if (d.bets) setBets(d.bets);
-        setStatus(d.status || 'playing');
+        setStatus(d.status === 'active' ? 'playing' : (d.status || 'playing'));
 
         if (d.status === 'complete') {
           setResult(d.result);
@@ -270,7 +270,7 @@ export default function CasinoBlackjack() {
                 {netProfit != null && (
                   <p className={cn(
                     'text-sm',
-                    netProfit >= 0 ? 'text-green-400' : 'text-red-400',
+                    netProfit >= 0 ? 'text-red-400' : 'text-green-400',
                   )}>
                     {netProfit >= 0 ? '+' : ''}{renderQuota(netProfit)}
                   </p>
@@ -350,7 +350,11 @@ export default function CasinoBlackjack() {
               {t('再来一局')}
             </Button>
           ) : (
-            <div className="flex flex-wrap gap-2">
+            <div className="space-y-3">
+              <p className="text-center text-sm font-medium text-[#C5A55A] animate-pulse">
+                {t('轮到你了 — 请选择要牌或停牌')}
+              </p>
+              <div className="flex flex-wrap gap-2">
               <Button
                 className="flex-1"
                 onClick={() => doAction('hit')}
@@ -387,6 +391,7 @@ export default function CasinoBlackjack() {
                   {t('分牌')}
                 </Button>
               )}
+              </div>
             </div>
           )}
         </div>
@@ -412,7 +417,7 @@ export default function CasinoBlackjack() {
                 </div>
                 <span className={cn(
                   'font-medium',
-                  (rec.net_profit || 0) >= 0 ? 'text-success' : 'text-danger',
+                  (rec.net_profit || 0) >= 0 ? 'text-danger' : 'text-success',
                 )}>
                   {(rec.net_profit || 0) >= 0 ? '+' : ''}{renderQuota(rec.net_profit || 0)}
                 </span>

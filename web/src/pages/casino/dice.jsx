@@ -194,14 +194,14 @@ export default function CasinoDice() {
             <div className="mt-3 text-center space-y-1">
               <p className={cn(
                 'text-lg font-heading',
-                result === 'win' ? 'text-[#C5A55A]' : result === 'lose' ? 'text-red-400' : 'text-white/60',
+                result === 'win' ? 'text-[#C5A55A]' : result === 'lose' ? 'text-green-400' : 'text-white/60',
               )}>
                 {t(RESULT_MESSAGES[result])}
               </p>
               {netProfit != null && (
                 <p className={cn(
                   'text-sm',
-                  netProfit >= 0 ? 'text-green-400' : 'text-red-400',
+                  netProfit >= 0 ? 'text-red-400' : 'text-green-400',
                 )}>
                   {netProfit >= 0 ? '+' : ''}{renderQuota(netProfit)}
                 </p>
@@ -349,7 +349,7 @@ export default function CasinoDice() {
                 </div>
                 <span className={cn(
                   'font-medium',
-                  (rec.net_profit || 0) >= 0 ? 'text-success' : 'text-danger',
+                  (rec.net_profit || 0) >= 0 ? 'text-danger' : 'text-success',
                 )}>
                   {(rec.net_profit || 0) >= 0 ? '+' : ''}{renderQuota(rec.net_profit || 0)}
                 </span>

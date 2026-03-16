@@ -326,7 +326,7 @@ export default function CasinoBaccarat() {
             <div className="text-center mt-4 animate-[scale-in_0.4s_ease-out]">
               <p className={cn(
                 'text-xl font-heading',
-                result === 'win' ? 'text-[#C5A55A]' : result === 'lose' ? 'text-red-400' : 'text-white/60',
+                result === 'win' ? 'text-[#C5A55A]' : result === 'lose' ? 'text-green-400' : 'text-white/60',
               )}>
                 {t(RESULT_MESSAGES[result])}
               </p>
@@ -336,7 +336,7 @@ export default function CasinoBaccarat() {
               {netProfit != null && (
                 <p className={cn(
                   'text-sm mt-1',
-                  netProfit >= 0 ? 'text-green-400' : 'text-red-400',
+                  netProfit >= 0 ? 'text-red-400' : 'text-green-400',
                 )}>
                   {netProfit >= 0 ? '+' : ''}{renderQuota(netProfit)}
                 </p>
@@ -462,7 +462,7 @@ export default function CasinoBaccarat() {
                 </div>
                 <span className={cn(
                   'font-medium',
-                  (rec.net_profit || 0) >= 0 ? 'text-success' : 'text-danger',
+                  (rec.net_profit || 0) >= 0 ? 'text-danger' : 'text-success',
                 )}>
                   {(rec.net_profit || 0) >= 0 ? '+' : ''}{renderQuota(rec.net_profit || 0)}
                 </span>

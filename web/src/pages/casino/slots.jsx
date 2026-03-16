@@ -363,7 +363,7 @@ export default function CasinoSlots() {
             <div className="mt-4 text-center space-y-1">
               <p className={cn(
                 'text-xl font-heading',
-                result === 'win' ? 'text-[#C5A55A]' : 'text-red-400',
+                result === 'win' ? 'text-[#C5A55A]' : 'text-green-400',
               )}>
                 {t(RESULT_MESSAGES[result])}
               </p>
@@ -375,7 +375,7 @@ export default function CasinoSlots() {
               {netProfit != null && (
                 <p className={cn(
                   'text-sm',
-                  netProfit >= 0 ? 'text-green-400' : 'text-red-400',
+                  netProfit >= 0 ? 'text-red-400' : 'text-green-400',
                 )}>
                   {netProfit >= 0 ? '+' : ''}{renderQuota(netProfit)}
                 </p>
@@ -465,7 +465,7 @@ export default function CasinoSlots() {
                 </div>
                 <span className={cn(
                   'font-medium',
-                  (rec.net_profit || 0) >= 0 ? 'text-success' : 'text-danger',
+                  (rec.net_profit || 0) >= 0 ? 'text-danger' : 'text-success',
                 )}>
                   {(rec.net_profit || 0) >= 0 ? '+' : ''}{renderQuota(rec.net_profit || 0)}
                 </span>

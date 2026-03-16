@@ -110,14 +110,14 @@ export default function CasinoStats() {
           icon={Target}
           label={t('\u80DC\u7387')}
           value={`${winRate}%`}
-          color={parseFloat(winRate) >= 50 ? 'text-success' : 'text-danger'}
+          color={parseFloat(winRate) >= 50 ? 'text-danger' : 'text-success'}
           t={t}
         />
         <SummaryCard
           icon={netProfit >= 0 ? TrendingUp : TrendingDown}
           label={t('\u51C0\u76C8\u4E8F')}
           value={renderQuota(netProfit)}
-          color={netProfit >= 0 ? 'text-success' : 'text-danger'}
+          color={netProfit >= 0 ? 'text-danger' : 'text-success'}
           t={t}
         />
         <SummaryCard
@@ -137,12 +137,12 @@ export default function CasinoStats() {
         </h3>
         <div className="grid grid-cols-2 gap-4">
           <DetailRow label={t('\u603B\u4E0B\u6CE8')} value={renderQuota(stats?.total_wagered || 0)} />
-          <DetailRow label={t('\u603B\u8D62\u5F97')} value={renderQuota(stats?.total_won || 0)} valueClass="text-success" />
-          <DetailRow label={t('\u603B\u8F93\u6389')} value={renderQuota(stats?.total_lost || 0)} valueClass="text-danger" />
+          <DetailRow label={t('\u603B\u8D62\u5F97')} value={renderQuota(stats?.total_won || 0)} valueClass="text-danger" />
+          <DetailRow label={t('\u603B\u8F93\u6389')} value={renderQuota(stats?.total_lost || 0)} valueClass="text-success" />
           <DetailRow
             label={t('\u4ECA\u65E5\u76C8\u4E8F')}
             value={renderQuota(-(stats?.daily_loss_today || 0))}
-            valueClass={(stats?.daily_loss_today || 0) <= 0 ? 'text-success' : 'text-danger'}
+            valueClass={(stats?.daily_loss_today || 0) <= 0 ? 'text-danger' : 'text-success'}
           />
         </div>
       </Card>
@@ -172,12 +172,12 @@ export default function CasinoStats() {
                     {t(GAME_LABELS[gameType] || gameType)}
                   </span>
                   <span className="text-sm text-text-secondary text-center">{data.games}</span>
-                  <span className={cn('text-sm text-center', parseFloat(wr) >= 50 ? 'text-success' : 'text-text-secondary')}>
+                  <span className={cn('text-sm text-center', parseFloat(wr) >= 50 ? 'text-danger' : 'text-text-secondary')}>
                     {wr}%
                   </span>
                   <span className={cn(
                     'text-sm text-right font-medium',
-                    data.net >= 0 ? 'text-success' : 'text-danger',
+                    data.net >= 0 ? 'text-danger' : 'text-success',
                   )}>
                     {data.net >= 0 ? '+' : ''}{renderQuota(data.net)}
                   </span>
@@ -215,7 +215,7 @@ export default function CasinoStats() {
                 </div>
                 <span className={cn(
                   'text-sm font-medium',
-                  (rec.net_profit || 0) >= 0 ? 'text-success' : 'text-danger',
+                  (rec.net_profit || 0) >= 0 ? 'text-danger' : 'text-success',
                 )}>
                   {(rec.net_profit || 0) >= 0 ? '+' : ''}{renderQuota(rec.net_profit || 0)}
                 </span>

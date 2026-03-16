@@ -9,7 +9,7 @@ const GAME_LABELS = {
   roulette: '\u8F6E\u76D8',
   baccarat: '\u767E\u5BB6\u4E50',
   slots: '\u8001\u864E\u673A',
-  poker: '\u5FB7\u5DDE\u624E\u514B',
+  poker: '德州扑克',
 };
 
 export function BigWinMarquee() {
@@ -43,12 +43,12 @@ export function BigWinMarquee() {
     const multiplier = w.multiplier ? `${Number(w.multiplier).toFixed(1)}x` : '';
     return (
       <span key={i} className="inline-flex items-center gap-1 whitespace-nowrap">
-        <span>\uD83C\uDF89</span>
+        <span>🏆</span>
         <span className="font-medium text-[#C5A55A]">{w.username}</span>
         <span className="text-white/60">{t('\u5728')}</span>
         <span className="text-white/80">{gameName}</span>
         <span className="text-white/60">{t('\u4E2D\u8D62\u5F97')}</span>
-        <span className="font-medium text-green-400">{renderQuota(w.payout || 0)}</span>
+        <span className="font-medium text-red-400">{renderQuota(w.payout || 0)}</span>
         {multiplier && (
           <span className="text-[#C5A55A]/70">({multiplier})</span>
         )}
