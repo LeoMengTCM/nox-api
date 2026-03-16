@@ -5,7 +5,7 @@ import { Trophy, ArrowLeft } from 'lucide-react';
 import { API } from '../../lib/api';
 import { showError, renderQuota } from '../../lib/utils';
 import { cn } from '../../lib/cn';
-import { Card, Button, Spinner, Badge, Avatar, AvatarFallback } from '../../components/ui';
+import { Card, Button, Spinner, Badge, Avatar, AvatarImage, AvatarFallback } from '../../components/ui';
 import { UserContext } from '../../contexts/user-context';
 
 const RANK_TYPES = [
@@ -135,6 +135,7 @@ export default function CasinoLeaderboard() {
                   >
                     <div className="text-2xl mb-2">{MEDAL_EMOJI[podiumIdx]}</div>
                     <Avatar className={cn('h-12 w-12 mx-auto ring-2', medal.ring)}>
+                      <AvatarImage src={entry.avatar_url} />
                       <AvatarFallback className={cn('text-sm font-bold', medal.bg, medal.text)}>
                         {(entry.username || '?')[0].toUpperCase()}
                       </AvatarFallback>
@@ -177,6 +178,7 @@ export default function CasinoLeaderboard() {
                         #{rank}
                       </span>
                       <Avatar className="h-7 w-7">
+                        <AvatarImage src={entry.avatar_url} />
                         <AvatarFallback className="text-[10px] bg-accent/10 text-accent">
                           {(entry.username || '?')[0].toUpperCase()}
                         </AvatarFallback>

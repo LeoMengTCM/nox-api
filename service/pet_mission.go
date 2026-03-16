@@ -225,7 +225,7 @@ func CollectReward(userId, dispatchId int) (map[string]interface{}, error) {
 	}
 
 	// Base EXP for completing dispatch (even on failure)
-	baseExp := 10 + mission.Difficulty*5
+	baseExp := 30 + mission.Difficulty*15
 
 	// Apply all rewards + status updates in a single transaction
 	err = model.DB.Transaction(func(tx *gorm.DB) error {
@@ -385,10 +385,11 @@ func GetPublicPetProfile(userId int) (map[string]interface{}, error) {
 
 // RankingEntry represents a single entry in a ranking list
 type RankingEntry struct {
-	UserId     int    `json:"user_id"`
-	Username   string `json:"username"`
-	Value      int    `json:"value"`
-	PetName    string `json:"pet_name,omitempty"`
+	UserId    int    `json:"user_id"`
+	Username  string `json:"username"`
+	AvatarUrl string `json:"avatar_url,omitempty"`
+	Value     int    `json:"value"`
+	PetName   string `json:"pet_name,omitempty"`
 }
 
 // GetPetRanking returns top 20 rankings by level, pet count, and star count
@@ -448,14 +449,17 @@ func GetPetRanking() (map[string]interface{}, error) {
 
 	// Batch-fetch all usernames in one query
 	usernameMap := make(map[int]string)
+	avatarMap := make(map[int]string)
 	if len(userIds) > 0 {
 		var users []struct {
-			Id       int    `gorm:"column:id"`
-			Username string `gorm:"column:username"`
+			Id        int    `gorm:"column:id"`
+			Username  string `gorm:"column:username"`
+			AvatarUrl string `gorm:"column:avatar_url"`
 		}
-		model.DB.Table("users").Select("id, username").Where("id IN ?", userIds).Find(&users)
+		model.DB.Table("users").Select("id, username, avatar_url").Where("id IN ?", userIds).Find(&users)
 		for _, u := range users {
 			usernameMap[u.Id] = u.Username
+			avatarMap[u.Id] = u.AvatarUrl
 		}
 	}
 
@@ -463,28 +467,31 @@ func GetPetRanking() (map[string]interface{}, error) {
 	levelEntries := make([]RankingEntry, 0, len(levelRanking))
 	for _, r := range levelRanking {
 		levelEntries = append(levelEntries, RankingEntry{
-			UserId:   r.UserId,
-			Username: usernameMap[r.UserId],
-			Value:    r.Level,
-			PetName:  r.Nickname,
+			UserId:    r.UserId,
+			Username:  usernameMap[r.UserId],
+			AvatarUrl: avatarMap[r.UserId],
+			Value:     r.Level,
+			PetName:   r.Nickname,
 		})
 	}
 
 	countEntries := make([]RankingEntry, 0, len(countRanking))
 	for _, r := range countRanking {
 		countEntries = append(countEntries, RankingEntry{
-			UserId:   r.UserId,
-			Username: usernameMap[r.UserId],
-			Value:    int(r.PetCount),
+			UserId:    r.UserId,
+			Username:  usernameMap[r.UserId],
+			AvatarUrl: avatarMap[r.UserId],
+			Value:     int(r.PetCount),
 		})
 	}
 
 	starEntries := make([]RankingEntry, 0, len(starRanking))
 	for _, r := range starRanking {
 		starEntries = append(starEntries, RankingEntry{
-			UserId:   r.UserId,
-			Username: usernameMap[r.UserId],
-			Value:    int(r.TotalStars),
+			UserId:    r.UserId,
+			Username:  usernameMap[r.UserId],
+			AvatarUrl: avatarMap[r.UserId],
+			Value:     int(r.TotalStars),
 		})
 	}
 

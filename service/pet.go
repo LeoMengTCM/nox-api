@@ -452,6 +452,139 @@ func FeedPet(userId int, petId int, itemId int) (map[string]interface{}, error) 
 	return result, nil
 }
 
+// FeedAllPet feeds a pet with all food items from the user's inventory until hunger >= 100.
+func FeedAllPet(userId int, petId int) (map[string]interface{}, error) {
+	if !operation_setting.IsPetEnabled() {
+		return nil, errors.New("宠物系统未启用")
+	}
+
+	pet, err := model.GetUserPetById(userId, petId)
+	if err != nil {
+		return nil, errors.New("宠物不存在")
+	}
+	if pet.State != "normal" && pet.State != "weak" {
+		return nil, errors.New("宠物当前状态无法喂食")
+	}
+
+	// Get user inventory
+	userItems, err := model.GetUserInventory(userId)
+	if err != nil {
+		return nil, errors.New("获取背包失败")
+	}
+
+	// Get all items to filter food
+	allItems, err := model.GetAllItems(false)
+	if err != nil {
+		return nil, errors.New("获取物品信息失败")
+	}
+	itemMap := make(map[int]*model.PetItem, len(allItems))
+	for i := range allItems {
+		itemMap[allItems[i].Id] = &allItems[i]
+	}
+
+	// Compute real-time status
+	statusMap := ComputeCurrentStatus(pet)
+
+	fedCount := 0
+	totalExp := 0
+	anyLeveledUp := false
+	anyEvolved := false
+	itemsUsed := []map[string]interface{}{}
+
+	for _, ui := range userItems {
+		if statusMap["hunger"] >= 100 {
+			break
+		}
+
+		item, ok := itemMap[ui.ItemId]
+		if !ok || item.Type != "food" {
+			continue
+		}
+
+		usedCount := 0
+		for i := 0; i < ui.Quantity; i++ {
+			if statusMap["hunger"] >= 100 {
+				break
+			}
+
+			// Apply food effect
+			var effectMap map[string]int
+			if item.Effect != "" {
+				_ = common.Unmarshal([]byte(item.Effect), &effectMap)
+			}
+			for k, v := range effectMap {
+				statusMap[k] += v
+				if statusMap[k] > 100 {
+					statusMap[k] = 100
+				}
+			}
+
+			usedCount++
+			fedCount++
+		}
+
+		if usedCount > 0 {
+			// Consume items in DB
+			now := time.Now()
+			err := model.DB.Transaction(func(tx *gorm.DB) error {
+				if usedCount >= ui.Quantity {
+					return tx.Where("user_id = ? AND item_id = ?", userId, ui.ItemId).Delete(&model.UserPetItem{}).Error
+				}
+				return tx.Model(&model.UserPetItem{}).
+					Where("user_id = ? AND item_id = ?", userId, ui.ItemId).
+					Updates(map[string]interface{}{
+						"quantity":   gorm.Expr("quantity - ?", usedCount),
+						"updated_at": now.Unix(),
+					}).Error
+			})
+			if err != nil {
+				common.SysError("FeedAllPet consume item failed: " + err.Error())
+				continue
+			}
+
+			itemsUsed = append(itemsUsed, map[string]interface{}{
+				"name":  item.Name,
+				"count": usedCount,
+			})
+		}
+	}
+
+	if fedCount == 0 {
+		return nil, errors.New("背包中没有可用的食物")
+	}
+
+	// Update pet status
+	statusBytes, _ := common.Marshal(statusMap)
+	pet.Status = string(statusBytes)
+	now := time.Now()
+	pet.LastFedAt = &now
+	pet.UpdatedAt = now.Unix()
+	if err := model.UpdateUserPet(pet); err != nil {
+		return nil, errors.New("更新宠物状态失败")
+	}
+
+	// Grant total EXP
+	expPerFeed := operation_setting.GetFeedExp()
+	totalExp = fedCount * expPerFeed
+	if totalExp > 0 {
+		anyLeveledUp, anyEvolved, err = AddExp(pet, totalExp)
+		if err != nil {
+			common.SysError("FeedAllPet AddExp failed: " + err.Error())
+		}
+	}
+
+	result := map[string]interface{}{
+		"fed_count":  fedCount,
+		"total_exp":  totalExp,
+		"leveled_up": anyLeveledUp,
+		"evolved":    anyEvolved,
+		"items_used": itemsUsed,
+		"exp_gained": totalExp,
+		"pet":        pet,
+	}
+	return result, nil
+}
+
 // PlayWithPet interacts with a pet to increase mood.
 // Returns a result map with exp/level change info, or an error.
 func PlayWithPet(userId int, petId int) (map[string]interface{}, error) {

@@ -208,6 +208,28 @@ func FeedPet(c *gin.Context) {
 	})
 }
 
+// FeedAllPet 一键喂食
+func FeedAllPet(c *gin.Context) {
+	petId, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		common.ApiErrorMsg(c, "无效的宠物 ID")
+		return
+	}
+
+	userId := c.GetInt("id")
+	result, err := service.FeedAllPet(userId, petId)
+	if err != nil {
+		common.ApiErrorMsg(c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "一键喂食完成",
+		"data":    result,
+	})
+}
+
 // PlayWithPet 与宠物互动
 func PlayWithPet(c *gin.Context) {
 	petId, err := strconv.Atoi(c.Param("id"))

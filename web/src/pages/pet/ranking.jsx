@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Crown, PawPrint, Star } from 'lucide-react';
-import { Card } from '../../components/ui';
+import { Card, Avatar, AvatarImage, AvatarFallback } from '../../components/ui';
 import { API } from '../../lib/api';
 import { showError } from '../../lib/utils';
 import { UserContext } from '../../contexts/user-context';
@@ -62,9 +62,12 @@ function PetRankingBoard({ title, icon: Icon, iconColor, data, currentUserId, va
                 }`}
               >
                 <RankBadge rank={rank} />
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 text-accent text-sm font-medium shrink-0">
-                  {(entry.username || '?').charAt(0).toUpperCase()}
-                </div>
+                <Avatar className="h-8 w-8 shrink-0">
+                  <AvatarImage src={entry.avatar_url} />
+                  <AvatarFallback className="bg-accent/10 text-accent text-sm font-medium">
+                    {(entry.username || '?').charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
                 <div className="flex-1 min-w-0">
                   <Link
                     to={`/console/user/${entry.user_id}`}

@@ -194,6 +194,7 @@ func GetCasinoLeaderboard(rankType string, limit int) ([]map[string]interface{},
 		UserId      int    `gorm:"column:user_id"`
 		Username    string `gorm:"column:username"`
 		DisplayName string `gorm:"column:display_name"`
+		AvatarUrl   string `gorm:"column:avatar_url"`
 		TotalBet    int64  `gorm:"column:total_bet"`
 		TotalWon    int64  `gorm:"column:total_won"`
 		TotalLost   int64  `gorm:"column:total_lost"`
@@ -205,7 +206,7 @@ func GetCasinoLeaderboard(rankType string, limit int) ([]map[string]interface{},
 
 	var rows []leaderboardRow
 	err := DB.Table("casino_daily_stats").
-		Select("casino_daily_stats.user_id, users.username, users.display_name, "+
+		Select("casino_daily_stats.user_id, users.username, users.display_name, users.avatar_url, "+
 			"SUM(casino_daily_stats.total_bet) as total_bet, "+
 			"SUM(casino_daily_stats.total_won) as total_won, "+
 			"SUM(casino_daily_stats.total_lost) as total_lost, "+
@@ -214,7 +215,7 @@ func GetCasinoLeaderboard(rankType string, limit int) ([]map[string]interface{},
 			"SUM(casino_daily_stats.win_count) as win_count, "+
 			"MAX(casino_daily_stats.biggest_win) as biggest_win").
 		Joins("JOIN users ON users.id = casino_daily_stats.user_id").
-		Group("casino_daily_stats.user_id, users.username, users.display_name").
+		Group("casino_daily_stats.user_id, users.username, users.display_name, users.avatar_url").
 		Order(orderCol + " desc").
 		Limit(limit).
 		Find(&rows).Error
@@ -249,6 +250,7 @@ func GetCasinoLeaderboard(rankType string, limit int) ([]map[string]interface{},
 			"user_id":      row.UserId,
 			"username":     row.Username,
 			"display_name": displayName,
+			"avatar_url":   row.AvatarUrl,
 			"value":        value,
 			"total_bet":    row.TotalBet,
 			"total_won":    row.TotalWon,

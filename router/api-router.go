@@ -378,6 +378,7 @@ func SetApiRouter(router *gin.Engine) {
 			petRoute.PUT("/my/:id/primary", controller.SetPrimaryPet)
 			petRoute.PUT("/my/:id/rename", controller.RenamePet)
 			petRoute.POST("/my/:id/feed", controller.FeedPet)
+			petRoute.POST("/my/:id/feed-all", controller.FeedAllPet)
 			petRoute.POST("/my/:id/play", controller.PlayWithPet)
 			petRoute.POST("/my/:id/clean", controller.CleanPet)
 			petRoute.POST("/my/:id/hatch", controller.HatchPet)

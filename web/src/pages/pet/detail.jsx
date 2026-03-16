@@ -66,6 +66,7 @@ export default function PetDetail() {
   const [inventory, setInventory] = useState([]);
   const [loadingInventory, setLoadingInventory] = useState(false);
   const [feedingItemId, setFeedingItemId] = useState(null);
+  const [feedingAll, setFeedingAll] = useState(false);
 
   // Interaction states
   const [interacting, setInteracting] = useState(false);
@@ -217,6 +218,31 @@ export default function PetDetail() {
       showError(t('操作失败'));
     } finally {
       setFeedingItemId(null);
+    }
+  };
+
+  // Feed All
+  const handleFeedAll = async () => {
+    setFeedingAll(true);
+    try {
+      const res = await API.post(`/api/pet/my/${id}/feed-all`);
+      if (res.data.success) {
+        const data = res.data.data;
+        const usedDesc = (data.items_used || [])
+          .map((u) => `${u.name} x${u.count}`)
+          .join(', ');
+        showSuccess(
+          `${t('喂食完成')}：${usedDesc}，+${data.total_exp} EXP`
+        );
+        setFeedOpen(false);
+        handleInteractionResult(data, 'feed');
+      } else {
+        showError(res.data.message);
+      }
+    } catch {
+      showError(t('操作失败'));
+    } finally {
+      setFeedingAll(false);
     }
   };
 
@@ -679,13 +705,25 @@ export default function PetDetail() {
                 </Link>
               </div>
             ) : (
-              inventory.map((item) => {
+              <>
+                <Button
+                  className="w-full"
+                  onClick={handleFeedAll}
+                  disabled={feedingAll || feedingItemId !== null}
+                >
+                  {feedingAll ? (
+                    <><Spinner size="sm" className="mr-2" />{t('喂食中...')}</>
+                  ) : (
+                    <><Utensils className="mr-2 h-4 w-4" />{t('一键喂食')}</>
+                  )}
+                </Button>
+                {inventory.map((item) => {
                 const effectDesc = parseEffectDescription(item.effect, t);
                 return (
                   <button
                     key={item.item_id}
                     onClick={() => handleFeed(item.item_id)}
-                    disabled={feedingItemId !== null}
+                    disabled={feedingItemId !== null || feedingAll}
                     className={cn(
                       'w-full flex items-center gap-3 rounded-lg border border-border-subtle px-4 py-3',
                       'hover:bg-surface-hover transition-colors text-left',
@@ -708,7 +746,8 @@ export default function PetDetail() {
                     )}
                   </button>
                 );
-              })
+              })}
+              </>
             )}
           </div>
         </DialogContent>

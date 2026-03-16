@@ -218,10 +218,12 @@ func SeedMissionData() {
 	type reward struct {
 		Type        string  `json:"type"`
 		Amount      int     `json:"amount"`
+		ItemId      int     `json:"id,omitempty"`
 		Probability float64 `json:"probability"`
 	}
 
 	missions := []PetMission{
+		// ========== Original 5 missions (rewards ~3x boosted) ==========
 		{
 			Name:          "禁忌森林巡逻",
 			Description:   "在禁忌森林边缘巡逻，寻找迷路的魔法生物",
@@ -234,8 +236,8 @@ func SeedMissionData() {
 				"speed": 0.5, "luck": 0.5,
 			}),
 			Rewards: mustMarshal([]reward{
-				{Type: "quota", Amount: 200000, Probability: 1.0},
-				{Type: "exp", Amount: 30, Probability: 1.0},
+				{Type: "quota", Amount: 600000, Probability: 1.0},
+				{Type: "exp", Amount: 80, Probability: 1.0},
 			}),
 			CreatedAt: now,
 			UpdatedAt: now,
@@ -252,8 +254,8 @@ func SeedMissionData() {
 				"attack": 0.4, "defense": 0.4, "luck": 0.2,
 			}),
 			Rewards: mustMarshal([]reward{
-				{Type: "quota", Amount: 500000, Probability: 1.0},
-				{Type: "exp", Amount: 80, Probability: 1.0},
+				{Type: "quota", Amount: 1500000, Probability: 1.0},
+				{Type: "exp", Amount: 200, Probability: 1.0},
 			}),
 			CreatedAt: now,
 			UpdatedAt: now,
@@ -270,8 +272,8 @@ func SeedMissionData() {
 				"attack": 0.3, "defense": 0.3, "speed": 0.2, "luck": 0.2,
 			}),
 			Rewards: mustMarshal([]reward{
-				{Type: "quota", Amount: 1000000, Probability: 1.0},
-				{Type: "exp", Amount: 150, Probability: 1.0},
+				{Type: "quota", Amount: 3000000, Probability: 1.0},
+				{Type: "exp", Amount: 400, Probability: 1.0},
 			}),
 			CreatedAt: now,
 			UpdatedAt: now,
@@ -288,8 +290,8 @@ func SeedMissionData() {
 				"defense": 0.4, "speed": 0.3, "luck": 0.3,
 			}),
 			Rewards: mustMarshal([]reward{
-				{Type: "quota", Amount: 2500000, Probability: 1.0},
-				{Type: "exp", Amount: 300, Probability: 1.0},
+				{Type: "quota", Amount: 7500000, Probability: 1.0},
+				{Type: "exp", Amount: 800, Probability: 1.0},
 			}),
 			CreatedAt: now,
 			UpdatedAt: now,
@@ -306,8 +308,195 @@ func SeedMissionData() {
 				"attack": 0.4, "defense": 0.3, "speed": 0.2, "luck": 0.1,
 			}),
 			Rewards: mustMarshal([]reward{
-				{Type: "quota", Amount: 5000000, Probability: 1.0},
-				{Type: "exp", Amount: 500, Probability: 1.0},
+				{Type: "quota", Amount: 15000000, Probability: 1.0},
+				{Type: "exp", Amount: 1500, Probability: 1.0},
+			}),
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+		// ========== 10 new HP-themed missions ==========
+		// --- Low difficulty (1-2) ---
+		{
+			Name:          "黑湖探险",
+			Description:   "潜入霍格沃茨黑湖边缘，与人鱼族交涉并寻找水底宝藏",
+			Duration:      1800,
+			Difficulty:    1,
+			RequiredLevel: 3,
+			MaxDaily:      5,
+			Enabled:       true,
+			StatWeights: mustMarshal(map[string]float64{
+				"speed": 0.4, "defense": 0.3, "luck": 0.3,
+			}),
+			Rewards: mustMarshal([]reward{
+				{Type: "quota", Amount: 600000, Probability: 1.0},
+				{Type: "exp", Amount: 80, Probability: 1.0},
+			}),
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+		{
+			Name:          "魁地奇球场训练",
+			Description:   "在魁地奇球场进行飞行训练，追逐金色飞贼提升敏捷",
+			Duration:      1200,
+			Difficulty:    1,
+			RequiredLevel: 1,
+			MaxDaily:      8,
+			Enabled:       true,
+			StatWeights: mustMarshal(map[string]float64{
+				"speed": 0.6, "attack": 0.2, "luck": 0.2,
+			}),
+			Rewards: mustMarshal([]reward{
+				{Type: "quota", Amount: 400000, Probability: 1.0},
+				{Type: "exp", Amount: 50, Probability: 1.0},
+			}),
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+		{
+			Name:          "对角巷购物",
+			Description:   "前往对角巷采购魔法用品，顺便帮奥利凡德整理魔杖库存",
+			Duration:      2700,
+			Difficulty:    2,
+			RequiredLevel: 8,
+			MaxDaily:      4,
+			Enabled:       true,
+			StatWeights: mustMarshal(map[string]float64{
+				"luck": 0.5, "speed": 0.3, "defense": 0.2,
+			}),
+			Rewards: mustMarshal([]reward{
+				{Type: "quota", Amount: 1200000, Probability: 1.0},
+				{Type: "exp", Amount: 150, Probability: 1.0},
+			}),
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+		// --- Medium difficulty (2-3) ---
+		{
+			Name:          "打人柳冒险",
+			Description:   "躲避打人柳的疯狂枝条，找到通往尖叫棚屋的秘密通道",
+			Duration:      3600,
+			Difficulty:    2,
+			RequiredLevel: 12,
+			MaxDaily:      3,
+			Enabled:       true,
+			StatWeights: mustMarshal(map[string]float64{
+				"defense": 0.4, "speed": 0.4, "luck": 0.2,
+			}),
+			Rewards: mustMarshal([]reward{
+				{Type: "quota", Amount: 1500000, Probability: 1.0},
+				{Type: "exp", Amount: 200, Probability: 1.0},
+			}),
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+		{
+			Name:          "尖叫棚屋探秘",
+			Description:   "深入全英国最闹鬼的建筑，揭开月圆之夜的秘密",
+			Duration:      5400,
+			Difficulty:    3,
+			RequiredLevel: 18,
+			MaxDaily:      2,
+			Enabled:       true,
+			StatWeights: mustMarshal(map[string]float64{
+				"attack": 0.3, "defense": 0.4, "luck": 0.3,
+			}),
+			Rewards: mustMarshal([]reward{
+				{Type: "quota", Amount: 2500000, Probability: 1.0},
+				{Type: "exp", Amount: 350, Probability: 1.0},
+			}),
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+		{
+			Name:          "有求必应屋",
+			Description:   "在有求必应屋中搜寻失落已久的魔法宝物和隐藏的秘密",
+			Duration:      7200,
+			Difficulty:    3,
+			RequiredLevel: 22,
+			MaxDaily:      2,
+			Enabled:       true,
+			StatWeights: mustMarshal(map[string]float64{
+				"luck": 0.4, "attack": 0.3, "speed": 0.3,
+			}),
+			Rewards: mustMarshal([]reward{
+				{Type: "quota", Amount: 3000000, Probability: 1.0},
+				{Type: "exp", Amount: 400, Probability: 1.0},
+			}),
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+		{
+			Name:          "天文塔巡逻",
+			Description:   "在霍格沃茨最高的天文塔执行夜间巡逻，监视黑魔法活动",
+			Duration:      3000,
+			Difficulty:    2,
+			RequiredLevel: 15,
+			MaxDaily:      3,
+			Enabled:       true,
+			StatWeights: mustMarshal(map[string]float64{
+				"defense": 0.3, "speed": 0.3, "luck": 0.2, "attack": 0.2,
+			}),
+			Rewards: mustMarshal([]reward{
+				{Type: "quota", Amount: 1800000, Probability: 1.0},
+				{Type: "exp", Amount: 250, Probability: 1.0},
+			}),
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+		// --- High difficulty (4-5) ---
+		{
+			Name:          "魔法部神秘事务司",
+			Description:   "潜入魔法部第九层神秘事务司，调查时间与预言的奥秘",
+			Duration:      18000,
+			Difficulty:    4,
+			RequiredLevel: 40,
+			MaxDaily:      1,
+			Enabled:       true,
+			StatWeights: mustMarshal(map[string]float64{
+				"attack": 0.3, "defense": 0.3, "speed": 0.2, "luck": 0.2,
+			}),
+			Rewards: mustMarshal([]reward{
+				{Type: "quota", Amount: 8000000, Probability: 1.0},
+				{Type: "exp", Amount: 1000, Probability: 1.0},
+				{Type: "item", Amount: 1, ItemId: 10, Probability: 0.05},
+			}),
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+		{
+			Name:          "阿兹卡班外围巡逻",
+			Description:   "在摄魂怪环绕的阿兹卡班监狱外围执行危险的巡逻任务",
+			Duration:      36000,
+			Difficulty:    5,
+			RequiredLevel: 55,
+			MaxDaily:      1,
+			Enabled:       true,
+			StatWeights: mustMarshal(map[string]float64{
+				"defense": 0.4, "attack": 0.3, "luck": 0.2, "speed": 0.1,
+			}),
+			Rewards: mustMarshal([]reward{
+				{Type: "quota", Amount: 18000000, Probability: 1.0},
+				{Type: "exp", Amount: 2000, Probability: 1.0},
+				{Type: "item", Amount: 1, ItemId: 10, Probability: 0.08},
+			}),
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+		{
+			Name:          "霍格沃茨大决战",
+			Description:   "参与霍格沃茨保卫战，与黑魔法势力展开最终决战",
+			Duration:      43200,
+			Difficulty:    5,
+			RequiredLevel: 60,
+			MaxDaily:      1,
+			Enabled:       true,
+			StatWeights: mustMarshal(map[string]float64{
+				"attack": 0.4, "defense": 0.3, "speed": 0.2, "luck": 0.1,
+			}),
+			Rewards: mustMarshal([]reward{
+				{Type: "quota", Amount: 25000000, Probability: 1.0},
+				{Type: "exp", Amount: 3000, Probability: 1.0},
+				{Type: "item", Amount: 1, ItemId: 10, Probability: 0.10},
 			}),
 			CreatedAt: now,
 			UpdatedAt: now,

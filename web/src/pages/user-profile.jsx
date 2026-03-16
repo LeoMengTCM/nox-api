@@ -300,9 +300,17 @@ const UserProfile = () => {
                   <PetCard
                     key={pet.id}
                     pet={{
-                      ...pet,
+                      id: pet.id,
                       nickname: pet.nickname || pet.species_name,
-                      level: item.computed_status?.level ?? pet.level ?? 1,
+                      species_name: pet.species_name,
+                      visual_key: pet.visual_key,
+                      level: pet.level || 1,
+                      rarity: pet.rarity || 'N',
+                      star: pet.star || 0,
+                      is_primary: !!pet.is_primary,
+                      is_fainted: !!pet.is_fainted,
+                      state: pet.state,
+                      stage: pet.stage,
                     }}
                     onClick={null}
                   />
