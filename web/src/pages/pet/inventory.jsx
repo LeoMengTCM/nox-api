@@ -123,7 +123,7 @@ export default function PetInventory() {
     if (!selectedItem || using) return;
     setUsing(true);
     try {
-      const res = await API.post(`/api/pet/my/${petId}/use-item`, {
+      const res = await API.post(`/api/pet/my/${petId}/use_item`, {
         item_id: selectedItem.item_id,
       });
       if (res.data.success) {

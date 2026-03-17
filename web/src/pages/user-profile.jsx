@@ -129,6 +129,20 @@ const UserProfile = () => {
     }));
   };
 
+  // useMemo MUST be called before any early returns (Rules of Hooks)
+  const sortedPets = useMemo(() => {
+    if (!petData.pets) return [];
+    return [...petData.pets].sort((a, b) => {
+      const pa = (a.pet || a);
+      const pb = (b.pet || b);
+      const ra = RARITY_WEIGHT[pa.rarity] ?? 4;
+      const rb = RARITY_WEIGHT[pb.rarity] ?? 4;
+      if (ra !== rb) return ra - rb;
+      if ((pb.star || 0) !== (pa.star || 0)) return (pb.star || 0) - (pa.star || 0);
+      return (pb.level || 1) - (pa.level || 1);
+    });
+  }, [petData.pets]);
+
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto py-8 px-4">
@@ -153,19 +167,6 @@ const UserProfile = () => {
   const hasMore = posts.length < postsTotal;
   const primaryPet = petData.pets?.find(p => p.pet?.is_primary || p.is_primary);
   const petStats = petData.stats || { pet_count: 0, max_level: 0, total_stars: 0 };
-
-  const sortedPets = useMemo(() => {
-    if (!petData.pets) return [];
-    return [...petData.pets].sort((a, b) => {
-      const pa = (a.pet || a);
-      const pb = (b.pet || b);
-      const ra = RARITY_WEIGHT[pa.rarity] ?? 4;
-      const rb = RARITY_WEIGHT[pb.rarity] ?? 4;
-      if (ra !== rb) return ra - rb;
-      if ((pb.star || 0) !== (pa.star || 0)) return (pb.star || 0) - (pa.star || 0);
-      return (pb.level || 1) - (pa.level || 1);
-    });
-  }, [petData.pets]);
 
   return (
     <div className="max-w-2xl mx-auto py-6 px-4 space-y-5">

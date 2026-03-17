@@ -709,6 +709,11 @@ func petSeedItems(now int64) []PetItem {
 // SeedPetData populates initial pet species and items if the tables are empty.
 // This function is idempotent — it only inserts when pet_species has zero rows.
 func SeedPetData() {
+	now := time.Now().Unix()
+
+	// ── Items migration (must run even if species already exist) ──
+	seedPetItemsIfNeeded(now)
+
 	var count int64
 	DB.Model(&PetSpecies{}).Count(&count)
 	if count > 0 {
@@ -716,7 +721,6 @@ func SeedPetData() {
 	}
 
 	common.SysLog("seeding initial pet species and items...")
-	now := time.Now().Unix()
 
 	species := []PetSpecies{
 		// ══════ N-Starter (4) ══════
@@ -964,7 +968,12 @@ func SeedPetData() {
 		}
 	}
 
-	// Seed items — reseed if the current items don't match (e.g. upgrade from old items)
+	common.SysLog("pet species and items seeded successfully")
+}
+
+// seedPetItemsIfNeeded checks whether items need to be seeded/upgraded and does so.
+// Called unconditionally (even when species already exist) to handle version upgrades.
+func seedPetItemsIfNeeded(now int64) {
 	seedItems := petSeedItems(now)
 	var itemCount int64
 	DB.Model(&PetItem{}).Count(&itemCount)
@@ -974,7 +983,6 @@ func SeedPetData() {
 		DB.Model(&PetItem{}).Where("name = ?", seedItems[0].Name).Count(&marker)
 		if marker == 0 {
 			// Old items detected — clear and reseed.
-			// Remove user inventory entries that reference old items, then delete old items.
 			common.SysLog("upgrading pet shop items to v0.1.2...")
 			DB.Where("1 = 1").Delete(&UserPetItem{})
 			DB.Where("1 = 1").Delete(&PetItem{})
@@ -993,6 +1001,7 @@ func SeedPetData() {
 		}
 	}
 	if itemCount == 0 {
+		common.SysLog("seeding pet shop items...")
 		for i := range seedItems {
 			if err := DB.Create(&seedItems[i]).Error; err != nil {
 				common.SysError("failed to seed pet item: " + err.Error())
@@ -1000,6 +1009,4 @@ func SeedPetData() {
 			}
 		}
 	}
-
-	common.SysLog("pet species and items seeded successfully")
 }

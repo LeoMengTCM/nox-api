@@ -66,7 +66,7 @@ export default function PetDetail() {
   const [inventory, setInventory] = useState([]);
   const [loadingInventory, setLoadingInventory] = useState(false);
   const [feedingItemId, setFeedingItemId] = useState(null);
-  const [feedingAll, setFeedingAll] = useState(false);
+  const [feedQuantities, setFeedQuantities] = useState({}); // { itemId: quantity }
 
   // Interaction states
   const [interacting, setInteracting] = useState(false);
@@ -167,9 +167,13 @@ export default function PetDetail() {
       const res = await API.get('/api/pet/inventory');
       if (res.data.success) {
         const items = (res.data.data || []).filter(
-          (item) => item.type === 'food'
+          (item) => item.type === 'food' || item.type === 'potion'
         );
         setInventory(items);
+        // Initialize quantities to 1 for each item
+        const initQty = {};
+        items.forEach((item) => { initQty[item.item_id] = 1; });
+        setFeedQuantities(initQty);
       }
     } catch {
       // silently fail, empty state shown
@@ -205,44 +209,34 @@ export default function PetDetail() {
 
   // Feed
   const handleFeed = async (itemId) => {
+    const qty = feedQuantities[itemId] || 1;
     setFeedingItemId(itemId);
     try {
-      const res = await API.post(`/api/pet/my/${id}/feed`, { item_id: itemId });
-      if (res.data.success) {
+      let lastResult = null;
+      let totalExp = 0;
+      for (let i = 0; i < qty; i++) {
+        const res = await API.post(`/api/pet/my/${id}/feed`, { item_id: itemId });
+        if (res.data.success) {
+          lastResult = res.data.data;
+          totalExp += res.data.data.exp_gained || 0;
+        } else {
+          if (i === 0) {
+            showError(res.data.message);
+            return;
+          }
+          break; // item used up, stop
+        }
+      }
+      if (lastResult) {
+        const itemName = inventory.find((i) => i.item_id === itemId)?.name || '';
+        showSuccess(`${t('喂食完成')}：${itemName} x${qty}，+${totalExp} EXP`);
         setFeedOpen(false);
-        handleInteractionResult(res.data.data, 'feed');
-      } else {
-        showError(res.data.message);
+        handleInteractionResult({ ...lastResult, exp_gained: totalExp }, 'feed');
       }
     } catch {
       showError(t('操作失败'));
     } finally {
       setFeedingItemId(null);
-    }
-  };
-
-  // Feed All
-  const handleFeedAll = async () => {
-    setFeedingAll(true);
-    try {
-      const res = await API.post(`/api/pet/my/${id}/feed-all`);
-      if (res.data.success) {
-        const data = res.data.data;
-        const usedDesc = (data.items_used || [])
-          .map((u) => `${u.name} x${u.count}`)
-          .join(', ');
-        showSuccess(
-          `${t('喂食完成')}：${usedDesc}，+${data.total_exp} EXP`
-        );
-        setFeedOpen(false);
-        handleInteractionResult(data, 'feed');
-      } else {
-        showError(res.data.message);
-      }
-    } catch {
-      showError(t('操作失败'));
-    } finally {
-      setFeedingAll(false);
     }
   };
 
@@ -653,7 +647,7 @@ export default function PetDetail() {
                 variant="outline"
                 className="flex flex-col items-center gap-1.5 h-auto py-3"
                 onClick={handlePlay}
-                disabled={isWeak || playCooldown > 0 || interacting}
+                disabled={playCooldown > 0 || interacting}
               >
                 <Heart size={18} />
                 <span className="text-xs">
@@ -669,7 +663,7 @@ export default function PetDetail() {
                 variant="outline"
                 className="flex flex-col items-center gap-1.5 h-auto py-3"
                 onClick={handleClean}
-                disabled={isWeak || cleanCountToday >= MAX_CLEAN_PER_DAY || interacting}
+                disabled={cleanCountToday >= MAX_CLEAN_PER_DAY || interacting}
               >
                 <Droplets size={18} />
                 <span className="text-xs">
@@ -705,9 +699,9 @@ export default function PetDetail() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('选择食物')}</DialogTitle>
-            <DialogDescription>{t('选择背包中的食物喂养魔法生物')}</DialogDescription>
+            <DialogDescription>{t('选择背包中的食物或药水喂养魔法生物')}</DialogDescription>
           </DialogHeader>
-          <div className="py-2 max-h-64 overflow-y-auto space-y-2">
+          <div className="py-2 max-h-80 overflow-y-auto space-y-2">
             {loadingInventory ? (
               <div className="flex justify-center py-8">
                 <Spinner size="md" />
@@ -724,49 +718,73 @@ export default function PetDetail() {
                 </Link>
               </div>
             ) : (
-              <>
-                <Button
-                  className="w-full"
-                  onClick={handleFeedAll}
-                  disabled={feedingAll || feedingItemId !== null}
-                >
-                  {feedingAll ? (
-                    <><Spinner size="sm" className="mr-2" />{t('喂食中...')}</>
-                  ) : (
-                    <><Utensils className="mr-2 h-4 w-4" />{t('一键喂食')}</>
-                  )}
-                </Button>
-                {inventory.map((item) => {
+              inventory.map((item) => {
                 const effectDesc = parseEffectDescription(item.effect, t);
+                const qty = feedQuantities[item.item_id] || 1;
+                const maxQty = item.quantity || 1;
                 return (
-                  <button
+                  <div
                     key={item.item_id}
-                    onClick={() => handleFeed(item.item_id)}
-                    disabled={feedingItemId !== null || feedingAll}
-                    className={cn(
-                      'w-full flex items-center gap-3 rounded-lg border border-border-subtle px-4 py-3',
-                      'hover:bg-surface-hover transition-colors text-left',
-                      'disabled:opacity-50 disabled:cursor-not-allowed'
-                    )}
+                    className="rounded-lg border border-border-subtle px-4 py-3 space-y-2"
                   >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-text-primary truncate">
-                        {item.name}
-                      </p>
-                      {effectDesc && (
-                        <p className="text-xs text-text-tertiary mt-0.5">{effectDesc}</p>
-                      )}
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-text-primary truncate">
+                          {item.name}
+                          <span className="ml-1.5 text-xs text-text-tertiary font-normal">
+                            ({t(item.type === 'food' ? '食物' : '药水')})
+                          </span>
+                        </p>
+                        {effectDesc && (
+                          <p className="text-xs text-text-tertiary mt-0.5">{effectDesc}</p>
+                        )}
+                      </div>
+                      <span className="shrink-0 text-xs text-text-secondary tabular-nums">
+                        {t('库存')} x{item.quantity}
+                      </span>
                     </div>
-                    <span className="shrink-0 text-xs text-text-secondary tabular-nums">
-                      x{item.quantity}
-                    </span>
-                    {feedingItemId === item.item_id && (
-                      <Spinner size="sm" />
-                    )}
-                  </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFeedQuantities((prev) => ({
+                          ...prev,
+                          [item.item_id]: Math.max(1, qty - 1),
+                        }))}
+                        disabled={qty <= 1}
+                        className="h-7 w-7 rounded-md border border-border flex items-center justify-center text-sm text-text-secondary hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        -
+                      </button>
+                      <span className="w-8 text-center text-sm font-medium text-text-primary tabular-nums">
+                        {qty}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setFeedQuantities((prev) => ({
+                          ...prev,
+                          [item.item_id]: Math.min(maxQty, qty + 1),
+                        }))}
+                        disabled={qty >= maxQty}
+                        className="h-7 w-7 rounded-md border border-border flex items-center justify-center text-sm text-text-secondary hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        +
+                      </button>
+                      <Button
+                        size="sm"
+                        className="ml-auto"
+                        onClick={() => handleFeed(item.item_id)}
+                        disabled={feedingItemId !== null}
+                      >
+                        {feedingItemId === item.item_id ? (
+                          <><Spinner size="sm" className="mr-1" />{t('喂食中...')}</>
+                        ) : (
+                          `${t('喂养')} x${qty}`
+                        )}
+                      </Button>
+                    </div>
+                  </div>
                 );
-              })}
-              </>
+              })
             )}
           </div>
         </DialogContent>

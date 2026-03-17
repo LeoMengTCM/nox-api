@@ -4,6 +4,11 @@
 
 This is an AI API gateway/proxy built with Go. It aggregates 40+ upstream AI providers (OpenAI, Claude, Gemini, Azure, AWS Bedrock, etc.) behind a unified API, with user management, billing, rate limiting, and an admin dashboard.
 
+## Key Files
+
+- **Changelog**: `CHANGELOG.md` — All notable changes per version
+- **Version**: `common/constants.go` (`Version` var, auto-replaced at build time via `-ldflags`)
+
 ## Tech Stack
 
 - **Backend**: Go 1.22+, Gin web framework, GORM v2 ORM

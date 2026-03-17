@@ -2,6 +2,22 @@
 
 All notable changes to Nox API will be documented in this file.
 
+## [0.1.6] - 2026-03-17
+
+### Bug Fixes
+
+- **Weak pet dead end**: Removed frontend `isWeak` guard that incorrectly disabled Play and Clean buttons when pet was weak — the backend already allows these operations in weak state, so the previous UI created an unrecoverable dead-end. (`web/src/pages/pet/detail.jsx`)
+- **Inventory item use 404**: Fixed URL mismatch — frontend called `/use-item` (hyphen) but the backend route was `/use_item` (underscore). (`web/src/pages/pet/inventory.jsx`)
+- **Magic shop missing items**: `SeedPetData()` returned early when species already existed, skipping the items migration entirely. Extracted `seedPetItemsIfNeeded()` to run unconditionally on startup, ensuring v0.1.5 shop items appear on existing databases. (`model/pet.go`)
+- **User profile React #310 crash**: `useMemo(sortedPets)` was called after early returns (`if (loading)` / `if (!profile)`), violating the Rules of Hooks. Moved it before all early returns. (`web/src/pages/user-profile.jsx`)
+
+### Improvements
+
+- **Feed dialog redesign**: Replaced the opaque "one-click feed" button with per-item quantity selectors. Each food and potion now shows `[-] N [+] [Feed xN]` controls so users know exactly what and how much will be fed. Potions are also included in the feed dialog. (`web/src/pages/pet/detail.jsx`)
+- **Market dollar pricing**: The Hog's Head consignment and auction bid forms now accept dollar amounts directly (with `$` prefix), converting to internal quota on submission. Users no longer need to mentally convert token values. (`web/src/pages/pet/market.jsx`)
+
+---
+
 ## [0.1.3] - 2026-03-15
 
 ### New Features

@@ -24,7 +24,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { API } from '../../lib/api';
-import { showError, showSuccess, renderQuota, timestamp2string } from '../../lib/utils';
+import { showError, showSuccess, renderQuota, timestamp2string, getQuotaPerUnit } from '../../lib/utils';
 import { cn } from '../../lib/cn';
 import {
   Card,
@@ -264,20 +264,22 @@ export default function PetMarket() {
 
   const handleBid = async () => {
     if (!bidListing || bidding) return;
-    const amount = Number(bidAmount);
-    if (!amount || amount <= 0) {
+    const dollarAmount = Number(bidAmount);
+    if (!dollarAmount || dollarAmount <= 0) {
       showError(t('请输入有效的出价金额'));
       return;
     }
+    // Convert dollar to quota for comparison and submission
+    const quotaAmount = Math.round(dollarAmount * getQuotaPerUnit());
     const minRequired = bidListing?.current_bid || bidListing?.min_bid || bidListing?.price || 0;
-    if (amount <= minRequired) {
+    if (quotaAmount <= minRequired) {
       showError(t('出价需高于当前最高出价'));
       return;
     }
     setBidding(true);
     try {
       const res = await API.post(`/api/pet/market/${bidListing.id}/bid`, {
-        amount,
+        amount: quotaAmount,
       });
       if (res.data.success) {
         showSuccess(t('出价成功'));
@@ -338,11 +340,13 @@ export default function PetMarket() {
       return;
     }
     const isAuction = createForm.listing_type === 'auction';
-    const price = Number(isAuction ? createForm.min_bid : createForm.price);
-    if (!price || price <= 0) {
+    const dollarPrice = Number(isAuction ? createForm.min_bid : createForm.price);
+    if (!dollarPrice || dollarPrice <= 0) {
       showError(t('请输入有效的价格'));
       return;
     }
+    // Convert dollar to quota (internal unit)
+    const quotaPrice = Math.round(dollarPrice * getQuotaPerUnit());
     setCreating(true);
     try {
       const durationDays = Number(createForm.duration) || 3;
@@ -353,9 +357,9 @@ export default function PetMarket() {
         expires_at: expiresAt,
       };
       if (isAuction) {
-        body.min_bid = price;
+        body.min_bid = quotaPrice;
       } else {
-        body.price = price;
+        body.price = quotaPrice;
       }
       const res = await API.post('/api/pet/market', body);
       if (res.data.success) {
@@ -753,12 +757,18 @@ export default function PetMarket() {
                   <span>{bidListing.bid_count || 0}</span>
                 </div>
               </div>
-              <Input
-                type="number"
-                placeholder={t('输入出价金额')}
-                value={bidAmount}
-                onChange={(e) => setBidAmount(e.target.value)}
-              />
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-tertiary">$</span>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="0.00"
+                  className="pl-7"
+                  value={bidAmount}
+                  onChange={(e) => setBidAmount(e.target.value)}
+                />
+              </div>
             </div>
           )}
           <DialogFooter>
@@ -889,32 +899,31 @@ export default function PetMarket() {
                     {createForm.listing_type === 'auction'
                       ? t('起拍价')
                       : t('价格')}
+                    <span className="text-xs text-text-tertiary ml-1">(USD)</span>
                   </label>
-                  <Input
-                    type="number"
-                    placeholder={t('输入金额')}
-                    value={
-                      createForm.listing_type === 'auction'
-                        ? createForm.min_bid
-                        : createForm.price
-                    }
-                    onChange={(e) =>
-                      setCreateForm((f) => ({
-                        ...f,
-                        [createForm.listing_type === 'auction'
-                          ? 'min_bid'
-                          : 'price']: e.target.value,
-                      }))
-                    }
-                  />
-                  {(() => {
-                    const val = Number(createForm.listing_type === 'auction' ? createForm.min_bid : createForm.price);
-                    return val > 0 ? (
-                      <p className="text-xs text-text-tertiary mt-1">
-                        ≈ {renderQuota(val)}
-                      </p>
-                    ) : null;
-                  })()}
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-tertiary">$</span>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      placeholder="0.00"
+                      className="pl-7"
+                      value={
+                        createForm.listing_type === 'auction'
+                          ? createForm.min_bid
+                          : createForm.price
+                      }
+                      onChange={(e) =>
+                        setCreateForm((f) => ({
+                          ...f,
+                          [createForm.listing_type === 'auction'
+                            ? 'min_bid'
+                            : 'price']: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
                 </div>
 
                 {/* Duration */}
