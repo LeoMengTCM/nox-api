@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -48,6 +49,93 @@ type OpenAIModel struct {
 type OpenAIModelsResponse struct {
 	Data    []OpenAIModel `json:"data"`
 	Success bool          `json:"success"`
+}
+
+// parseModelsResponse tries multiple response formats to extract model IDs.
+// Supports: {data:[{id}]}, {data:[{name}]}, {models:[{id}]}, [{id}], ["str"], etc.
+func parseModelsResponse(body []byte) []string {
+	// 1. Standard OpenAI format: {data: [{id: "..."}]}
+	var oaiResp struct {
+		Data []struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"data"`
+	}
+	if err := common.Unmarshal(body, &oaiResp); err == nil && len(oaiResp.Data) > 0 {
+		var models []string
+		for _, m := range oaiResp.Data {
+			name := m.ID
+			if name == "" {
+				name = m.Name
+			}
+			if name != "" {
+				models = append(models, name)
+			}
+		}
+		if len(models) > 0 {
+			return models
+		}
+	}
+
+	// 2. Alternative: {models: [{id: "..."} or {name: "..."}]}
+	var altResp struct {
+		Models []struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"models"`
+	}
+	if err := common.Unmarshal(body, &altResp); err == nil && len(altResp.Models) > 0 {
+		var models []string
+		for _, m := range altResp.Models {
+			name := m.ID
+			if name == "" {
+				name = m.Name
+			}
+			if name != "" {
+				models = append(models, name)
+			}
+		}
+		if len(models) > 0 {
+			return models
+		}
+	}
+
+	// 3. Flat object array: [{id: "..."} or {name: "..."}]
+	var objArr []struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}
+	if err := common.Unmarshal(body, &objArr); err == nil && len(objArr) > 0 {
+		var models []string
+		for _, m := range objArr {
+			name := m.ID
+			if name == "" {
+				name = m.Name
+			}
+			if name != "" {
+				models = append(models, name)
+			}
+		}
+		if len(models) > 0 {
+			return models
+		}
+	}
+
+	// 4. Plain string array: ["model-a", "model-b"]
+	var strArr []string
+	if err := common.Unmarshal(body, &strArr); err == nil && len(strArr) > 0 {
+		var models []string
+		for _, s := range strArr {
+			if s != "" {
+				models = append(models, s)
+			}
+		}
+		if len(models) > 0 {
+			return models
+		}
+	}
+
+	return nil
 }
 
 func parseStatusFilter(statusParam string) int {
@@ -1043,7 +1131,9 @@ func FetchModels(c *gin.Context) {
 		return
 	}
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+	}
 
 	var url string
 	switch req.Type {
@@ -1085,32 +1175,39 @@ func FetchModels(c *gin.Context) {
 		return
 	}
 	defer response.Body.Close()
-	//check status code
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": fmt.Sprintf("读取响应失败: %s", err.Error()),
+		})
+		return
+	}
+
 	if response.StatusCode != http.StatusOK {
+		errBody := string(body)
+		if len(errBody) > 500 {
+			errBody = errBody[:500]
+		}
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
-			"message": fmt.Sprintf("上游返回错误状态码: %d", response.StatusCode),
+			"message": fmt.Sprintf("上游返回错误状态码 %d: %s", response.StatusCode, errBody),
 		})
 		return
 	}
 
-	var result struct {
-		Data []struct {
-			ID string `json:"id"`
-		} `json:"data"`
-	}
-
-	if err := common.DecodeJson(response.Body, &result); err != nil {
+	models := parseModelsResponse(body)
+	if len(models) == 0 {
+		preview := string(body)
+		if len(preview) > 300 {
+			preview = preview[:300]
+		}
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
-			"message": fmt.Sprintf("解析模型列表失败: %s", err.Error()),
+			"message": fmt.Sprintf("未能从响应中解析到模型列表，响应内容: %s", preview),
 		})
 		return
-	}
-
-	var models []string
-	for _, model := range result.Data {
-		models = append(models, model.ID)
 	}
 
 	c.JSON(http.StatusOK, gin.H{

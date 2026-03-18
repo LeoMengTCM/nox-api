@@ -2,6 +2,25 @@
 
 All notable changes to Nox API will be documented in this file.
 
+## [0.1.8] - 2026-03-18
+
+### Improvements
+
+#### Rate Limit Error Clarity
+- All rate limit 429 responses now return proper JSON error bodies with `"Nox API rate limit exceeded"` message, making it easy to distinguish Nox API rate limits from upstream provider rate limits.
+- Default `RetryTimes` increased from 0 to 3 — upstream 429/5xx errors now automatically retry with other available channels instead of failing immediately.
+
+#### Model Fetching Enhancement
+- `FetchModels` now supports 5 response formats: standard OpenAI `{data:[{id}]}`, `{data:[{name}]}`, `{models:[{id}]}`, flat object arrays `[{id}]`, and plain string arrays `["model"]`.
+- Added 15-second HTTP timeout for model fetching requests.
+- Error responses now include upstream response body (up to 500 chars) for easier debugging.
+- Unified parsing logic between new-channel and edit-channel model fetching endpoints.
+
+#### Log Page Improvements
+- Added "Error" and "Refund" log type filters (previously only Topup/Consume/Manage/System were shown).
+- New "Content" column in the log table shows log details directly without opening the detail dialog.
+- System logs now display sub-category badges based on content keywords: Check-in, Casino, Gringotts, Arena, Achievement, Security, Registration Reward, Channel.
+
 ## [0.1.7] - 2026-03-18
 
 ### New Features

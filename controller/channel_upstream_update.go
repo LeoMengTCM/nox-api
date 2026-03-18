@@ -307,19 +307,19 @@ func fetchChannelUpstreamModelIDs(channel *model.Channel) ([]string, error) {
 		return nil, err
 	}
 
-	var result OpenAIModelsResponse
-	if err := common.Unmarshal(body, &result); err != nil {
-		return nil, err
+	// Try flexible parsing first, fall back to strict OpenAI format
+	if models := parseModelsResponse(body); len(models) > 0 {
+		ids := make([]string, 0, len(models))
+		for _, m := range models {
+			if channel.Type == constant.ChannelTypeGemini {
+				m = strings.TrimPrefix(m, "models/")
+			}
+			ids = append(ids, m)
+		}
+		return normalizeModelNames(ids), nil
 	}
 
-	ids := lo.Map(result.Data, func(item OpenAIModel, _ int) string {
-		if channel.Type == constant.ChannelTypeGemini {
-			return strings.TrimPrefix(item.ID, "models/")
-		}
-		return item.ID
-	})
-
-	return normalizeModelNames(ids), nil
+	return nil, fmt.Errorf("未能从上游响应中解析到模型列表")
 }
 
 func updateChannelUpstreamModelSettings(channel *model.Channel, settings dto.ChannelOtherSettings, updateModels bool) error {

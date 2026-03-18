@@ -28,14 +28,32 @@ const LOG_TYPES = {
   2: '消费',
   3: '管理',
   4: '系统',
+  5: '错误',
+  6: '退款',
 };
 
 const TYPE_BADGE_VARIANT = {
   1: 'success',
   2: 'warning',
   3: 'info',
-  4: 'danger',
+  4: 'default',
+  5: 'destructive',
+  6: 'outline',
 };
+
+// Detect sub-category from system log content
+function getSystemSubLabel(content) {
+  if (!content) return null;
+  if (content.includes('签到')) return '签到';
+  if (content.includes('赌场') || content.includes('赢得') || content.includes('输掉') || content.includes('平局')) return '赌场';
+  if (content.includes('古灵阁') || content.includes('打劫')) return '古灵阁';
+  if (content.includes('擂台') || content.includes('攻擂') || content.includes('守擂') || content.includes('赛季结算')) return '竞技场';
+  if (content.includes('成就')) return '成就';
+  if (content.includes('验证') || content.includes('两步') || content.includes('2FA') || content.includes('Passkey')) return '安全';
+  if (content.includes('注册赠送') || content.includes('邀请')) return '注册奖励';
+  if (content.includes('渠道密钥')) return '渠道';
+  return null;
+}
 
 const PAGE_SIZE = 20;
 
@@ -150,11 +168,42 @@ export default function LogPage() {
       accessorKey: 'type',
       cell: ({ row }) => {
         const logType = row.original.type;
+        const content = row.original.content;
+        const subLabel = logType === 4 ? getSystemSubLabel(content) : null;
         return (
-          <Badge variant={TYPE_BADGE_VARIANT[logType] || 'default'}>
-            {LOG_TYPES[logType] || '未知'}
-          </Badge>
+          <div className="flex items-center gap-1">
+            <Badge variant={TYPE_BADGE_VARIANT[logType] || 'default'}>
+              {LOG_TYPES[logType] || '未知'}
+            </Badge>
+            {subLabel && (
+              <span className="text-xs text-text-secondary bg-muted px-1.5 py-0.5 rounded">
+                {subLabel}
+              </span>
+            )}
+          </div>
         );
+      },
+    },
+    {
+      header: '内容',
+      accessorKey: 'content',
+      cell: ({ row }) => {
+        const content = row.original.content;
+        if (!content) return <span className="text-sm text-text-secondary">-</span>;
+        const truncated = content.length > 40 ? content.slice(0, 40) + '...' : content;
+        if (content.length > 40) {
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-sm truncate max-w-[240px] inline-block cursor-default">
+                  {truncated}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-sm">{content}</TooltipContent>
+            </Tooltip>
+          );
+        }
+        return <span className="text-sm">{content}</span>;
       },
     },
     {
@@ -208,26 +257,6 @@ export default function LogPage() {
           },
         ]
       : []),
-    {
-      header: '提示tokens',
-      accessorKey: 'prompt_tokens',
-      cell: ({ row }) => (
-        <span className="text-sm tabular-nums">
-          {row.original.prompt_tokens != null ? row.original.prompt_tokens.toLocaleString() : '-'}
-        </span>
-      ),
-    },
-    {
-      header: '补全tokens',
-      accessorKey: 'completion_tokens',
-      cell: ({ row }) => (
-        <span className="text-sm tabular-nums">
-          {row.original.completion_tokens != null
-            ? row.original.completion_tokens.toLocaleString()
-            : '-'}
-        </span>
-      ),
-    },
     {
       header: '额度',
       accessorKey: 'quota',
