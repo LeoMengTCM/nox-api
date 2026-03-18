@@ -42,6 +42,11 @@ type PetSetting struct {
 	// 市场
 	MarketFeeRate       float64 `json:"market_fee_rate"`       // 手续费率 (0.05 = 5%)
 	AuctionBidIncrement float64 `json:"auction_bid_increment"` // 竞拍最低加价率 (0.05 = 5%)
+
+	// 竞技场
+	ArenaEnabled       bool `json:"arena_enabled"`         // 是否启用竞技场
+	ArenaAttacksPerDay int  `json:"arena_attacks_per_day"` // 每日攻擂次数上限
+	ArenaSeasonDays    int  `json:"arena_season_days"`     // 赛季天数
 }
 
 // 默认配置
@@ -68,6 +73,9 @@ var petSetting = PetSetting{
 	MaxStar:                 5,
 	MarketFeeRate:           0.05,
 	AuctionBidIncrement:     0.05,
+	ArenaEnabled:            false,
+	ArenaAttacksPerDay:      5,
+	ArenaSeasonDays:         30,
 }
 
 func init() {
@@ -241,4 +249,24 @@ func GetAuctionBidIncrement() float64 {
 		return 0.05
 	}
 	return petSetting.AuctionBidIncrement
+}
+
+// ── 竞技场 ──
+
+func IsArenaEnabled() bool {
+	return petSetting.ArenaEnabled
+}
+
+func GetArenaAttacksPerDay() int {
+	if petSetting.ArenaAttacksPerDay <= 0 {
+		return 5
+	}
+	return petSetting.ArenaAttacksPerDay
+}
+
+func GetArenaSeasonDays() int {
+	if petSetting.ArenaSeasonDays <= 0 {
+		return 30
+	}
+	return petSetting.ArenaSeasonDays
 }

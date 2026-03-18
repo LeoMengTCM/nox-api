@@ -2,6 +2,51 @@
 
 All notable changes to Nox API will be documented in this file.
 
+## [0.1.7] - 2026-03-18
+
+### New Features
+
+#### Gringotts Heist (古灵阁打劫)
+- **Vault system**: Gringotts vault accumulates all casino house profits (total player losses minus wins minus stolen). Displayed on casino lobby and dedicated Gringotts page.
+- **3 heist types**: Invisibility Cloak sneak ($0.10, 4h cooldown, 60% base rate), Dragon ride ($0.50, 12h, 35%), Imperio curse ($2.00, 24h, 15%). Each rewards 0.1–5% of vault balance on success.
+- **Dynamic success modifiers**: +5% with SSR pet, +3% with casino win streak ≥5, -5% if someone succeeded in past 24h.
+- **Failure penalties**: Entrance fee forfeited + 50% chance of extra 50% penalty + 5% chance of 6h casino ban.
+- **Success broadcast**: Successful heists appear in the big-win marquee across the casino.
+
+#### Title System (称号系统)
+- **16 preset titles** across 5 categories: casino (6), heist (2), pet (4), arena (3), social (1). Rarities from N to SSR with unique colors.
+- **Auto-grant**: Titles automatically awarded when conditions are met — first bet, win streaks, profit milestones, heist successes, pet collection, arena victories, follower counts.
+- **Equip/unequip**: Users can display one active title. Shown via `active_title_id` on the user model.
+- **Collection page**: New `/console/titles` page showing all titles with owned/unowned state, category filtering, and equip controls.
+
+#### Pet Arena (宠物对战擂台)
+- **5-round battle engine**: HP = (Defense×2 + Attack)×10. Speed determines turn order. Damage reduced by defense, with 10% minimum. Crit rate up to 30% (1.5x), dodge rate up to 20%.
+- **Element counter system**: courage > ambition > wisdom > loyalty > courage, +15% damage bonus.
+- **Elo rating**: Initial 1000 points, dynamic gains/losses based on rating differential. Floor at 0.
+- **Defend/attack**: One defender pet per user. Up to 5 attacks per day (configurable). Rewards for both attacker wins ($0.10 + 30 EXP) and defender wins ($0.04 + 20 EXP). Double rewards when challenging 200+ higher-rated opponents.
+- **Win streak bonuses**: Every 5 consecutive defense wins grants an extra $0.20.
+- **30-day seasons**: Top 1 gets $10 + "Arena Champion" title. Top 2-3: $4, Top 4-10: $2, Top 11-50: $1. Rating soft-reset between seasons.
+- **Admin controls**: Create/end seasons and manually settle rewards.
+
+### Improvements
+
+#### Leaderboard Extensions
+- **Casino**: 4 new ranking types — Biggest Loser (散财童子), Heist Profit (打劫大盗), Today's Hottest (今日热门), Win Streak King (连胜之王).
+- **Pet**: 2 new ranking dimensions — Total Power (总战力榜), SSR Collection (SSR收藏榜).
+- **Win streak tracking**: `max_win_streak` field added to `casino_daily_stats` for persistent streak records.
+
+#### Pet System
+- **Power stat**: New computed `power` field on all pets (attack + defense + speed + luck), recalculated on every stat recomputation. Used for arena matchmaking and power rankings.
+
+### Database Changes
+- 6 new tables: `gringotts_heist_records`, `titles`, `user_titles`, `pet_arena_seasons`, `pet_arena_defenders`, `pet_arena_battles`
+- `users`: added `active_title_id` (int, default 0)
+- `user_pets`: added `power` (int, default 0)
+- `casino_daily_stats`: added `max_win_streak` (int, default 0)
+- Auto-seeds: 16 default titles + first arena season on migration
+
+---
+
 ## [0.1.6] - 2026-03-17
 
 ### Bug Fixes

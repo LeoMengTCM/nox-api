@@ -305,6 +305,12 @@ func migrateDB() error {
 		&CasinoAchievement{},
 		&CasinoUserAchievement{},
 		&CasinoBigWin{},
+		&GringottsHeistRecord{},
+		&Title{},
+		&UserTitle{},
+		&PetArenaSeason{},
+		&PetArenaDefender{},
+		&PetArenaBattle{},
 	)
 	if err != nil {
 		return err
@@ -324,6 +330,8 @@ func migrateDB() error {
 	SeedGachaData()
 	SeedMissionData()
 	SeedDefaultAchievements()
+	SeedTitles()
+	SeedFirstSeason()
 
 	return nil
 }
@@ -385,6 +393,12 @@ func migrateDBFast() error {
 		{&CasinoAchievement{}, "CasinoAchievement"},
 		{&CasinoUserAchievement{}, "CasinoUserAchievement"},
 		{&CasinoBigWin{}, "CasinoBigWin"},
+		{&GringottsHeistRecord{}, "GringottsHeistRecord"},
+		{&Title{}, "Title"},
+		{&UserTitle{}, "UserTitle"},
+		{&PetArenaSeason{}, "PetArenaSeason"},
+		{&PetArenaDefender{}, "PetArenaDefender"},
+		{&PetArenaBattle{}, "PetArenaBattle"},
 	}
 	// 动态计算migration数量，确保errChan缓冲区足够大
 	errChan := make(chan error, len(migrations))

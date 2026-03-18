@@ -204,8 +204,9 @@ func GetCasinoConfig(userId int) (map[string]interface{}, error) {
 		"min_bet":          operation_setting.GetMinBet(),
 		"max_bet":          operation_setting.GetMaxBet(),
 		"daily_loss_limit": operation_setting.GetDailyLossLimit(),
-		"games":        games,
-		"user_balance": quota,
+		"games":            games,
+		"user_balance":     quota,
+		"vault_balance":    model.GetGringottsVaultBalance(),
 	}, nil
 }
 

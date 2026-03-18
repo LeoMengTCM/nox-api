@@ -78,6 +78,9 @@ const CasinoAchievements = lazy(() => import('./pages/casino/achievements'));
 const CasinoLeaderboard = lazy(() => import('./pages/casino/leaderboard'));
 const CasinoStats = lazy(() => import('./pages/casino/stats'));
 const AdminCasino = lazy(() => import('./pages/admin/casino'));
+const CasinoGringotts = lazy(() => import('./pages/casino/gringotts'));
+const Titles = lazy(() => import('./pages/titles'));
+const PetArena = lazy(() => import('./pages/pet/arena'));
 
 const Loading = () => (
   <div className="flex h-screen items-center justify-center bg-background">
@@ -183,6 +186,9 @@ function App() {
           <Route path="/console/casino/achievements" element={<PrivateRoute><Page><CasinoAchievements /></Page></PrivateRoute>} />
           <Route path="/console/casino/leaderboard" element={<PrivateRoute><Page><CasinoLeaderboard /></Page></PrivateRoute>} />
           <Route path="/console/casino/stats" element={<PrivateRoute><Page><CasinoStats /></Page></PrivateRoute>} />
+          <Route path="/console/casino/gringotts" element={<PrivateRoute><Page><CasinoGringotts /></Page></PrivateRoute>} />
+          <Route path="/console/titles" element={<PrivateRoute><Page><Titles /></Page></PrivateRoute>} />
+          <Route path="/console/pet/arena" element={<PrivateRoute><Page><PetArena /></Page></PrivateRoute>} />
           <Route path="/console/user/:id" element={<PrivateRoute><Page><UserProfile /></Page></PrivateRoute>} />
           <Route path="/console/playground" element={<PrivateRoute><Page><Playground /></Page></PrivateRoute>} />
           <Route path="/console/midjourney" element={<PrivateRoute><Page><Midjourney /></Page></PrivateRoute>} />

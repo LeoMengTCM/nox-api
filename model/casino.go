@@ -39,6 +39,7 @@ type CasinoDailyStats struct {
 	GamesPlayed int    `json:"games_played" gorm:"default:0"`
 	WinCount    int    `json:"win_count" gorm:"default:0"`
 	BiggestWin  int    `json:"biggest_win" gorm:"default:0"`
+	MaxWinStreak int   `json:"max_win_streak" gorm:"default:0"`
 	CreatedAt   int64  `json:"created_at" gorm:"bigint"`
 	UpdatedAt   int64  `json:"updated_at" gorm:"bigint"`
 }
@@ -186,6 +187,15 @@ func GetCasinoLeaderboard(rankType string, limit int) ([]map[string]interface{},
 		orderCol = "win_count"
 	case "biggest_win":
 		orderCol = "biggest_win"
+	case "loss_king":
+		orderCol = "total_lost"
+	case "win_streak":
+		orderCol = "max_win_streak"
+	case "daily_profit":
+		// 特殊处理：仅今日数据
+		return getCasinoDailyLeaderboard(limit)
+	case "heist_profit":
+		return getHeistProfitLeaderboard(limit)
 	default:
 		orderCol = "net_profit"
 	}
@@ -242,6 +252,8 @@ func GetCasinoLeaderboard(rankType string, limit int) ([]map[string]interface{},
 			value = row.BiggestWin
 		case "games":
 			value = row.GamesPlayed
+		case "loss_king":
+			value = row.TotalLost
 		default:
 			value = row.NetProfit
 		}
@@ -396,4 +408,89 @@ func SafeDecreaseQuotaForBet(userId int, amount int) (bool, error) {
 		return false, result.Error
 	}
 	return result.RowsAffected > 0, nil
+}
+
+// getCasinoDailyLeaderboard 今日净利排行榜
+func getCasinoDailyLeaderboard(limit int) ([]map[string]interface{}, error) {
+	today := time.Now().Format("2006-01-02")
+
+	type dailyRow struct {
+		UserId      int    `gorm:"column:user_id"`
+		Username    string `gorm:"column:username"`
+		DisplayName string `gorm:"column:display_name"`
+		AvatarUrl   string `gorm:"column:avatar_url"`
+		NetProfit   int64  `gorm:"column:net_profit"`
+	}
+
+	var rows []dailyRow
+	err := DB.Table("casino_daily_stats").
+		Select("casino_daily_stats.user_id, users.username, users.display_name, users.avatar_url, "+
+			"(casino_daily_stats.total_won - casino_daily_stats.total_lost) as net_profit").
+		Joins("JOIN users ON users.id = casino_daily_stats.user_id").
+		Where("casino_daily_stats.date = ?", today).
+		Order("net_profit desc").
+		Limit(limit).
+		Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]map[string]interface{}, len(rows))
+	for i, row := range rows {
+		displayName := row.DisplayName
+		if displayName == "" {
+			displayName = row.Username
+		}
+		results[i] = map[string]interface{}{
+			"rank":         i + 1,
+			"user_id":      row.UserId,
+			"username":     row.Username,
+			"display_name": displayName,
+			"avatar_url":   row.AvatarUrl,
+			"value":        row.NetProfit,
+		}
+	}
+	return results, nil
+}
+
+// getHeistProfitLeaderboard 打劫收益排行榜
+func getHeistProfitLeaderboard(limit int) ([]map[string]interface{}, error) {
+	type heistRow struct {
+		UserId      int    `gorm:"column:user_id"`
+		Username    string `gorm:"column:username"`
+		DisplayName string `gorm:"column:display_name"`
+		AvatarUrl   string `gorm:"column:avatar_url"`
+		TotalReward int64  `gorm:"column:total_reward"`
+	}
+
+	var rows []heistRow
+	err := DB.Table("gringotts_heist_records").
+		Select("gringotts_heist_records.user_id, users.username, users.display_name, users.avatar_url, "+
+			"COALESCE(SUM(gringotts_heist_records.reward), 0) as total_reward").
+		Joins("JOIN users ON users.id = gringotts_heist_records.user_id").
+		Where("gringotts_heist_records.success = ?", true).
+		Group("gringotts_heist_records.user_id, users.username, users.display_name, users.avatar_url").
+		Order("total_reward desc").
+		Limit(limit).
+		Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]map[string]interface{}, len(rows))
+	for i, row := range rows {
+		displayName := row.DisplayName
+		if displayName == "" {
+			displayName = row.Username
+		}
+		results[i] = map[string]interface{}{
+			"rank":         i + 1,
+			"user_id":      row.UserId,
+			"username":     row.Username,
+			"display_name": displayName,
+			"avatar_url":   row.AvatarUrl,
+			"value":        row.TotalReward,
+		}
+	}
+	return results, nil
 }

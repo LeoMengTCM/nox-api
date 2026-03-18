@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Spade, Dices, CircleDot, Layers, Joystick, Users,
   Trophy, TrendingUp, TrendingDown, ArrowRight, Sparkles,
-  Medal, BarChart3, Star,
+  Medal, BarChart3, Star, Coins,
 } from 'lucide-react';
 import { API } from '../../lib/api';
 import { showError, renderQuota } from '../../lib/utils';
@@ -305,7 +305,25 @@ export default function CasinoLobby() {
       </div>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card
+          hover
+          className="p-4 cursor-pointer group hover:border-amber-500/40 transition-all"
+          onClick={() => navigate('/console/casino/gringotts')}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
+              <Coins className="h-4 w-4 text-amber-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-heading text-text-primary">{t('古灵阁金库')}</p>
+              <p className="text-xs text-text-tertiary">
+                {config?.vault_balance ? renderQuota(config.vault_balance) : '$0.00'}
+              </p>
+            </div>
+            <ArrowRight className="h-4 w-4 text-text-tertiary opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        </Card>
         <Card
           hover
           className="p-4 cursor-pointer group hover:border-[#C5A55A]/40 transition-all"

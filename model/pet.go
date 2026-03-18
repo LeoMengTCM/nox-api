@@ -42,6 +42,7 @@ type UserPet struct {
 	Stats        string     `json:"stats" gorm:"type:text"`                   // JSON: current computed stats
 	Status       string     `json:"status" gorm:"type:text"`                  // JSON: {hunger:100, mood:100, cleanliness:100}
 	IsPrimary    bool       `json:"is_primary" gorm:"default:false"`
+	Power        int        `json:"power" gorm:"default:0"` // attack+defense+speed+luck
 	State        string     `json:"state" gorm:"type:varchar(16);default:'normal'"` // normal, weak, dispatched, listed
 	LastFedAt    *time.Time `json:"last_fed_at"`
 	LastPlayedAt *time.Time `json:"last_played_at"`

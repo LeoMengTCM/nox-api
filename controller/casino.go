@@ -528,6 +528,90 @@ func ClaimAchievement(c *gin.Context) {
 	})
 }
 
+// ==================== Gringotts ====================
+
+// GetGringottsInfo 获取古灵阁信息
+func GetGringottsInfo(c *gin.Context) {
+	if !operation_setting.IsCasinoEnabled() {
+		common.ApiErrorMsg(c, "赌场系统未启用")
+		return
+	}
+
+	userId := c.GetInt("id")
+	info, err := service.GetGringottsInfo(userId)
+	if err != nil {
+		common.ApiErrorMsg(c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    info,
+	})
+}
+
+// ExecuteHeist 执行打劫
+func ExecuteHeist(c *gin.Context) {
+	if !operation_setting.IsCasinoEnabled() {
+		common.ApiErrorMsg(c, "赌场系统未启用")
+		return
+	}
+
+	var req struct {
+		HeistType string `json:"heist_type"`
+	}
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		common.ApiErrorMsg(c, "无效的请求参数")
+		return
+	}
+
+	userId := c.GetInt("id")
+	result, err := service.ExecuteHeist(userId, req.HeistType)
+	if err != nil {
+		common.ApiErrorMsg(c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    result,
+	})
+}
+
+// GetGringottsHistory 获取打劫历史
+func GetGringottsHistory(c *gin.Context) {
+	if !operation_setting.IsCasinoEnabled() {
+		common.ApiErrorMsg(c, "赌场系统未启用")
+		return
+	}
+
+	userId := c.GetInt("id")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 || perPage > 100 {
+		perPage = 20
+	}
+
+	records, total, err := service.GetHeistHistory(userId, page, perPage)
+	if err != nil {
+		common.ApiErrorMsg(c, "获取打劫历史失败")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"records":  records,
+			"total":    total,
+			"page":     page,
+			"per_page": perPage,
+		},
+	})
+}
+
 // GetBigWins 获取大赢记录（跑马灯）
 func GetBigWins(c *gin.Context) {
 	if !operation_setting.IsCasinoEnabled() {

@@ -430,6 +430,31 @@ func GetPetRanking() (map[string]interface{}, error) {
 		Limit(20).
 		Find(&starRanking)
 
+	// (d) Total power ranking
+	var powerRanking []struct {
+		UserId     int   `gorm:"column:user_id"`
+		TotalPower int64 `gorm:"column:total_power"`
+	}
+	model.DB.Model(&model.UserPet{}).
+		Select("user_id, COALESCE(SUM(power), 0) as total_power").
+		Group("user_id").
+		Order("total_power desc").
+		Limit(20).
+		Find(&powerRanking)
+
+	// (e) SSR collection ranking
+	var ssrRanking []struct {
+		UserId   int   `gorm:"column:user_id"`
+		SsrCount int64 `gorm:"column:ssr_count"`
+	}
+	model.DB.Model(&model.UserPet{}).
+		Where("rarity = ?", "SSR").
+		Select("user_id, COUNT(*) as ssr_count").
+		Group("user_id").
+		Order("ssr_count desc").
+		Limit(20).
+		Find(&ssrRanking)
+
 	// Collect all unique user IDs from all rankings
 	userIdSet := make(map[int]struct{})
 	for _, r := range levelRanking {
@@ -439,6 +464,12 @@ func GetPetRanking() (map[string]interface{}, error) {
 		userIdSet[r.UserId] = struct{}{}
 	}
 	for _, r := range starRanking {
+		userIdSet[r.UserId] = struct{}{}
+	}
+	for _, r := range powerRanking {
+		userIdSet[r.UserId] = struct{}{}
+	}
+	for _, r := range ssrRanking {
 		userIdSet[r.UserId] = struct{}{}
 	}
 
@@ -495,9 +526,31 @@ func GetPetRanking() (map[string]interface{}, error) {
 		})
 	}
 
+	powerEntries := make([]RankingEntry, 0, len(powerRanking))
+	for _, r := range powerRanking {
+		powerEntries = append(powerEntries, RankingEntry{
+			UserId:    r.UserId,
+			Username:  usernameMap[r.UserId],
+			AvatarUrl: avatarMap[r.UserId],
+			Value:     int(r.TotalPower),
+		})
+	}
+
+	ssrEntries := make([]RankingEntry, 0, len(ssrRanking))
+	for _, r := range ssrRanking {
+		ssrEntries = append(ssrEntries, RankingEntry{
+			UserId:    r.UserId,
+			Username:  usernameMap[r.UserId],
+			AvatarUrl: avatarMap[r.UserId],
+			Value:     int(r.SsrCount),
+		})
+	}
+
 	return map[string]interface{}{
 		"level_ranking": levelEntries,
 		"count_ranking": countEntries,
 		"star_ranking":  starEntries,
+		"power_ranking": powerEntries,
+		"ssr_ranking":   ssrEntries,
 	}, nil
 }

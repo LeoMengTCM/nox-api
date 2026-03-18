@@ -156,6 +156,9 @@ func recomputeStats(pet *model.UserPet, species *model.PetSpecies) {
 
 	data, _ := common.Marshal(computed)
 	pet.Stats = string(data)
+
+	// Compute total power = attack + defense + speed + luck
+	pet.Power = computed["attack"] + computed["defense"] + computed["speed"] + computed["luck"]
 }
 
 // recomputeStatsWithRarity recalculates stats applying a rarity upgrade multiplier.
@@ -197,6 +200,9 @@ func recomputeStatsWithRarity(pet *model.UserPet, species *model.PetSpecies, new
 
 	data, _ := common.Marshal(computed)
 	pet.Stats = string(data)
+
+	// Compute total power = attack + defense + speed + luck
+	pet.Power = computed["attack"] + computed["defense"] + computed["speed"] + computed["luck"]
 }
 
 // petEffectiveRarity returns the pet's effective rarity, preferring pet-level override.

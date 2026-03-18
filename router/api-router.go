@@ -415,6 +415,13 @@ func SetApiRouter(router *gin.Engine) {
 			petRoute.POST("/market/:id/buy", controller.BuyMarketListing)
 			petRoute.POST("/market/:id/bid", controller.PlaceMarketBid)
 			petRoute.DELETE("/market/:id", controller.CancelMarketListing)
+			// Arena (宠物擂台)
+			petRoute.GET("/arena", controller.GetArenaInfo)
+			petRoute.GET("/arena/ranking", controller.GetArenaRanking)
+			petRoute.POST("/arena/defend", controller.SetArenaDefender)
+			petRoute.POST("/arena/challenge", controller.ArenaChallenge)
+			petRoute.GET("/arena/battle/:id", controller.GetBattleDetail)
+			petRoute.GET("/arena/history", controller.GetBattleHistory)
 		}
 		petAdminRoute := apiRouter.Group("/pet/admin")
 		petAdminRoute.Use(middleware.AdminAuth())
@@ -443,6 +450,9 @@ func SetApiRouter(router *gin.Engine) {
 			petAdminRoute.POST("/grant-item", controller.AdminGrantItem)
 			petAdminRoute.GET("/market/recent", controller.AdminGetRecentMarketTransactions)
 			petAdminRoute.GET("/stats", controller.AdminGetPetStats)
+			// Arena admin
+			petAdminRoute.POST("/arena/season", controller.AdminManageSeason)
+			petAdminRoute.POST("/arena/settle", controller.AdminSettleSeason)
 		}
 
 		// Casino (韦斯莱魔法赌坊) routes
@@ -464,6 +474,10 @@ func SetApiRouter(router *gin.Engine) {
 			casinoRoute.GET("/achievements", controller.GetAchievements)
 			casinoRoute.POST("/achievements/claim", controller.ClaimAchievement)
 			casinoRoute.GET("/big-wins", controller.GetBigWins)
+			// Gringotts (古灵阁)
+			casinoRoute.GET("/gringotts", controller.GetGringottsInfo)
+			casinoRoute.POST("/gringotts/heist", controller.ExecuteHeist)
+			casinoRoute.GET("/gringotts/history", controller.GetGringottsHistory)
 		}
 		casinoAdminRoute := apiRouter.Group("/casino/admin")
 		casinoAdminRoute.Use(middleware.AdminAuth())
@@ -472,6 +486,16 @@ func SetApiRouter(router *gin.Engine) {
 			casinoAdminRoute.GET("/users", controller.AdminGetCasinoUsers)
 			casinoAdminRoute.POST("/ban", controller.AdminBanUser)
 			casinoAdminRoute.POST("/toggle", controller.AdminToggleGame)
+		}
+
+		// Title routes
+		titleRoute := apiRouter.Group("/titles")
+		titleRoute.Use(middleware.UserAuth())
+		{
+			titleRoute.GET("/", controller.GetAllTitlesHandler)
+			titleRoute.GET("/my", controller.GetMyTitlesHandler)
+			titleRoute.POST("/equip", controller.EquipTitleHandler)
+			titleRoute.POST("/unequip", controller.UnequipTitleHandler)
 		}
 
 		vendorRoute := apiRouter.Group("/vendors")

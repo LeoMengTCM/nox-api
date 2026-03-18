@@ -51,6 +51,7 @@ type User struct {
 	StripeCustomer   string         `json:"stripe_customer" gorm:"type:varchar(64);column:stripe_customer;index"`
 	AvatarUrl        string         `json:"avatar_url" gorm:"type:varchar(255);column:avatar_url"`
 	Bio              string         `json:"bio" gorm:"type:varchar(255);column:bio"`
+	ActiveTitleId    int            `json:"active_title_id" gorm:"default:0"`
 }
 
 func (user *User) ToBaseUser() *UserBase {
