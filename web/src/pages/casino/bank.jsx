@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Landmark, ArrowDownToLine, ArrowUpFromLine, Lock, Unlock, Clock,
-  TrendingUp, Wallet, ChevronLeft,
+  TrendingUp, Wallet, ChevronLeft, Zap,
 } from 'lucide-react';
 import {
   Card, Button, Input, Badge, Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -12,7 +12,7 @@ import {
 } from '../../components/ui';
 import { Pagination } from '../../components/ui/pagination';
 import { API } from '../../lib/api';
-import { showError, showSuccess, renderQuota, getQuotaPerUnit } from '../../lib/utils';
+import { showError, showSuccess } from '../../lib/utils';
 
 const TERMS = [
   { days: 7, label: '7天' },
@@ -24,8 +24,8 @@ function formatRate(bps) {
   return (bps / 100).toFixed(2) + '%';
 }
 
-function formatQuota(q) {
-  return '$' + (q / getQuotaPerUnit()).toFixed(2);
+function fmtDollar(v) {
+  return '$' + (v || 0).toFixed(2);
 }
 
 function formatTime(ts) {
@@ -37,6 +37,9 @@ const TX_TYPE_LABELS = {
   demand_deposit: '活期存入',
   demand_withdraw: '活期取出',
   demand_interest: '活期利息',
+  premium_deposit: '高息活期存入',
+  premium_withdraw: '高息活期取出',
+  premium_interest: '高息活期利息',
   fixed_deposit: '定期存入',
   fixed_mature: '定期到期',
   fixed_early_withdraw: '定期提前取出',
@@ -56,6 +59,8 @@ export default function BankPage() {
   // Dialogs
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [premiumDepositOpen, setPremiumDepositOpen] = useState(false);
+  const [premiumWithdrawOpen, setPremiumWithdrawOpen] = useState(false);
   const [fixedOpen, setFixedOpen] = useState(false);
   const [amount, setAmount] = useState('');
   const [fixedTerm, setFixedTerm] = useState('7');
@@ -97,12 +102,13 @@ export default function BankPage() {
     fetchTxs(txPage);
   }, [txPage]);
 
+  // ---- Demand deposit/withdraw ----
   const handleDemandDeposit = async () => {
-    const val = parseInt(amount);
+    const val = parseFloat(amount);
     if (!val || val <= 0) return showError('请输入有效金额');
     setSubmitting(true);
     try {
-      const res = await API.post('/api/casino/bank/deposit', { amount: val });
+      const res = await API.post('/api/casino/bank/deposit', { amount: val, account_type: 0 });
       if (res.data.success) {
         showSuccess('存入成功');
         setDepositOpen(false);
@@ -120,11 +126,11 @@ export default function BankPage() {
   };
 
   const handleDemandWithdraw = async () => {
-    const val = parseInt(amount);
+    const val = parseFloat(amount);
     if (!val || val <= 0) return showError('请输入有效金额');
     setSubmitting(true);
     try {
-      const res = await API.post('/api/casino/bank/withdraw', { amount: val });
+      const res = await API.post('/api/casino/bank/withdraw', { amount: val, account_type: 0 });
       if (res.data.success) {
         showSuccess('取出成功');
         setWithdrawOpen(false);
@@ -141,8 +147,54 @@ export default function BankPage() {
     }
   };
 
+  // ---- Premium deposit/withdraw ----
+  const handlePremiumDeposit = async () => {
+    const val = parseFloat(amount);
+    if (!val || val <= 0) return showError('请输入有效金额');
+    setSubmitting(true);
+    try {
+      const res = await API.post('/api/casino/bank/deposit', { amount: val, account_type: 1 });
+      if (res.data.success) {
+        showSuccess('存入成功');
+        setPremiumDepositOpen(false);
+        setAmount('');
+        fetchInfo();
+        fetchTxs(1);
+      } else {
+        showError(res.data.message);
+      }
+    } catch (e) {
+      showError(e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handlePremiumWithdraw = async () => {
+    const val = parseFloat(amount);
+    if (!val || val <= 0) return showError('请输入有效金额');
+    setSubmitting(true);
+    try {
+      const res = await API.post('/api/casino/bank/withdraw', { amount: val, account_type: 1 });
+      if (res.data.success) {
+        showSuccess('取出成功');
+        setPremiumWithdrawOpen(false);
+        setAmount('');
+        fetchInfo();
+        fetchTxs(1);
+      } else {
+        showError(res.data.message);
+      }
+    } catch (e) {
+      showError(e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ---- Fixed deposit ----
   const handleFixedDeposit = async () => {
-    const val = parseInt(amount);
+    const val = parseFloat(amount);
     if (!val || val <= 0) return showError('请输入有效金额');
     setSubmitting(true);
     try {
@@ -169,7 +221,7 @@ export default function BankPage() {
       const res = await API.post('/api/casino/bank/fixed/withdraw', { deposit_id: depositId });
       if (res.data.success) {
         const d = res.data.data;
-        showSuccess(`取出成功：本金 ${formatQuota(d.principal)} + 利息 ${formatQuota(d.interest)}`);
+        showSuccess(`取出成功：本金 ${fmtDollar(d.principal)} + 利息 ${fmtDollar(d.interest)}`);
         fetchInfo();
         fetchTxs(1);
       } else {
@@ -197,6 +249,7 @@ export default function BankPage() {
   }
 
   const account = info.account;
+  const premiumAccount = info.premium_account;
   const fixedDeposits = info.fixed_deposits || [];
 
   return (
@@ -216,7 +269,7 @@ export default function BankPage() {
           <Wallet className="h-4 w-4" />
           <span>{t('银行资金池')}</span>
         </div>
-        <p className="text-xl font-heading font-bold mt-1">{formatQuota(info.bank_pool)}</p>
+        <p className="text-xl font-heading font-bold mt-1">{fmtDollar(info.bank_pool)}</p>
         <p className="text-xs text-text-tertiary mt-1">{t('利息从资金池中支付，池空则暂停派息')}</p>
       </Card>
 
@@ -232,11 +285,11 @@ export default function BankPage() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-xs text-text-secondary">{t('账户余额')}</p>
-            <p className="text-2xl font-heading font-bold">{formatQuota(account?.balance || 0)}</p>
+            <p className="text-2xl font-heading font-bold">{fmtDollar(account?.balance)}</p>
           </div>
           <div>
             <p className="text-xs text-text-secondary">{t('累计利息')}</p>
-            <p className="text-lg font-heading text-emerald-500">{formatQuota(account?.total_interest_earned || 0)}</p>
+            <p className="text-lg font-heading text-emerald-500">{fmtDollar(account?.total_interest_earned)}</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -244,6 +297,38 @@ export default function BankPage() {
             <ArrowDownToLine className="h-4 w-4 mr-1" /> {t('存入')}
           </Button>
           <Button className="flex-1" variant="outline" onClick={() => { setAmount(''); setWithdrawOpen(true); }}>
+            <ArrowUpFromLine className="h-4 w-4 mr-1" /> {t('取出')}
+          </Button>
+        </div>
+      </Card>
+
+      {/* Premium Demand Account */}
+      <Card className="p-5 space-y-4 border-amber-500/20 bg-amber-500/5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-heading font-semibold flex items-center gap-2">
+              <Zap className="h-5 w-5 text-amber-500" />
+              {t('高息活期')}
+            </h2>
+            <p className="text-xs text-text-tertiary">{t('年化')} {formatRate(info.premium_demand_rate)}{t('，每小时结息，随存随取')}</p>
+          </div>
+          <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/30">{t('高息')}</Badge>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs text-text-secondary">{t('账户余额')}</p>
+            <p className="text-2xl font-heading font-bold">{fmtDollar(premiumAccount?.balance)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-text-secondary">{t('累计利息')}</p>
+            <p className="text-lg font-heading text-amber-500">{fmtDollar(premiumAccount?.total_interest_earned)}</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button className="flex-1 bg-amber-600 hover:bg-amber-700" onClick={() => { setAmount(''); setPremiumDepositOpen(true); }}>
+            <ArrowDownToLine className="h-4 w-4 mr-1" /> {t('存入')}
+          </Button>
+          <Button className="flex-1" variant="outline" onClick={() => { setAmount(''); setPremiumWithdrawOpen(true); }}>
             <ArrowUpFromLine className="h-4 w-4 mr-1" /> {t('取出')}
           </Button>
         </div>
@@ -286,7 +371,7 @@ export default function BankPage() {
                       <Badge variant={matured ? 'success' : 'default'}>
                         {matured ? t('已到期') : `${d.term_days}${t('天')}`}
                       </Badge>
-                      <span className="text-sm font-medium">{formatQuota(d.amount)}</span>
+                      <span className="text-sm font-medium">{fmtDollar(d.amount)}</span>
                       <span className="text-xs text-text-tertiary">@ {formatRate(d.annual_rate)}</span>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-text-tertiary">
@@ -327,10 +412,10 @@ export default function BankPage() {
                       tx.tx_type.includes('interest') || tx.tx_type.includes('deposit') || tx.tx_type.includes('mature')
                         ? 'text-emerald-500' : 'text-text-primary'
                     }`}>
-                      {tx.tx_type.includes('withdraw') ? '-' : '+'}{formatQuota(tx.amount)}
+                      {tx.tx_type.includes('withdraw') ? '-' : '+'}{fmtDollar(tx.amount)}
                     </p>
                     {tx.balance_after > 0 && (
-                      <p className="text-xs text-text-tertiary">{t('余额')} {formatQuota(tx.balance_after)}</p>
+                      <p className="text-xs text-text-tertiary">{t('余额')} {fmtDollar(tx.balance_after)}</p>
                     )}
                   </div>
                 </div>
@@ -357,12 +442,13 @@ export default function BankPage() {
             <p className="text-sm text-text-secondary">{t('从钱包转入银行活期账户')}</p>
             <Input
               type="number"
-              placeholder={`${t('最低')} ${formatQuota(info.min_deposit)}`}
+              step="0.01"
+              placeholder={`${t('最低')} ${fmtDollar(info.min_deposit)}`}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleDemandDeposit()}
             />
-            <p className="text-xs text-text-tertiary">{t('活期上限')} {formatQuota(info.max_demand)}</p>
+            <p className="text-xs text-text-tertiary">{t('活期上限')} {fmtDollar(info.max_demand)}</p>
             <Button className="w-full" onClick={handleDemandDeposit} disabled={submitting}>
               {submitting ? t('处理中...') : t('确认存入')}
             </Button>
@@ -378,13 +464,58 @@ export default function BankPage() {
             <p className="text-sm text-text-secondary">{t('从银行活期账户转回钱包')}</p>
             <Input
               type="number"
-              placeholder={t('取出金额')}
+              step="0.01"
+              placeholder={t('取出金额 ($)')}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleDemandWithdraw()}
             />
-            <p className="text-xs text-text-tertiary">{t('当前余额')} {formatQuota(account?.balance || 0)}</p>
+            <p className="text-xs text-text-tertiary">{t('当前余额')} {fmtDollar(account?.balance)}</p>
             <Button className="w-full" variant="outline" onClick={handleDemandWithdraw} disabled={submitting}>
+              {submitting ? t('处理中...') : t('确认取出')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Premium Deposit Dialog */}
+      <Dialog open={premiumDepositOpen} onOpenChange={setPremiumDepositOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t('高息活期存入')}</DialogTitle></DialogHeader>
+          <div className="space-y-3 mt-3">
+            <p className="text-sm text-text-secondary">{t('从钱包转入高息活期账户')}</p>
+            <Input
+              type="number"
+              step="0.01"
+              placeholder={`${t('最低')} ${fmtDollar(info.min_premium_deposit)}`}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handlePremiumDeposit()}
+            />
+            <p className="text-xs text-text-tertiary">{t('高息活期上限')} {fmtDollar(info.max_premium)}</p>
+            <Button className="w-full bg-amber-600 hover:bg-amber-700" onClick={handlePremiumDeposit} disabled={submitting}>
+              {submitting ? t('处理中...') : t('确认存入')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Premium Withdraw Dialog */}
+      <Dialog open={premiumWithdrawOpen} onOpenChange={setPremiumWithdrawOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t('高息活期取出')}</DialogTitle></DialogHeader>
+          <div className="space-y-3 mt-3">
+            <p className="text-sm text-text-secondary">{t('从高息活期账户转回钱包')}</p>
+            <Input
+              type="number"
+              step="0.01"
+              placeholder={t('取出金额 ($)')}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handlePremiumWithdraw()}
+            />
+            <p className="text-xs text-text-tertiary">{t('当前余额')} {fmtDollar(premiumAccount?.balance)}</p>
+            <Button className="w-full" variant="outline" onClick={handlePremiumWithdraw} disabled={submitting}>
               {submitting ? t('处理中...') : t('确认取出')}
             </Button>
           </div>
@@ -414,7 +545,8 @@ export default function BankPage() {
             </div>
             <Input
               type="number"
-              placeholder={`${t('最低')} ${formatQuota(info.min_deposit)}`}
+              step="0.01"
+              placeholder={`${t('最低')} ${fmtDollar(info.min_deposit)}`}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleFixedDeposit()}

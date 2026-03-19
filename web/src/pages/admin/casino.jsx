@@ -549,11 +549,14 @@ function BankTab() {
   const [settings, setSettings] = useState({
     'bank_setting.enabled': false,
     'bank_setting.demand_rate': 200,
+    'bank_setting.premium_demand_rate': 600,
     'bank_setting.fixed_rate_7': 500,
     'bank_setting.fixed_rate_30': 800,
     'bank_setting.fixed_rate_90': 1200,
     'bank_setting.min_deposit': 50000,
+    'bank_setting.min_premium_deposit': 500000,
     'bank_setting.max_demand_balance': 50000000,
+    'bank_setting.max_premium_balance': 5000000,
     'bank_setting.max_fixed_per_user': 5,
     'bank_setting.early_withdraw_penalty': 50,
   });
@@ -614,7 +617,7 @@ function BankTab() {
   };
 
   const handleInject = async (action) => {
-    const val = parseInt(injectAmount);
+    const val = parseFloat(injectAmount);
     if (!val || val <= 0) return showError('请输入有效金额');
     try {
       const res = await API.post('/api/casino/admin/bank/inject', { amount: val, action });
@@ -634,14 +637,14 @@ function BankTab() {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
-  const fmtQ = (v) => '$' + ((v || 0) / 500000).toFixed(2);
+  const fmtQ = (v) => '$' + (v || 0).toFixed(2);
 
   if (loading) return <div className="py-8 text-center"><Spinner /></div>;
 
   return (
     <div className="space-y-6 mt-4">
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card className="p-4">
             <p className="text-xs text-text-secondary">{t('资金池')}</p>
             <p className="text-lg font-heading font-bold">{fmtQ(stats.bank_pool)}</p>
@@ -651,12 +654,20 @@ function BankTab() {
             <p className="text-lg font-heading font-bold">{fmtQ(stats.demand_total)}</p>
           </Card>
           <Card className="p-4">
+            <p className="text-xs text-text-secondary">{t('高息活期总存款')}</p>
+            <p className="text-lg font-heading font-bold">{fmtQ(stats.premium_total)}</p>
+          </Card>
+          <Card className="p-4">
             <p className="text-xs text-text-secondary">{t('定期总存款')}</p>
             <p className="text-lg font-heading font-bold">{fmtQ(stats.fixed_total)}</p>
           </Card>
           <Card className="p-4">
             <p className="text-xs text-text-secondary">{t('活期利息支出')}</p>
             <p className="text-lg font-heading">{fmtQ(stats.demand_interest_paid)}</p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-xs text-text-secondary">{t('高息活期利息支出')}</p>
+            <p className="text-lg font-heading">{fmtQ(stats.premium_interest_paid)}</p>
           </Card>
           <Card className="p-4">
             <p className="text-xs text-text-secondary">{t('定期利息支出')}</p>
@@ -674,15 +685,15 @@ function BankTab() {
         <div className="flex gap-2 items-center">
           <Input
             type="number"
+            step="0.01"
             className="w-[200px]"
-            placeholder={t('金额 (额度单位)')}
+            placeholder={t('金额 ($)')}
             value={injectAmount}
             onChange={(e) => setInjectAmount(e.target.value)}
           />
           <Button size="sm" onClick={() => handleInject('inject')}>{t('注入')}</Button>
           <Button size="sm" variant="outline" onClick={() => handleInject('withdraw')}>{t('扣除')}</Button>
         </div>
-        <p className="text-xs text-text-tertiary mt-1">{t('500000 额度 = $1')}</p>
       </Card>
 
       <Card className="p-4 space-y-4">
@@ -697,11 +708,14 @@ function BankTab() {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {[
             ['bank_setting.demand_rate', '活期年化 (万分比)'],
+            ['bank_setting.premium_demand_rate', '高息活期年化 (万分比)'],
             ['bank_setting.fixed_rate_7', '7天定期年化'],
             ['bank_setting.fixed_rate_30', '30天定期年化'],
             ['bank_setting.fixed_rate_90', '90天定期年化'],
-            ['bank_setting.min_deposit', '最小存入金额'],
-            ['bank_setting.max_demand_balance', '活期余额上限'],
+            ['bank_setting.min_deposit', '最小存入金额 (额度)'],
+            ['bank_setting.min_premium_deposit', '高息最小存入 (额度)'],
+            ['bank_setting.max_demand_balance', '活期余额上限 (额度)'],
+            ['bank_setting.max_premium_balance', '高息余额上限 (额度)'],
             ['bank_setting.max_fixed_per_user', '最大定期存单数'],
             ['bank_setting.early_withdraw_penalty', '提前取出罚没%'],
           ].map(([key, label]) => (

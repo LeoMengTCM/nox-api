@@ -17,7 +17,12 @@ func GetBankInfo(userId int) (map[string]interface{}, error) {
 		return nil, errors.New("银行系统未启用")
 	}
 
-	account, err := model.GetOrCreateBankAccount(userId)
+	account, err := model.GetOrCreateBankAccount(userId, model.AccountTypeDemand)
+	if err != nil {
+		return nil, err
+	}
+
+	premiumAccount, err := model.GetBankAccount(userId, model.AccountTypePremium)
 	if err != nil {
 		return nil, err
 	}
@@ -30,36 +35,50 @@ func GetBankInfo(userId int) (map[string]interface{}, error) {
 	setting := operation_setting.GetBankSetting()
 
 	return map[string]interface{}{
-		"account":         account,
-		"fixed_deposits":  fixedDeposits,
-		"bank_pool":       setting.BankPool,
-		"demand_rate":     operation_setting.GetDemandRate(),
-		"fixed_rate_7":    operation_setting.GetFixedRate(7),
-		"fixed_rate_30":   operation_setting.GetFixedRate(30),
-		"fixed_rate_90":   operation_setting.GetFixedRate(90),
-		"min_deposit":     operation_setting.GetMinDeposit(),
-		"max_demand":      operation_setting.GetMaxDemandBalance(),
-		"max_fixed_count": operation_setting.GetMaxFixedPerUser(),
-		"early_penalty":   operation_setting.GetEarlyWithdrawPenalty(),
+		"account":              account,
+		"premium_account":      premiumAccount,
+		"fixed_deposits":       fixedDeposits,
+		"bank_pool":            setting.BankPool,
+		"demand_rate":          operation_setting.GetDemandRate(),
+		"premium_demand_rate":  operation_setting.GetPremiumDemandRate(),
+		"fixed_rate_7":         operation_setting.GetFixedRate(7),
+		"fixed_rate_30":        operation_setting.GetFixedRate(30),
+		"fixed_rate_90":        operation_setting.GetFixedRate(90),
+		"min_deposit":          operation_setting.GetMinDeposit(),
+		"min_premium_deposit":  operation_setting.GetMinPremiumDeposit(),
+		"max_demand":           operation_setting.GetMaxDemandBalance(),
+		"max_premium":          operation_setting.GetMaxPremiumBalance(),
+		"max_fixed_count":      operation_setting.GetMaxFixedPerUser(),
+		"early_penalty":        operation_setting.GetEarlyWithdrawPenalty(),
 	}, nil
 }
 
-// DemandDeposit deposits quota from user wallet into demand account
-func DemandDeposit(userId int, amount int) (map[string]interface{}, error) {
+// DemandDeposit deposits quota from user wallet into demand account (普通 or 高息)
+func DemandDeposit(userId int, amount int, accountType int) (map[string]interface{}, error) {
 	if !operation_setting.IsBankEnabled() {
 		return nil, errors.New("银行系统未启用")
 	}
-	if amount < operation_setting.GetMinDeposit() {
-		return nil, fmt.Errorf("最小存入金额: %d", operation_setting.GetMinDeposit())
+
+	minDeposit := operation_setting.GetMinDeposit()
+	maxBalance := operation_setting.GetMaxDemandBalance()
+	label := "活期"
+	if accountType == model.AccountTypePremium {
+		minDeposit = operation_setting.GetMinPremiumDeposit()
+		maxBalance = operation_setting.GetMaxPremiumBalance()
+		label = "高息活期"
 	}
 
-	account, err := model.GetOrCreateBankAccount(userId)
+	if amount < minDeposit {
+		return nil, fmt.Errorf("最小存入金额: %d", minDeposit)
+	}
+
+	account, err := model.GetOrCreateBankAccount(userId, accountType)
 	if err != nil {
 		return nil, err
 	}
 
-	if account.Balance+amount > operation_setting.GetMaxDemandBalance() {
-		return nil, fmt.Errorf("活期余额上限: %d", operation_setting.GetMaxDemandBalance())
+	if account.Balance+amount > maxBalance {
+		return nil, fmt.Errorf("%s余额上限: %d", label, maxBalance)
 	}
 
 	// Deduct from user wallet (atomic)
@@ -72,31 +91,36 @@ func DemandDeposit(userId int, amount int) (map[string]interface{}, error) {
 	}
 
 	// Add to bank account
-	newBalance, err := model.AtomicDepositBank(userId, amount)
+	newBalance, err := model.AtomicDepositBank(userId, accountType, amount)
 	if err != nil {
 		// Rollback wallet deduction
 		_ = model.IncreaseUserQuota(userId, amount, true)
 		return nil, err
 	}
 
+	txType := "demand_deposit"
+	if accountType == model.AccountTypePremium {
+		txType = "premium_deposit"
+	}
+
 	// Record transaction
 	_ = model.CreateBankTransaction(&model.BankTransaction{
 		UserId:       userId,
-		TxType:       "demand_deposit",
+		TxType:       txType,
 		Amount:       amount,
 		BalanceAfter: newBalance,
-		Description:  fmt.Sprintf("活期存入 %d", amount),
+		Description:  fmt.Sprintf("%s存入 %d", label, amount),
 	})
 
-	model.RecordLog(userId, model.LogTypeSystem, fmt.Sprintf("银行活期存入 %d", amount))
+	model.RecordLog(userId, model.LogTypeSystem, fmt.Sprintf("银行%s存入 %d", label, amount))
 
 	return map[string]interface{}{
 		"balance": newBalance,
 	}, nil
 }
 
-// DemandWithdraw withdraws from demand account back to user wallet
-func DemandWithdraw(userId int, amount int) (map[string]interface{}, error) {
+// DemandWithdraw withdraws from demand account back to user wallet (普通 or 高息)
+func DemandWithdraw(userId int, amount int, accountType int) (map[string]interface{}, error) {
 	if !operation_setting.IsBankEnabled() {
 		return nil, errors.New("银行系统未启用")
 	}
@@ -104,7 +128,12 @@ func DemandWithdraw(userId int, amount int) (map[string]interface{}, error) {
 		return nil, errors.New("取出金额必须大于0")
 	}
 
-	ok, newBalance, err := model.AtomicWithdrawBank(userId, amount)
+	label := "活期"
+	if accountType == model.AccountTypePremium {
+		label = "高息活期"
+	}
+
+	ok, newBalance, err := model.AtomicWithdrawBank(userId, accountType, amount)
 	if err != nil {
 		return nil, err
 	}
@@ -115,15 +144,20 @@ func DemandWithdraw(userId int, amount int) (map[string]interface{}, error) {
 	// Add back to user wallet
 	_ = model.IncreaseUserQuota(userId, amount, true)
 
+	txType := "demand_withdraw"
+	if accountType == model.AccountTypePremium {
+		txType = "premium_withdraw"
+	}
+
 	_ = model.CreateBankTransaction(&model.BankTransaction{
 		UserId:       userId,
-		TxType:       "demand_withdraw",
+		TxType:       txType,
 		Amount:       amount,
 		BalanceAfter: newBalance,
-		Description:  fmt.Sprintf("活期取出 %d", amount),
+		Description:  fmt.Sprintf("%s取出 %d", label, amount),
 	})
 
-	model.RecordLog(userId, model.LogTypeSystem, fmt.Sprintf("银行活期取出 %d", amount))
+	model.RecordLog(userId, model.LogTypeSystem, fmt.Sprintf("银行%s取出 %d", label, amount))
 
 	return map[string]interface{}{
 		"balance": newBalance,
@@ -300,12 +334,14 @@ func GetBankTransactions(userId int, page, perPage int) ([]model.BankTransaction
 func AdminGetBankStats() map[string]interface{} {
 	setting := operation_setting.GetBankSetting()
 	return map[string]interface{}{
-		"bank_pool":            setting.BankPool,
-		"demand_total":         model.GetBankTotalDeposits(),
-		"fixed_total":          model.GetFixedTotalDeposits(),
-		"demand_interest_paid": model.GetBankTotalInterestPaid(),
-		"fixed_interest_paid":  model.GetFixedTotalInterestPaid(),
-		"account_count":        model.GetBankAccountCount(),
+		"bank_pool":              setting.BankPool,
+		"demand_total":           model.GetBankTotalDeposits(model.AccountTypeDemand),
+		"premium_total":          model.GetBankTotalDeposits(model.AccountTypePremium),
+		"fixed_total":            model.GetFixedTotalDeposits(),
+		"demand_interest_paid":   model.GetBankTotalInterestPaid(model.AccountTypeDemand),
+		"premium_interest_paid":  model.GetBankTotalInterestPaid(model.AccountTypePremium),
+		"fixed_interest_paid":    model.GetFixedTotalInterestPaid(),
+		"account_count":          model.GetBankAccountCount(),
 	}
 }
 

@@ -2,6 +2,28 @@
 
 All notable changes to Nox API will be documented in this file.
 
+## [0.1.11] - 2026-03-19
+
+### Improvements
+
+#### Bank Dollar-Based API
+- All bank API endpoints now accept and return amounts in **US dollars** (float64) instead of raw quota integers. Internal storage remains quota-based for consistency with the wallet system.
+- Controller layer performs automatic `dollar ↔ quota` conversion at the API boundary using `QuotaPerUnit` (500,000 quota = $1).
+- Frontend no longer needs `formatQuota()` division — amounts from the API are displayed directly as dollars.
+- Admin pool inject/withdraw also accepts dollar amounts.
+
+#### Premium Demand Deposit (高息活期)
+- New high-yield demand account type with configurable annual rate (default 6%, vs standard 2%).
+- Each user can hold one standard demand account and one premium demand account simultaneously.
+- Premium accounts have separate min deposit ($1 default), max balance ($10 default), and interest rate settings.
+- Hourly interest task applies the correct rate based on account type (`demand_interest` vs `premium_interest`).
+- New amber-themed UI card on the bank page with dedicated deposit/withdraw dialogs.
+- Admin panel: 3 new settings (`premium_demand_rate`, `min_premium_deposit`, `max_premium_balance`) + premium stats in dashboard.
+- New transaction types: `premium_deposit`, `premium_withdraw`, `premium_interest`.
+
+#### Database Migration
+- `gringotts_bank_accounts` table: added `account_type` column (0=standard, 1=premium) with composite unique index `(user_id, account_type)`. Old `idx_bank_user` index auto-dropped during migration.
+
 ## [0.1.10] - 2026-03-19
 
 ### Fixes

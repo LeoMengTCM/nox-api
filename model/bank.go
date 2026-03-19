@@ -8,9 +8,15 @@ import (
 
 // ==================== Bank Account (活期账户) ====================
 
+const (
+	AccountTypeDemand  = 0 // 普通活期
+	AccountTypePremium = 1 // 高息活期
+)
+
 type BankAccount struct {
 	Id                  int   `json:"id" gorm:"primaryKey;autoIncrement"`
-	UserId              int   `json:"user_id" gorm:"uniqueIndex:idx_bank_user"`
+	UserId              int   `json:"user_id" gorm:"uniqueIndex:idx_bank_user_type"`
+	AccountType         int   `json:"account_type" gorm:"uniqueIndex:idx_bank_user_type;default:0"` // 0=普通活期 1=高息活期
 	Balance             int   `json:"balance" gorm:"default:0"`
 	TotalInterestEarned int   `json:"total_interest_earned" gorm:"default:0"`
 	LastInterestAt      int64 `json:"last_interest_at" gorm:"bigint;default:0"`
@@ -21,13 +27,14 @@ func (BankAccount) TableName() string {
 	return "gringotts_bank_accounts"
 }
 
-func GetOrCreateBankAccount(userId int) (*BankAccount, error) {
+func GetOrCreateBankAccount(userId int, accountType int) (*BankAccount, error) {
 	var account BankAccount
-	err := DB.Where("user_id = ?", userId).First(&account).Error
+	err := DB.Where("user_id = ? AND account_type = ?", userId, accountType).First(&account).Error
 	if err == gorm.ErrRecordNotFound {
 		account = BankAccount{
-			UserId:    userId,
-			CreatedAt: time.Now().Unix(),
+			UserId:      userId,
+			AccountType: accountType,
+			CreatedAt:   time.Now().Unix(),
 		}
 		if err := DB.Create(&account).Error; err != nil {
 			return nil, err
@@ -37,9 +44,9 @@ func GetOrCreateBankAccount(userId int) (*BankAccount, error) {
 	return &account, err
 }
 
-func GetBankAccount(userId int) (*BankAccount, error) {
+func GetBankAccount(userId int, accountType int) (*BankAccount, error) {
 	var account BankAccount
-	err := DB.Where("user_id = ?", userId).First(&account).Error
+	err := DB.Where("user_id = ? AND account_type = ?", userId, accountType).First(&account).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}
@@ -65,21 +72,21 @@ func UpdateBankAccountBalance(id int, balance int, interestEarned int, lastInter
 }
 
 // AtomicDepositBank atomically increases bank balance, returns new balance
-func AtomicDepositBank(userId int, amount int) (int, error) {
-	result := DB.Model(&BankAccount{}).Where("user_id = ?", userId).
+func AtomicDepositBank(userId int, accountType int, amount int) (int, error) {
+	result := DB.Model(&BankAccount{}).Where("user_id = ? AND account_type = ?", userId, accountType).
 		Update("balance", gorm.Expr("balance + ?", amount))
 	if result.Error != nil {
 		return 0, result.Error
 	}
 	var account BankAccount
-	DB.Where("user_id = ?", userId).First(&account)
+	DB.Where("user_id = ? AND account_type = ?", userId, accountType).First(&account)
 	return account.Balance, nil
 }
 
 // AtomicWithdrawBank atomically decreases bank balance only if sufficient. Returns (success, newBalance, error).
-func AtomicWithdrawBank(userId int, amount int) (bool, int, error) {
+func AtomicWithdrawBank(userId int, accountType int, amount int) (bool, int, error) {
 	result := DB.Model(&BankAccount{}).
-		Where("user_id = ? AND balance >= ?", userId, amount).
+		Where("user_id = ? AND account_type = ? AND balance >= ?", userId, accountType, amount).
 		Update("balance", gorm.Expr("balance - ?", amount))
 	if result.Error != nil {
 		return false, 0, result.Error
@@ -88,29 +95,29 @@ func AtomicWithdrawBank(userId int, amount int) (bool, int, error) {
 		return false, 0, nil
 	}
 	var account BankAccount
-	DB.Where("user_id = ?", userId).First(&account)
+	DB.Where("user_id = ? AND account_type = ?", userId, accountType).First(&account)
 	return true, account.Balance, nil
 }
 
-// GetBankTotalDeposits returns total demand balance across all users
-func GetBankTotalDeposits() int64 {
+// GetBankTotalDeposits returns total demand balance across all users for a given account type
+func GetBankTotalDeposits(accountType int) int64 {
 	var result struct {
 		Total int64 `gorm:"column:total"`
 	}
-	DB.Model(&BankAccount{}).Select("COALESCE(SUM(balance), 0) as total").Scan(&result)
+	DB.Model(&BankAccount{}).Where("account_type = ?", accountType).Select("COALESCE(SUM(balance), 0) as total").Scan(&result)
 	return result.Total
 }
 
-// GetBankTotalInterestPaid returns total interest earned across all users
-func GetBankTotalInterestPaid() int64 {
+// GetBankTotalInterestPaid returns total interest earned across all users for a given account type
+func GetBankTotalInterestPaid(accountType int) int64 {
 	var result struct {
 		Total int64 `gorm:"column:total"`
 	}
-	DB.Model(&BankAccount{}).Select("COALESCE(SUM(total_interest_earned), 0) as total").Scan(&result)
+	DB.Model(&BankAccount{}).Where("account_type = ?", accountType).Select("COALESCE(SUM(total_interest_earned), 0) as total").Scan(&result)
 	return result.Total
 }
 
-// GetBankAccountCount returns total number of accounts
+// GetBankAccountCount returns total number of accounts with balance > 0
 func GetBankAccountCount() int64 {
 	var count int64
 	DB.Model(&BankAccount{}).Where("balance > 0").Count(&count)

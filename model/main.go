@@ -254,6 +254,8 @@ func migrateDB() error {
 	if err := migrateTokenModelLimitsToText(); err != nil {
 		return err
 	}
+	// Migrate bank account: drop old idx_bank_user, AutoMigrate will create idx_bank_user_type
+	migrateBankAccountIndex()
 
 	err := DB.AutoMigrate(
 		&Channel{},
@@ -778,4 +780,21 @@ func PingDB() error {
 	lastPingTime = time.Now()
 	common.SysLog("Database pinged successfully")
 	return nil
+}
+
+// migrateBankAccountIndex drops old idx_bank_user unique index if it exists,
+// so AutoMigrate can create the new composite idx_bank_user_type(user_id, account_type).
+func migrateBankAccountIndex() {
+	tableName := "gringotts_bank_accounts"
+	if !DB.Migrator().HasTable(tableName) {
+		return
+	}
+	// Add account_type column if missing (default 0 for existing rows)
+	if !DB.Migrator().HasColumn(&BankAccount{}, "account_type") {
+		_ = DB.Exec("ALTER TABLE " + tableName + " ADD COLUMN account_type INTEGER DEFAULT 0").Error
+	}
+	// Drop old unique index on user_id only
+	if DB.Migrator().HasIndex(&BankAccount{}, "idx_bank_user") {
+		_ = DB.Migrator().DropIndex(&BankAccount{}, "idx_bank_user")
+	}
 }

@@ -75,9 +75,10 @@ func processDemandInterest(ctx context.Context, now int64) {
 		return
 	}
 
-	rate := operation_setting.GetDemandRate()
+	demandRate := operation_setting.GetDemandRate()
+	premiumRate := operation_setting.GetPremiumDemandRate()
+
 	// hourly rate = annual_rate / (365 * 24 * 10000)
-	// Using int64 arithmetic to avoid overflow: interest = balance * rate / (365 * 24 * 10000)
 	var totalInterest int64
 	type interestItem struct {
 		account  model.BankAccount
@@ -86,6 +87,10 @@ func processDemandInterest(ctx context.Context, now int64) {
 	var items []interestItem
 
 	for _, acc := range accounts {
+		rate := demandRate
+		if acc.AccountType == model.AccountTypePremium {
+			rate = premiumRate
+		}
 		interest := int64(acc.Balance) * int64(rate) / (365 * 24 * 10000)
 		if interest < 1 {
 			continue
@@ -124,12 +129,21 @@ func processDemandInterest(ctx context.Context, now int64) {
 			continue
 		}
 
+		txType := "demand_interest"
+		rate := demandRate
+		label := "活期利息"
+		if item.account.AccountType == model.AccountTypePremium {
+			txType = "premium_interest"
+			rate = premiumRate
+			label = "高息活期利息"
+		}
+
 		_ = model.CreateBankTransaction(&model.BankTransaction{
 			UserId:       item.account.UserId,
-			TxType:       "demand_interest",
+			TxType:       txType,
 			Amount:       interest,
 			BalanceAfter: newBalance,
-			Description:  fmt.Sprintf("活期利息 (年化 %d‱)", rate),
+			Description:  fmt.Sprintf("%s (年化 %d‱)", label, rate),
 		})
 		paid += interest
 	}
