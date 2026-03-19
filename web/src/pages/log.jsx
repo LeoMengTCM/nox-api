@@ -45,6 +45,7 @@ const TYPE_BADGE_VARIANT = {
 function getSystemSubLabel(content) {
   if (!content) return null;
   if (content.includes('签到')) return '签到';
+  if (content.includes('银行')) return '银行';
   if (content.includes('赌场') || content.includes('赢得') || content.includes('输掉') || content.includes('平局')) return '赌场';
   if (content.includes('古灵阁') || content.includes('打劫')) return '古灵阁';
   if (content.includes('擂台') || content.includes('攻擂') || content.includes('守擂') || content.includes('赛季结算')) return '竞技场';

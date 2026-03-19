@@ -79,6 +79,7 @@ const CasinoLeaderboard = lazy(() => import('./pages/casino/leaderboard'));
 const CasinoStats = lazy(() => import('./pages/casino/stats'));
 const AdminCasino = lazy(() => import('./pages/admin/casino'));
 const CasinoGringotts = lazy(() => import('./pages/casino/gringotts'));
+const CasinoBank = lazy(() => import('./pages/casino/bank'));
 const Titles = lazy(() => import('./pages/titles'));
 const PetArena = lazy(() => import('./pages/pet/arena'));
 
@@ -187,6 +188,7 @@ function App() {
           <Route path="/console/casino/leaderboard" element={<PrivateRoute><Page><CasinoLeaderboard /></Page></PrivateRoute>} />
           <Route path="/console/casino/stats" element={<PrivateRoute><Page><CasinoStats /></Page></PrivateRoute>} />
           <Route path="/console/casino/gringotts" element={<PrivateRoute><Page><CasinoGringotts /></Page></PrivateRoute>} />
+          <Route path="/console/casino/bank" element={<PrivateRoute><Page><CasinoBank /></Page></PrivateRoute>} />
           <Route path="/console/titles" element={<PrivateRoute><Page><Titles /></Page></PrivateRoute>} />
           <Route path="/console/pet/arena" element={<PrivateRoute><Page><PetArena /></Page></PrivateRoute>} />
           <Route path="/console/user/:id" element={<PrivateRoute><Page><UserProfile /></Page></PrivateRoute>} />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dices, Settings, BarChart3, Users, TrendingUp, TrendingDown } from 'lucide-react';
+import { Dices, Settings, BarChart3, Users, TrendingUp, TrendingDown, Landmark } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, ResponsiveContainer,
@@ -517,6 +517,10 @@ export default function AdminCasino() {
             <Users className="h-3.5 w-3.5" />
             {t('用户管理')}
           </TabsTrigger>
+          <TabsTrigger value="bank" className="gap-1.5">
+            <Landmark className="h-3.5 w-3.5" />
+            {t('银行管理')}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="settings">
@@ -528,7 +532,190 @@ export default function AdminCasino() {
         <TabsContent value="users">
           <UsersTab />
         </TabsContent>
+        <TabsContent value="bank">
+          <BankTab />
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// Bank Tab
+function BankTab() {
+  const { t } = useTranslation();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [stats, setStats] = useState(null);
+  const [settings, setSettings] = useState({
+    'bank_setting.enabled': false,
+    'bank_setting.demand_rate': 200,
+    'bank_setting.fixed_rate_7': 500,
+    'bank_setting.fixed_rate_30': 800,
+    'bank_setting.fixed_rate_90': 1200,
+    'bank_setting.min_deposit': 50000,
+    'bank_setting.max_demand_balance': 50000000,
+    'bank_setting.max_fixed_per_user': 5,
+    'bank_setting.early_withdraw_penalty': 50,
+  });
+  const [injectAmount, setInjectAmount] = useState('');
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [optRes, statsRes] = await Promise.all([
+        API.get('/api/option/'),
+        API.get('/api/casino/admin/bank/stats'),
+      ]);
+      if (optRes.data.success) {
+        const opts = {};
+        for (const opt of optRes.data.data) {
+          if (opt.key?.startsWith('bank_setting.')) {
+            opts[opt.key] = opt.value;
+          }
+        }
+        setSettings((prev) => {
+          const next = { ...prev };
+          for (const [k, v] of Object.entries(opts)) {
+            if (k in next) {
+              if (typeof next[k] === 'boolean') {
+                next[k] = v === 'true';
+              } else {
+                next[k] = parseInt(v) || next[k];
+              }
+            }
+          }
+          return next;
+        });
+      }
+      if (statsRes.data.success) {
+        setStats(statsRes.data.data);
+      }
+    } catch (e) {
+      showError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      for (const [key, value] of Object.entries(settings)) {
+        await API.put('/api/option/', { key, value: String(value) });
+      }
+      showSuccess('银行设置已保存');
+    } catch (e) {
+      showError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleInject = async (action) => {
+    const val = parseInt(injectAmount);
+    if (!val || val <= 0) return showError('请输入有效金额');
+    try {
+      const res = await API.post('/api/casino/admin/bank/inject', { amount: val, action });
+      if (res.data.success) {
+        showSuccess(action === 'inject' ? '注入成功' : '扣除成功');
+        setInjectAmount('');
+        fetchData();
+      } else {
+        showError(res.data.message);
+      }
+    } catch (e) {
+      showError(e.message);
+    }
+  };
+
+  const updateSetting = (key, value) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const fmtQ = (v) => '$' + ((v || 0) / 500000).toFixed(2);
+
+  if (loading) return <div className="py-8 text-center"><Spinner /></div>;
+
+  return (
+    <div className="space-y-6 mt-4">
+      {stats && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <Card className="p-4">
+            <p className="text-xs text-text-secondary">{t('资金池')}</p>
+            <p className="text-lg font-heading font-bold">{fmtQ(stats.bank_pool)}</p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-xs text-text-secondary">{t('活期总存款')}</p>
+            <p className="text-lg font-heading font-bold">{fmtQ(stats.demand_total)}</p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-xs text-text-secondary">{t('定期总存款')}</p>
+            <p className="text-lg font-heading font-bold">{fmtQ(stats.fixed_total)}</p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-xs text-text-secondary">{t('活期利息支出')}</p>
+            <p className="text-lg font-heading">{fmtQ(stats.demand_interest_paid)}</p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-xs text-text-secondary">{t('定期利息支出')}</p>
+            <p className="text-lg font-heading">{fmtQ(stats.fixed_interest_paid)}</p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-xs text-text-secondary">{t('活跃账户数')}</p>
+            <p className="text-lg font-heading">{stats.account_count}</p>
+          </Card>
+        </div>
+      )}
+
+      <Card className="p-4">
+        <h3 className="text-sm font-heading font-semibold mb-3">{t('资金池管理')}</h3>
+        <div className="flex gap-2 items-center">
+          <Input
+            type="number"
+            className="w-[200px]"
+            placeholder={t('金额 (额度单位)')}
+            value={injectAmount}
+            onChange={(e) => setInjectAmount(e.target.value)}
+          />
+          <Button size="sm" onClick={() => handleInject('inject')}>{t('注入')}</Button>
+          <Button size="sm" variant="outline" onClick={() => handleInject('withdraw')}>{t('扣除')}</Button>
+        </div>
+        <p className="text-xs text-text-tertiary mt-1">{t('500000 额度 = $1')}</p>
+      </Card>
+
+      <Card className="p-4 space-y-4">
+        <h3 className="text-sm font-heading font-semibold">{t('银行设置')}</h3>
+        <div className="flex items-center justify-between">
+          <span className="text-sm">{t('启用银行系统')}</span>
+          <Switch
+            checked={settings['bank_setting.enabled']}
+            onCheckedChange={(v) => updateSetting('bank_setting.enabled', v)}
+          />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {[
+            ['bank_setting.demand_rate', '活期年化 (万分比)'],
+            ['bank_setting.fixed_rate_7', '7天定期年化'],
+            ['bank_setting.fixed_rate_30', '30天定期年化'],
+            ['bank_setting.fixed_rate_90', '90天定期年化'],
+            ['bank_setting.min_deposit', '最小存入金额'],
+            ['bank_setting.max_demand_balance', '活期余额上限'],
+            ['bank_setting.max_fixed_per_user', '最大定期存单数'],
+            ['bank_setting.early_withdraw_penalty', '提前取出罚没%'],
+          ].map(([key, label]) => (
+            <div key={key}>
+              <label className="text-xs text-text-secondary">{t(label)}</label>
+              <Input type="number" value={settings[key]}
+                onChange={(e) => updateSetting(key, parseInt(e.target.value) || 0)} />
+            </div>
+          ))}
+        </div>
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? t('保存中...') : t('保存设置')}
+        </Button>
+      </Card>
     </div>
   );
 }

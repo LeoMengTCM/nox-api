@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Spade, Dices, CircleDot, Layers, Joystick, Users,
   Trophy, TrendingUp, TrendingDown, ArrowRight, Sparkles,
-  Medal, BarChart3, Star, Coins,
+  Medal, BarChart3, Star, Coins, Landmark,
 } from 'lucide-react';
 import { API } from '../../lib/api';
 import { showError, renderQuota } from '../../lib/utils';
@@ -320,6 +320,22 @@ export default function CasinoLobby() {
               <p className="text-xs text-text-tertiary">
                 {config?.vault_balance ? renderQuota(config.vault_balance) : '$0.00'}
               </p>
+            </div>
+            <ArrowRight className="h-4 w-4 text-text-tertiary opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        </Card>
+        <Card
+          hover
+          className="p-4 cursor-pointer group hover:border-emerald-500/40 transition-all"
+          onClick={() => navigate('/console/casino/bank')}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+              <Landmark className="h-4 w-4 text-emerald-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-heading text-text-primary">{t('古灵阁银行')}</p>
+              <p className="text-xs text-text-tertiary">{t('存款赚利息')}</p>
             </div>
             <ArrowRight className="h-4 w-4 text-text-tertiary opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>

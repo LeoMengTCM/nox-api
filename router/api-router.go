@@ -478,6 +478,13 @@ func SetApiRouter(router *gin.Engine) {
 			casinoRoute.GET("/gringotts", controller.GetGringottsInfo)
 			casinoRoute.POST("/gringotts/heist", controller.ExecuteHeist)
 			casinoRoute.GET("/gringotts/history", controller.GetGringottsHistory)
+			// Bank (古灵阁银行)
+			casinoRoute.GET("/bank", controller.GetBankInfo)
+			casinoRoute.POST("/bank/deposit", controller.BankDemandDeposit)
+			casinoRoute.POST("/bank/withdraw", controller.BankDemandWithdraw)
+			casinoRoute.POST("/bank/fixed/deposit", controller.BankFixedDeposit)
+			casinoRoute.POST("/bank/fixed/withdraw", controller.BankFixedWithdraw)
+			casinoRoute.GET("/bank/transactions", controller.GetBankTransactions)
 		}
 		casinoAdminRoute := apiRouter.Group("/casino/admin")
 		casinoAdminRoute.Use(middleware.AdminAuth())
@@ -486,6 +493,9 @@ func SetApiRouter(router *gin.Engine) {
 			casinoAdminRoute.GET("/users", controller.AdminGetCasinoUsers)
 			casinoAdminRoute.POST("/ban", controller.AdminBanUser)
 			casinoAdminRoute.POST("/toggle", controller.AdminToggleGame)
+			// Bank admin
+			casinoAdminRoute.GET("/bank/stats", controller.AdminGetBankStats)
+			casinoAdminRoute.POST("/bank/inject", controller.AdminBankInject)
 		}
 
 		// Title routes

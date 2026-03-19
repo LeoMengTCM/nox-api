@@ -2,6 +2,24 @@
 
 All notable changes to Nox API will be documented in this file.
 
+## [0.1.9] - 2026-03-19
+
+### New Features
+
+#### Gringotts Bank (古灵阁银行)
+- **Demand deposits**: Users can deposit quota into a demand account and earn hourly interest (default 2% annual rate).
+- **Fixed deposits**: 3 term options (7/30/90 days) with higher interest rates (5%/8%/12% annual). Early withdrawal incurs a configurable penalty on earned interest.
+- **Independent fund pool**: Admin-managed capital pool from which all interest payments are deducted. Pool depletion pauses interest payouts.
+- **Hourly interest task**: Background job calculates and distributes demand interest every hour; automatically processes matured fixed deposits.
+- **Admin panel**: New "Bank Management" tab in Casino admin with pool injection/withdrawal, rate configuration, deposit limits, and aggregate statistics (total deposits, interest paid, account count).
+- **Transaction history**: Full audit trail of all bank operations (deposits, withdrawals, interest, admin actions).
+- **Casino lobby integration**: Bank card added to the casino lobby page.
+- **Log sub-category**: Bank operations display "银行" badge in the log page.
+
+**New files**: `model/bank.go`, `service/bank.go`, `service/bank_interest_task.go`, `controller/bank.go`, `setting/operation_setting/bank_setting.go`, `web/src/pages/casino/bank.jsx`
+**New tables**: `gringotts_bank_accounts`, `gringotts_fixed_deposits`, `gringotts_bank_transactions`
+**New API endpoints**: 8 (6 user + 2 admin)
+
 ## [0.1.8] - 2026-03-18
 
 ### Improvements
