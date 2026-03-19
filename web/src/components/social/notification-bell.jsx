@@ -129,7 +129,7 @@ const NotificationBell = () => {
                     if (notif.type === 'follow') {
                       navigate(`/console/user/${notif.actor_id}`);
                     } else if (notif.post_id) {
-                      navigate(`/console/community?post=${notif.post_id}`);
+                      navigate(`/console/hogwarts/community?post=${notif.post_id}`);
                     }
                     setDropdownOpen(false);
                   }}

@@ -187,7 +187,7 @@ export default function CasinoBaccarat() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate('/console/casino')}
+            onClick={() => navigate('/console/hogwarts/casino')}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>

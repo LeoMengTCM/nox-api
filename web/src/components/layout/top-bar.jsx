@@ -1,7 +1,7 @@
 import React, { useContext, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Sun, Moon, Monitor, Menu, X, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { Sun, Moon, Monitor, Menu, X, LogOut, Settings, ChevronDown, Castle } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { UserContext } from '../../contexts/user-context';
 import { StatusContext } from '../../contexts/status-context';
@@ -44,6 +44,7 @@ const TopBar = ({ onMobileMenuToggle, drawerOpen, showSidebar = false }) => {
 
   const isSelfUseMode = statusState?.status?.self_use_mode_enabled || false;
   const isConsoleRoute = location.pathname.startsWith('/console');
+  const isHogwartsRoute = location.pathname.startsWith('/console/hogwarts');
 
   // Logo loading
   useEffect(() => {
@@ -173,6 +174,31 @@ const TopBar = ({ onMobileMenuToggle, drawerOpen, showSidebar = false }) => {
         {/* User area */}
         {userState.user ? (
           <>
+            {/* Hogwarts entry */}
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => navigate('/console/hogwarts')}
+                    className={cn(
+                      'p-2 rounded-md transition-colors flex items-center gap-1.5',
+                      isHogwartsRoute
+                        ? 'text-[rgb(197,165,90)] bg-[rgba(197,165,90,0.1)]'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+                    )}
+                  >
+                    <Castle size={16} />
+                    {!isMobile && (
+                      <span className="text-xs font-medium">{t('霍格沃茨')}</span>
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  {t('霍格沃茨')}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
             <NotificationBell />
             <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -26,25 +26,19 @@ const sidebarEventTarget = new EventTarget();
 const SIDEBAR_REFRESH_EVENT = 'sidebar-refresh';
 
 export const DEFAULT_ADMIN_CONFIG = {
-  chat: {
-    enabled: true,
-    playground: true,
-  },
   console: {
     enabled: true,
     detail: true,
     token: true,
     log: true,
+    playground: true,
     midjourney: true,
     task: true,
   },
   personal: {
     enabled: true,
     topup: true,
-    checkin: true,
-    community: true,
     personal: true,
-    casino: true,
   },
   admin: {
     enabled: true,
@@ -55,7 +49,33 @@ export const DEFAULT_ADMIN_CONFIG = {
     user: true,
     subscription: true,
     setting: true,
+  },
+  hogwarts: {
+    enabled: true,
+    checkin: true,
+    community: true,
+    ranking: true,
+    titles: true,
+    casino: true,
+    bank: true,
+    pet: true,
+    'pet-shop': true,
+    'pet-inventory': true,
+    'pet-gacha': true,
+    'pet-fusion': true,
+    'pet-adventure': true,
+    'pet-arena': true,
+    'pet-market': true,
+    'pet-ranking': true,
     'casino-admin': true,
+    'gacha-pools': true,
+    'missions-admin': true,
+    'pet-species-admin': true,
+    'pet-items-admin': true,
+    'pet-users-admin': true,
+    'pet-grant-admin': true,
+    'pet-market-admin': true,
+    'pet-stats-admin': true,
   },
 };
 

@@ -40,12 +40,12 @@ const GAME_DESCS = {
 };
 
 const GAME_ROUTES = {
-  blackjack: '/console/casino/blackjack',
-  dice: '/console/casino/dice',
-  roulette: '/console/casino/roulette',
-  baccarat: '/console/casino/baccarat',
-  slots: '/console/casino/slots',
-  poker: '/console/casino/poker',
+  blackjack: '/console/hogwarts/casino/blackjack',
+  dice: '/console/hogwarts/casino/dice',
+  roulette: '/console/hogwarts/casino/roulette',
+  baccarat: '/console/hogwarts/casino/baccarat',
+  slots: '/console/hogwarts/casino/slots',
+  poker: '/console/hogwarts/casino/poker',
 };
 
 const AVAILABLE_GAMES = ['blackjack', 'dice', 'roulette', 'baccarat', 'slots', 'poker'];
@@ -309,7 +309,7 @@ export default function CasinoLobby() {
         <Card
           hover
           className="p-4 cursor-pointer group hover:border-amber-500/40 transition-all"
-          onClick={() => navigate('/console/casino/gringotts')}
+          onClick={() => navigate('/console/hogwarts/casino/gringotts')}
         >
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
@@ -327,7 +327,7 @@ export default function CasinoLobby() {
         <Card
           hover
           className="p-4 cursor-pointer group hover:border-emerald-500/40 transition-all"
-          onClick={() => navigate('/console/casino/bank')}
+          onClick={() => navigate('/console/hogwarts/casino/bank')}
         >
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
@@ -343,7 +343,7 @@ export default function CasinoLobby() {
         <Card
           hover
           className="p-4 cursor-pointer group hover:border-[#C5A55A]/40 transition-all"
-          onClick={() => navigate('/console/casino/achievements')}
+          onClick={() => navigate('/console/hogwarts/casino/achievements')}
         >
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-[#C5A55A]/10 flex items-center justify-center">
@@ -361,7 +361,7 @@ export default function CasinoLobby() {
         <Card
           hover
           className="p-4 cursor-pointer group hover:border-[#C5A55A]/40 transition-all"
-          onClick={() => navigate('/console/casino/leaderboard')}
+          onClick={() => navigate('/console/hogwarts/casino/leaderboard')}
         >
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-[#C5A55A]/10 flex items-center justify-center">
@@ -377,7 +377,7 @@ export default function CasinoLobby() {
         <Card
           hover
           className="p-4 cursor-pointer group hover:border-[#C5A55A]/40 transition-all"
-          onClick={() => navigate('/console/casino/stats')}
+          onClick={() => navigate('/console/hogwarts/casino/stats')}
         >
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-[#C5A55A]/10 flex items-center justify-center">

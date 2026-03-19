@@ -2,6 +2,23 @@
 
 All notable changes to Nox API will be documented in this file.
 
+## [0.1.12] - 2026-03-19
+
+### Improvements
+
+#### Sidebar Split — AI Console + Hogwarts Portal
+- **Console sidebar simplified**: Stripped to 3 clean sections — 工作台 (dashboard, tokens, logs, playground), 账户 (wallet, settings), 管理员 (channels, models, deployment, subscriptions, redemptions, users, system settings). All HP-themed gamification items removed.
+- **Hogwarts Portal**: New dedicated layout (`/console/hogwarts`) with its own gold-themed sidebar for all gamification features — daily (check-in, community, ranking, titles), economy (casino, bank), magical creatures (pets, shop, inventory, gacha, fusion, adventure, arena, market), and admin tools.
+- **Top bar entry**: Castle icon "霍格沃茨" button in the top bar with gold highlight when active, visible to logged-in users.
+- **"返回控制台" breadcrumb**: All Hogwarts pages show a back-to-console link at the top of the content area.
+- **Portal landing page**: Card-based overview at `/console/hogwarts` with all HP features organized by category (daily, economy, magical creatures, admin).
+- **Route migration**: All HP routes moved from `/console/*` to `/console/hogwarts/*` (casino, pet, checkin, community, ranking, titles, and all related admin pages). ~15 page files updated.
+- **Sidebar modules config**: Added `hogwarts` section to `DEFAULT_ADMIN_CONFIG` with all HP module keys. Removed deprecated `chat` section; `playground` moved to `console` section.
+- **Hogwarts CSS variables**: 8 new CSS variables for the HP theme (gold/burgundy palette).
+
+**New files**: `hogwarts-layout.jsx`, `hogwarts-sidebar.jsx`, `pages/hogwarts/portal.jsx`
+**Modified files**: `sidebar.jsx`, `top-bar.jsx`, `console-layout.jsx`, `App.jsx`, `use-sidebar-modules.js`, `globals.css`, `en.json`, ~15 page files
+
 ## [0.1.11] - 2026-03-19
 
 ### Improvements

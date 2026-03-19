@@ -256,7 +256,7 @@ export default function BankPage() {
     <div className="bg-background text-text-primary p-4 md:p-6 space-y-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/console/casino')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/console/hogwarts/casino')}>
           <ChevronLeft className="h-5 w-5" />
         </Button>
         <Landmark className="h-6 w-6 text-emerald-500" />

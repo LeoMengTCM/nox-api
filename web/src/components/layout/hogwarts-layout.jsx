@@ -1,26 +1,52 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { useLocation, useNavigate, Outlet } from 'react-router-dom';
+import { useLocation, useNavigate, Outlet, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { ArrowLeft } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { UserContext } from '../../contexts/user-context';
 import { StatusContext } from '../../contexts/status-context';
 import { useMobile } from '../../hooks/use-mobile';
-import { useSidebar } from '../../hooks/use-sidebar';
 import { API } from '../../lib/api';
 import { getLogo, getSystemName, showError, showInfo, setStatusData } from '../../lib/utils';
 import { normalizeLanguage } from '../../i18n/language';
 import TopBar from './top-bar';
-import Sidebar from './sidebar';
-import FooterBar from './footer';
+import HogwartsSidebar from './hogwarts-sidebar';
 import { Sheet, SheetContent } from '../ui/sheet';
 
-const ConsoleLayout = () => {
+const STORAGE_KEY = 'hogwarts-collapse-sidebar';
+
+function useHogwartsSidebar() {
+  const [collapsed, _setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggle = () => {
+    _setCollapsed((prev) => {
+      const next = !prev;
+      try { localStorage.setItem(STORAGE_KEY, String(next)); } catch {}
+      return next;
+    });
+  };
+
+  const setCollapsed = (value) => {
+    _setCollapsed(value);
+    try { localStorage.setItem(STORAGE_KEY, String(value)); } catch {}
+  };
+
+  return [collapsed, toggle, setCollapsed];
+}
+
+const HogwartsLayout = () => {
   const [userState, userDispatch] = useContext(UserContext);
   const [, statusDispatch] = useContext(StatusContext);
   const isMobile = useMobile();
-  const [collapsed, toggleCollapsed, setCollapsed] = useSidebar();
+  const [collapsed, toggleCollapsed, setCollapsed] = useHogwartsSidebar();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -31,21 +57,7 @@ const ConsoleLayout = () => {
     }
   }, [isMobile, drawerOpen, collapsed, setCollapsed]);
 
-  // Decide which pages should hide the footer
-  const cardProPages = [
-    '/console/channel',
-    '/console/log',
-    '/console/redemption',
-    '/console/user',
-    '/console/token',
-    '/console/midjourney',
-    '/console/task',
-    '/console/models',
-    '/console/playground',
-  ];
-  const shouldHideFooter = cardProPages.includes(location.pathname);
-
-  // Decide inner padding
+  // Inner padding for content
   const shouldInnerPadding =
     location.pathname.includes('/console') &&
     !location.pathname.startsWith('/console/chat') &&
@@ -91,21 +103,6 @@ const ConsoleLayout = () => {
     }
   }, []);
 
-  // Prompt user to upload avatar if missing
-  const avatarUrl = userState?.user?.avatar_url;
-  const userId = userState?.user?.id;
-  useEffect(() => {
-    if (
-      userId &&
-      !avatarUrl &&
-      !sessionStorage.getItem('avatar_prompted')
-    ) {
-      sessionStorage.setItem('avatar_prompted', '1');
-      showInfo('您还未设置头像，建议前往个人设置上传头像');
-      setTimeout(() => navigate('/console/personal'), 2000);
-    }
-  }, [userId, avatarUrl, navigate]);
-
   // Language sync from user settings
   useEffect(() => {
     let preferredLang;
@@ -113,9 +110,7 @@ const ConsoleLayout = () => {
       try {
         const settings = JSON.parse(userState.user.setting);
         preferredLang = normalizeLanguage(settings.language);
-      } catch (e) {
-        // Ignore parse errors
-      }
+      } catch (e) {}
     }
     if (!preferredLang) {
       const savedLang = localStorage.getItem('i18nextLng');
@@ -131,7 +126,6 @@ const ConsoleLayout = () => {
     }
   }, [i18n, userState?.user?.setting]);
 
-  // Sidebar width for content margin
   const sidebarWidth = isMobile ? 0 : collapsed ? 64 : 240;
 
   return (
@@ -144,7 +138,7 @@ const ConsoleLayout = () => {
 
       {/* Desktop sidebar */}
       {!isMobile && (
-        <Sidebar
+        <HogwartsSidebar
           collapsed={collapsed}
           onToggleCollapse={toggleCollapsed}
           onNavigate={() => {}}
@@ -154,8 +148,8 @@ const ConsoleLayout = () => {
       {/* Mobile sidebar drawer */}
       {isMobile && (
         <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-          <SheetContent side="left" className="p-0 w-[240px] bg-sidebar-bg" showClose={false}>
-            <Sidebar
+          <SheetContent side="left" className="p-0 w-[240px] bg-[rgb(var(--hogwarts-sidebar-bg))]" showClose={false}>
+            <HogwartsSidebar
               collapsed={false}
               onToggleCollapse={() => setDrawerOpen(false)}
               onNavigate={() => setDrawerOpen(false)}
@@ -171,6 +165,17 @@ const ConsoleLayout = () => {
         )}
         style={{ marginLeft: sidebarWidth }}
       >
+        {/* Back to console breadcrumb */}
+        <div className={cn('px-6 pt-4 pb-0', isMobile && 'px-3 pt-2')}>
+          <Link
+            to="/console"
+            className="inline-flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors"
+          >
+            <ArrowLeft size={14} />
+            <span>{t('返回控制台')}</span>
+          </Link>
+        </div>
+
         <div
           className={cn(
             'flex-1',
@@ -179,10 +184,9 @@ const ConsoleLayout = () => {
         >
           <Outlet />
         </div>
-        {!shouldHideFooter && <FooterBar />}
       </main>
     </div>
   );
 };
 
-export default ConsoleLayout;
+export default HogwartsLayout;

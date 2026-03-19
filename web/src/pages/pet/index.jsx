@@ -196,7 +196,7 @@ export default function PetIndex() {
             <p className="text-sm text-text-tertiary mb-6 max-w-sm">
               {t('每位巫师可以免费领养一只初始魔法生物', { title: t(titleKey) })}
             </p>
-            <Button onClick={() => navigate('/console/pet/adopt')}>
+            <Button onClick={() => navigate('/console/hogwarts/pet/adopt')}>
               {t('去领养')}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
@@ -259,7 +259,7 @@ export default function PetIndex() {
             <PetCard
               key={pet.id}
               pet={pet}
-              onClick={() => navigate(`/console/pet/${pet.id}`)}
+              onClick={() => navigate(`/console/hogwarts/pet/${pet.id}`)}
             />
           ))}
         </motion.div>

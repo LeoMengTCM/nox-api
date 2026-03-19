@@ -51,6 +51,16 @@
 
   /* Radius */
   --radius: 8px;
+
+  /* Hogwarts Theme */
+  --hogwarts-bg: 26 20 18;
+  --hogwarts-surface: 42 31 26;
+  --hogwarts-border: 61 46 36;
+  --hogwarts-gold: 197 165 90;
+  --hogwarts-gold-dim: 160 136 64;
+  --hogwarts-text: 212 197 169;
+  --hogwarts-text-muted: 139 125 107;
+  --hogwarts-sidebar-bg: 21 16 16;
 }
 
 /* ===== Dark Mode ===== */

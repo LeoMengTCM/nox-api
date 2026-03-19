@@ -18,21 +18,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Trophy,
-  CalendarCheck,
-  MessageCircle,
-  PawPrint,
-  ShoppingBag,
-  Dices,
-  Merge,
-  Compass,
-  Crown,
-  Store,
-  BarChart3,
-  Dna,
-  Package,
-  Gem,
-  Landmark,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { isAdmin, isRoot } from '../../lib/utils';
@@ -62,28 +47,6 @@ const iconMap = {
   personal: Settings,
   midjourney: FileText,
   task: FileText,
-  ranking: Trophy,
-  checkin: CalendarCheck,
-  community: MessageCircle,
-  pet: PawPrint,
-  'pet-shop': ShoppingBag,
-  'pet-gacha': Dices,
-  'pet-fusion': Merge,
-  'pet-adventure': Compass,
-  'pet-inventory': Package,
-  'pet-ranking': Crown,
-  'gacha-pools': Dices,
-  'missions-admin': Compass,
-  'pet-market': Store,
-  'pet-users-admin': Users,
-  'pet-grant-admin': Gift,
-  'pet-market-admin': Store,
-  'pet-stats-admin': BarChart3,
-  'pet-species-admin': Dna,
-  'pet-items-admin': Package,
-  casino: Gem,
-  bank: Landmark,
-  'casino-admin': Gem,
 };
 
 const getIcon = (itemKey, size = 18) => {
@@ -111,28 +74,6 @@ const routerMap = {
   deployment: '/console/deployment',
   playground: '/console/playground',
   personal: '/console/personal',
-  ranking: '/console/ranking',
-  checkin: '/console/checkin',
-  community: '/console/community',
-  pet: '/console/pet',
-  'pet-shop': '/console/pet/shop',
-  'pet-gacha': '/console/pet/gacha',
-  'pet-fusion': '/console/pet/fusion',
-  'pet-adventure': '/console/pet/adventure',
-  'pet-ranking': '/console/pet/ranking',
-  'gacha-pools': '/console/admin/gacha-pools',
-  'missions-admin': '/console/admin/missions',
-  'pet-inventory': '/console/pet/inventory',
-  'pet-market': '/console/pet/market',
-  'pet-users-admin': '/console/admin/pet-users',
-  'pet-grant-admin': '/console/admin/pet-grant',
-  'pet-market-admin': '/console/admin/pet-market',
-  'pet-stats-admin': '/console/admin/pet-stats',
-  'pet-species-admin': '/console/admin/pet-species',
-  'pet-items-admin': '/console/admin/pet-items',
-  casino: '/console/casino',
-  bank: '/console/casino/bank',
-  'casino-admin': '/console/admin/casino',
 };
 
 const COLLAPSED_SECTIONS_KEY = 'sidebar-collapsed-sections';
@@ -142,8 +83,7 @@ function getInitialCollapsedSections() {
     const saved = localStorage.getItem(COLLAPSED_SECTIONS_KEY);
     if (saved) return JSON.parse(saved);
   } catch {}
-  // Default: all sections collapsed
-  return { console: true, chat: true, personal: true, pet: true, admin: true };
+  return { console: true, personal: true, admin: true };
 }
 
 const CollapsibleSection = ({ sectionKey, label, collapsed: sidebarCollapsed, isOpen, onToggle, children }) => {
@@ -218,7 +158,6 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
   } = useSidebarModules();
 
   const [selectedKey, setSelectedKey] = useState('detail');
-  const routerMapState = routerMap;
 
   const [collapsedSections, setCollapsedSections] = useState(getInitialCollapsedSections);
 
@@ -238,35 +177,6 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
     let matchingKey = Object.keys(routerMap).find(
       (key) => routerMap[key] === currentPath,
     );
-
-    // Match sub-routes to parent (e.g. /console/pet/123 -> pet)
-    if (!matchingKey && currentPath.startsWith('/console/pet')) {
-      if (currentPath === '/console/pet/shop') {
-        matchingKey = 'pet-shop';
-      } else if (currentPath === '/console/pet/gacha') {
-        matchingKey = 'pet-gacha';
-      } else if (currentPath === '/console/pet/fusion') {
-        matchingKey = 'pet-fusion';
-      } else if (currentPath === '/console/pet/adventure') {
-        matchingKey = 'pet-adventure';
-      } else if (currentPath === '/console/pet/ranking') {
-        matchingKey = 'pet-ranking';
-      } else if (currentPath === '/console/pet/market') {
-        matchingKey = 'pet-market';
-      } else if (currentPath === '/console/pet/inventory') {
-        matchingKey = 'pet-inventory';
-      } else {
-        matchingKey = 'pet';
-      }
-    }
-
-    // Match casino sub-routes
-    if (!matchingKey && currentPath.startsWith('/console/casino')) {
-      matchingKey = 'casino';
-    }
-    if (!matchingKey && currentPath.startsWith('/console/admin/casino')) {
-      matchingKey = 'casino-admin';
-    }
 
     if (matchingKey) {
       setSelectedKey(matchingKey);
@@ -292,22 +202,12 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
   }, [navigate, onNavigate]);
 
   // Build navigation groups
-  const chatMenuItems = useMemo(() => {
-    const items = [
-      { text: t('操练场'), itemKey: 'playground', to: '/playground' },
-    ];
-
-    return items.filter((item) => {
-      if (item.itemKey === 'playground') return isModuleVisible('chat', 'playground');
-      return true;
-    });
-  }, [t, isModuleVisible]);
-
   const workspaceItems = useMemo(() => {
     const items = [
       { text: t('数据看板'), itemKey: 'detail' },
       { text: t('令牌管理'), itemKey: 'token' },
       { text: t('使用日志'), itemKey: 'log' },
+      { text: t('操练场'), itemKey: 'playground' },
       {
         text: t('绘图日志'),
         itemKey: 'midjourney',
@@ -322,29 +222,13 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
     return items.filter((item) => !item.hidden && isModuleVisible('console', item.itemKey));
   }, [t, isModuleVisible]);
 
-  const financeItems = useMemo(() => {
+  const accountItems = useMemo(() => {
     const items = [
       { text: t('钱包管理'), itemKey: 'topup' },
-      { text: t('每日签到'), itemKey: 'checkin', alwaysShow: true },
-      { text: t('社区'), itemKey: 'community', alwaysShow: true },
-      { text: t('排行榜'), itemKey: 'ranking', alwaysShow: true },
       { text: t('个人设置'), itemKey: 'personal' },
     ];
-    return items.filter((item) => item.alwaysShow || isModuleVisible('personal', item.itemKey));
+    return items.filter((item) => isModuleVisible('personal', item.itemKey));
   }, [t, isModuleVisible]);
-
-  const petItems = useMemo(() => {
-    return [
-      { text: t('我的生物'), itemKey: 'pet', alwaysShow: true },
-      { text: t('商店'), itemKey: 'pet-shop', alwaysShow: true },
-      { text: t('背包'), itemKey: 'pet-inventory', alwaysShow: true },
-      { text: t('召唤'), itemKey: 'pet-gacha', alwaysShow: true },
-      { text: t('融合'), itemKey: 'pet-fusion', alwaysShow: true },
-      { text: t('冒险'), itemKey: 'pet-adventure', alwaysShow: true },
-      { text: t('猪头酒吧'), itemKey: 'pet-market', alwaysShow: true },
-      { text: t('生物排行'), itemKey: 'pet-ranking', alwaysShow: true },
-    ];
-  }, [t]);
 
   const adminItems = useMemo(() => {
     const items = [
@@ -355,15 +239,6 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
       { text: t('兑换码管理'), itemKey: 'redemption', needsAdmin: true },
       { text: t('用户管理'), itemKey: 'user', needsAdmin: true },
       { text: t('系统设置'), itemKey: 'setting', needsRoot: true },
-      { text: t('卡池管理'), itemKey: 'gacha-pools', needsAdmin: true },
-      { text: t('任务管理'), itemKey: 'missions-admin', needsAdmin: true },
-      { text: t('生物数据'), itemKey: 'pet-users-admin', needsAdmin: true },
-      { text: t('生物发放'), itemKey: 'pet-grant-admin', needsAdmin: true },
-      { text: t('酒吧监控'), itemKey: 'pet-market-admin', needsAdmin: true },
-      { text: t('统计面板'), itemKey: 'pet-stats-admin', needsAdmin: true },
-      { text: t('物种管理'), itemKey: 'pet-species-admin', needsAdmin: true },
-      { text: t('物品管理'), itemKey: 'pet-items-admin', needsAdmin: true },
-      { text: t('赌场管理'), itemKey: 'casino-admin', needsAdmin: true },
     ];
     return items.filter((item) => {
       if (item.needsRoot && !isRoot()) return false;
@@ -416,16 +291,6 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
     return content;
   };
 
-  // Group label renderer (only used for the first section without a header)
-  const GroupLabel = ({ label }) => {
-    if (collapsed) return <div className="my-2 mx-3 h-px bg-white/10" />;
-    return (
-      <div className="text-[11px] uppercase tracking-wider text-sidebar-text/60 px-4 py-2 select-none">
-        {label}
-      </div>
-    );
-  };
-
   return (
     <nav
       className={cn(
@@ -436,7 +301,7 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
     >
       {/* Scrollable nav area */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden py-3 px-2 space-y-0.5">
-        {/* Dashboard */}
+        {/* Workspace */}
         {hasSectionVisibleModules('console') && workspaceItems.length > 0 && (
           <CollapsibleSection
             sectionKey="console"
@@ -451,56 +316,16 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
           </CollapsibleSection>
         )}
 
-        {/* Chat & Playground */}
-        {hasSectionVisibleModules('chat') && chatMenuItems.length > 0 && (
-          <CollapsibleSection
-            sectionKey="chat"
-            label={t('聊天')}
-            collapsed={collapsed}
-            isOpen={!collapsedSections.chat}
-            onToggle={() => toggleSection('chat')}
-          >
-            {chatMenuItems.map((item) => (
-              <NavItem key={item.itemKey} item={item} />
-            ))}
-          </CollapsibleSection>
-        )}
-
-        {/* Personal / Finance */}
-        {hasSectionVisibleModules('personal') && financeItems.length > 0 && (
+        {/* Account */}
+        {hasSectionVisibleModules('personal') && accountItems.length > 0 && (
           <CollapsibleSection
             sectionKey="personal"
-            label={t('个人中心')}
+            label={t('账户')}
             collapsed={collapsed}
             isOpen={!collapsedSections.personal}
             onToggle={() => toggleSection('personal')}
           >
-            {financeItems.map((item) => (
-              <NavItem key={item.itemKey} item={item} />
-            ))}
-          </CollapsibleSection>
-        )}
-
-        {/* Casino — standalone entry */}
-        <div className="px-2 py-0.5">
-          <NavItem item={{ text: t('韦斯莱赌坊'), itemKey: 'casino' }} />
-        </div>
-
-        {/* Bank — standalone entry */}
-        <div className="px-2 py-0.5">
-          <NavItem item={{ text: t('古灵阁银行'), itemKey: 'bank' }} />
-        </div>
-
-        {/* Pet section */}
-        {petItems.length > 0 && (
-          <CollapsibleSection
-            sectionKey="pet"
-            label={t('神奇动物')}
-            collapsed={collapsed}
-            isOpen={!collapsedSections.pet}
-            onToggle={() => toggleSection('pet')}
-          >
-            {petItems.map((item) => (
+            {accountItems.map((item) => (
               <NavItem key={item.itemKey} item={item} />
             ))}
           </CollapsibleSection>

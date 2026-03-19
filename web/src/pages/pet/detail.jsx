@@ -103,11 +103,11 @@ export default function PetDetail() {
         updatePlayCooldown(data.pet.last_played_at);
       } else {
         showError(res.data.message);
-        navigate('/console/pet');
+        navigate('/console/hogwarts/pet');
       }
     } catch {
       showError(t('加载失败'));
-      navigate('/console/pet');
+      navigate('/console/hogwarts/pet');
     } finally {
       setLoading(false);
     }
@@ -343,7 +343,7 @@ export default function PetDetail() {
       const res = await API.delete(`/api/pet/my/${id}`);
       if (res.data.success) {
         showSuccess(t('魔法生物已放归'));
-        navigate('/console/pet');
+        navigate('/console/hogwarts/pet');
       } else {
         showError(res.data.message);
       }
@@ -405,7 +405,7 @@ export default function PetDetail() {
         transition={{ duration: 0.2 }}
       >
         <button
-          onClick={() => navigate('/console/pet')}
+          onClick={() => navigate('/console/hogwarts/pet')}
           className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -710,7 +710,7 @@ export default function PetDetail() {
               <div className="text-center py-8 space-y-2">
                 <p className="text-sm text-text-tertiary">{t('暂无食物')}</p>
                 <Link
-                  to="/console/pet/shop"
+                  to="/console/hogwarts/pet/shop"
                   className="text-sm text-accent hover:underline"
                   onClick={() => setFeedOpen(false)}
                 >

@@ -29,7 +29,7 @@ export default function PetAdopt() {
           const data = res.data.data;
           // Already adopted, redirect
           if (data.has_starter) {
-            navigate('/console/pet', { replace: true });
+            navigate('/console/hogwarts/pet', { replace: true });
             return;
           }
           setStarters(data.starters || []);
@@ -54,7 +54,7 @@ export default function PetAdopt() {
       });
       if (res.data.success) {
         showSuccess(t('领养成功'));
-        navigate('/console/pet', { replace: true });
+        navigate('/console/hogwarts/pet', { replace: true });
       } else {
         showError(res.data.message);
       }

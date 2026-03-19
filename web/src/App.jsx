@@ -10,6 +10,7 @@ import { ErrorBoundary } from './components/ui/error-boundary';
 import ConsoleLayout from './components/layout/console-layout';
 import PublicLayout from './components/layout/public-layout';
 import SetupCheck from './components/layout/setup-check';
+const HogwartsLayout = lazy(() => import('./components/layout/hogwarts-layout'));
 
 // Auth pages (direct imports - small)
 import LoginForm from './pages/login';
@@ -82,6 +83,7 @@ const CasinoGringotts = lazy(() => import('./pages/casino/gringotts'));
 const CasinoBank = lazy(() => import('./pages/casino/bank'));
 const Titles = lazy(() => import('./pages/titles'));
 const PetArena = lazy(() => import('./pages/pet/arena'));
+const HogwartsPortal = lazy(() => import('./pages/hogwarts/portal'));
 
 const Loading = () => (
   <div className="flex h-screen items-center justify-center bg-background">
@@ -163,34 +165,7 @@ function App() {
           <Route path="/console/log" element={<PrivateRoute><Page><Log /></Page></PrivateRoute>} />
           <Route path="/console/personal" element={<PrivateRoute><Page><PersonalSetting /></Page></PrivateRoute>} />
           <Route path="/console/topup" element={<PrivateRoute><Page><TopUp /></Page></PrivateRoute>} />
-          <Route path="/console/ranking" element={<PrivateRoute><Page><Ranking /></Page></PrivateRoute>} />
-          <Route path="/console/checkin" element={<PrivateRoute><Page><Checkin /></Page></PrivateRoute>} />
-          <Route path="/console/community" element={<PrivateRoute><Page><Community /></Page></PrivateRoute>} />
           <Route path="/console/notifications" element={<PrivateRoute><Page><Notifications /></Page></PrivateRoute>} />
-          <Route path="/console/pet" element={<PrivateRoute><Page><PetIndex /></Page></PrivateRoute>} />
-          <Route path="/console/pet/adopt" element={<PrivateRoute><Page><PetAdopt /></Page></PrivateRoute>} />
-          <Route path="/console/pet/shop" element={<PrivateRoute><Page><PetShop /></Page></PrivateRoute>} />
-          <Route path="/console/pet/gacha" element={<PrivateRoute><Page><PetGacha /></Page></PrivateRoute>} />
-          <Route path="/console/pet/fusion" element={<PrivateRoute><Page><PetFusion /></Page></PrivateRoute>} />
-          <Route path="/console/pet/ranking" element={<PrivateRoute><Page><PetRanking /></Page></PrivateRoute>} />
-          <Route path="/console/pet/adventure" element={<PrivateRoute><Page><PetAdventure /></Page></PrivateRoute>} />
-          <Route path="/console/pet/market" element={<PrivateRoute><Page><PetMarket /></Page></PrivateRoute>} />
-          <Route path="/console/pet/inventory" element={<PrivateRoute><Page><PetInventory /></Page></PrivateRoute>} />
-          <Route path="/console/pet/:id" element={<PrivateRoute><Page><PetDetail /></Page></PrivateRoute>} />
-          <Route path="/console/casino" element={<PrivateRoute><Page><CasinoLobby /></Page></PrivateRoute>} />
-          <Route path="/console/casino/blackjack" element={<PrivateRoute><Page><CasinoBlackjack /></Page></PrivateRoute>} />
-          <Route path="/console/casino/dice" element={<PrivateRoute><Page><CasinoDice /></Page></PrivateRoute>} />
-          <Route path="/console/casino/roulette" element={<PrivateRoute><Page><CasinoRoulette /></Page></PrivateRoute>} />
-          <Route path="/console/casino/baccarat" element={<PrivateRoute><Page><CasinoBaccarat /></Page></PrivateRoute>} />
-          <Route path="/console/casino/slots" element={<PrivateRoute><Page><CasinoSlots /></Page></PrivateRoute>} />
-          <Route path="/console/casino/poker" element={<PrivateRoute><Page><CasinoPoker /></Page></PrivateRoute>} />
-          <Route path="/console/casino/achievements" element={<PrivateRoute><Page><CasinoAchievements /></Page></PrivateRoute>} />
-          <Route path="/console/casino/leaderboard" element={<PrivateRoute><Page><CasinoLeaderboard /></Page></PrivateRoute>} />
-          <Route path="/console/casino/stats" element={<PrivateRoute><Page><CasinoStats /></Page></PrivateRoute>} />
-          <Route path="/console/casino/gringotts" element={<PrivateRoute><Page><CasinoGringotts /></Page></PrivateRoute>} />
-          <Route path="/console/casino/bank" element={<PrivateRoute><Page><CasinoBank /></Page></PrivateRoute>} />
-          <Route path="/console/titles" element={<PrivateRoute><Page><Titles /></Page></PrivateRoute>} />
-          <Route path="/console/pet/arena" element={<PrivateRoute><Page><PetArena /></Page></PrivateRoute>} />
           <Route path="/console/user/:id" element={<PrivateRoute><Page><UserProfile /></Page></PrivateRoute>} />
           <Route path="/console/playground" element={<PrivateRoute><Page><Playground /></Page></PrivateRoute>} />
           <Route path="/console/midjourney" element={<PrivateRoute><Page><Midjourney /></Page></PrivateRoute>} />
@@ -202,15 +177,47 @@ function App() {
           <Route path="/console/models" element={<AdminRoute><Page><ModelPage /></Page></AdminRoute>} />
           <Route path="/console/deployment" element={<AdminRoute><Page><ModelDeployment /></Page></AdminRoute>} />
           <Route path="/console/subscription" element={<AdminRoute><Page><Subscription /></Page></AdminRoute>} />
-          <Route path="/console/admin/pet-species" element={<AdminRoute><Page><PetSpeciesAdmin /></Page></AdminRoute>} />
-          <Route path="/console/admin/pet-items" element={<AdminRoute><Page><PetItemsAdmin /></Page></AdminRoute>} />
-          <Route path="/console/admin/gacha-pools" element={<AdminRoute><Page><GachaPoolsAdmin /></Page></AdminRoute>} />
-          <Route path="/console/admin/missions" element={<AdminRoute><Page><MissionsAdmin /></Page></AdminRoute>} />
-          <Route path="/console/admin/pet-users" element={<AdminRoute><Page><PetUsersAdmin /></Page></AdminRoute>} />
-          <Route path="/console/admin/pet-grant" element={<AdminRoute><Page><PetGrantAdmin /></Page></AdminRoute>} />
-          <Route path="/console/admin/pet-market" element={<AdminRoute><Page><PetMarketAdmin /></Page></AdminRoute>} />
-          <Route path="/console/admin/pet-stats" element={<AdminRoute><Page><PetStatsAdmin /></Page></AdminRoute>} />
-          <Route path="/console/admin/casino" element={<AdminRoute><Page><AdminCasino /></Page></AdminRoute>} />
+        </Route>
+
+        {/* Hogwarts pages — HogwartsLayout wrapper */}
+        <Route element={<Suspense fallback={<Loading />}><HogwartsLayout /></Suspense>}>
+          <Route path="/console/hogwarts" element={<PrivateRoute><Page><HogwartsPortal /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/checkin" element={<PrivateRoute><Page><Checkin /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/community" element={<PrivateRoute><Page><Community /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/ranking" element={<PrivateRoute><Page><Ranking /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/titles" element={<PrivateRoute><Page><Titles /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/casino" element={<PrivateRoute><Page><CasinoLobby /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/casino/blackjack" element={<PrivateRoute><Page><CasinoBlackjack /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/casino/dice" element={<PrivateRoute><Page><CasinoDice /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/casino/roulette" element={<PrivateRoute><Page><CasinoRoulette /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/casino/baccarat" element={<PrivateRoute><Page><CasinoBaccarat /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/casino/slots" element={<PrivateRoute><Page><CasinoSlots /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/casino/poker" element={<PrivateRoute><Page><CasinoPoker /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/casino/achievements" element={<PrivateRoute><Page><CasinoAchievements /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/casino/leaderboard" element={<PrivateRoute><Page><CasinoLeaderboard /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/casino/stats" element={<PrivateRoute><Page><CasinoStats /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/casino/gringotts" element={<PrivateRoute><Page><CasinoGringotts /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/casino/bank" element={<PrivateRoute><Page><CasinoBank /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/pet" element={<PrivateRoute><Page><PetIndex /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/pet/adopt" element={<PrivateRoute><Page><PetAdopt /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/pet/shop" element={<PrivateRoute><Page><PetShop /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/pet/gacha" element={<PrivateRoute><Page><PetGacha /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/pet/fusion" element={<PrivateRoute><Page><PetFusion /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/pet/ranking" element={<PrivateRoute><Page><PetRanking /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/pet/adventure" element={<PrivateRoute><Page><PetAdventure /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/pet/market" element={<PrivateRoute><Page><PetMarket /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/pet/inventory" element={<PrivateRoute><Page><PetInventory /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/pet/arena" element={<PrivateRoute><Page><PetArena /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/pet/:id" element={<PrivateRoute><Page><PetDetail /></Page></PrivateRoute>} />
+          <Route path="/console/hogwarts/admin/casino" element={<AdminRoute><Page><AdminCasino /></Page></AdminRoute>} />
+          <Route path="/console/hogwarts/admin/pet-species" element={<AdminRoute><Page><PetSpeciesAdmin /></Page></AdminRoute>} />
+          <Route path="/console/hogwarts/admin/pet-items" element={<AdminRoute><Page><PetItemsAdmin /></Page></AdminRoute>} />
+          <Route path="/console/hogwarts/admin/gacha-pools" element={<AdminRoute><Page><GachaPoolsAdmin /></Page></AdminRoute>} />
+          <Route path="/console/hogwarts/admin/missions" element={<AdminRoute><Page><MissionsAdmin /></Page></AdminRoute>} />
+          <Route path="/console/hogwarts/admin/pet-users" element={<AdminRoute><Page><PetUsersAdmin /></Page></AdminRoute>} />
+          <Route path="/console/hogwarts/admin/pet-grant" element={<AdminRoute><Page><PetGrantAdmin /></Page></AdminRoute>} />
+          <Route path="/console/hogwarts/admin/pet-market" element={<AdminRoute><Page><PetMarketAdmin /></Page></AdminRoute>} />
+          <Route path="/console/hogwarts/admin/pet-stats" element={<AdminRoute><Page><PetStatsAdmin /></Page></AdminRoute>} />
         </Route>
 
         {/* 404 */}
