@@ -32,6 +32,7 @@ import {
   Dna,
   Package,
   Gem,
+  Landmark,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { isAdmin, isRoot } from '../../lib/utils';
@@ -81,6 +82,7 @@ const iconMap = {
   'pet-species-admin': Dna,
   'pet-items-admin': Package,
   casino: Gem,
+  bank: Landmark,
   'casino-admin': Gem,
 };
 
@@ -129,6 +131,7 @@ const routerMap = {
   'pet-species-admin': '/console/admin/pet-species',
   'pet-items-admin': '/console/admin/pet-items',
   casino: '/console/casino',
+  bank: '/console/casino/bank',
   'casino-admin': '/console/admin/casino',
 };
 
@@ -481,6 +484,11 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
         {/* Casino — standalone entry */}
         <div className="px-2 py-0.5">
           <NavItem item={{ text: t('韦斯莱赌坊'), itemKey: 'casino' }} />
+        </div>
+
+        {/* Bank — standalone entry */}
+        <div className="px-2 py-0.5">
+          <NavItem item={{ text: t('古灵阁银行'), itemKey: 'bank' }} />
         </div>
 
         {/* Pet section */}

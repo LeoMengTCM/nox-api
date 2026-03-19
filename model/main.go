@@ -311,6 +311,9 @@ func migrateDB() error {
 		&PetArenaSeason{},
 		&PetArenaDefender{},
 		&PetArenaBattle{},
+		&BankAccount{},
+		&FixedDeposit{},
+		&BankTransaction{},
 	)
 	if err != nil {
 		return err
