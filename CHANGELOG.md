@@ -2,6 +2,12 @@
 
 All notable changes to Nox API will be documented in this file.
 
+## [0.1.10] - 2026-03-19
+
+### Fixes
+- **Bank DB migration**: Fixed bank tables (`gringotts_bank_accounts`, `gringotts_fixed_deposits`, `gringotts_bank_transactions`) not being created on startup. Tables were only in `migrateDBFast()` (unused) but missing from `migrateDB()` (the actual migration path).
+- **Bank sidebar menu**: Moved Gringotts Bank from a casino sub-page to its own standalone sidebar menu entry with a dedicated Landmark icon, making it independent from the casino.
+
 ## [0.1.9] - 2026-03-19
 
 ### New Features
