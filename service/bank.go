@@ -333,7 +333,7 @@ func GetBankTransactions(userId int, page, perPage int) ([]model.BankTransaction
 // AdminGetBankStats returns aggregate bank statistics
 func AdminGetBankStats() map[string]interface{} {
 	setting := operation_setting.GetBankSetting()
-	return map[string]interface{}{
+	stats := map[string]interface{}{
 		"bank_pool":              setting.BankPool,
 		"demand_total":           model.GetBankTotalDeposits(model.AccountTypeDemand),
 		"premium_total":          model.GetBankTotalDeposits(model.AccountTypePremium),
@@ -343,6 +343,12 @@ func AdminGetBankStats() map[string]interface{} {
 		"fixed_interest_paid":    model.GetFixedTotalInterestPaid(),
 		"account_count":          model.GetBankAccountCount(),
 	}
+	// Add loan stats
+	loanStats := AdminGetLoanStats()
+	for k, v := range loanStats {
+		stats[k] = v
+	}
+	return stats
 }
 
 // AdminInjectPool injects or withdraws from the bank pool

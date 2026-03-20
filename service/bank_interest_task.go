@@ -58,6 +58,11 @@ func runBankInterestOnce() {
 
 	// 2. Process matured fixed deposits
 	processMaturedFixedDeposits(ctx)
+
+	// 3. Process loan interest & overdue checks
+	if operation_setting.IsLoanEnabled() {
+		processLoanInterest(ctx, now)
+	}
 }
 
 func processDemandInterest(ctx context.Context, now int64) {
@@ -157,6 +162,60 @@ func processDemandInterest(ctx context.Context, now int64) {
 		operation_setting.SetBankPoolMemory(newPool)
 		_ = model.UpdateOption("bank_setting.bank_pool", fmt.Sprintf("%d", newPool))
 		logger.LogInfo(ctx, fmt.Sprintf("bank interest: paid %d to %d accounts, pool: %d -> %d", paid, len(items), pool, newPool))
+	}
+}
+
+func processLoanInterest(ctx context.Context, now int64) {
+	loans, err := model.GetAllActiveLoans()
+	if err != nil {
+		logger.LogWarn(ctx, fmt.Sprintf("bank loan interest: failed to get active loans: %v", err))
+		return
+	}
+	if len(loans) == 0 {
+		return
+	}
+
+	var totalInterest int64
+	for _, loan := range loans {
+		// hourly interest = principal_remaining × annual_rate / (365 × 24 × 10000)
+		remaining := int64(loan.Amount - loan.PrincipalPaid)
+		if remaining <= 0 {
+			continue
+		}
+		interest := remaining * int64(loan.AnnualRate) / (365 * 24 * 10000)
+		if interest < 1 {
+			interest = 1 // minimum 1 quota per hour
+		}
+
+		newAccrued := loan.InterestAccrued + int(interest)
+		if err := model.UpdateLoanInterest(loan.Id, newAccrued); err != nil {
+			logger.LogWarn(ctx, fmt.Sprintf("bank loan interest: failed to update loan %d: %v", loan.Id, err))
+			continue
+		}
+
+		// Record interest transaction
+		_ = model.CreateBankTransaction(&model.BankTransaction{
+			UserId:      loan.UserId,
+			TxType:      "loan_interest",
+			Amount:      int(interest),
+			Description: fmt.Sprintf("贷款利息 (年化 %d‱)", loan.AnnualRate),
+			RelatedId:   loan.Id,
+		})
+
+		totalInterest += interest
+
+		// Check overdue
+		if loan.Status == model.LoanStatusActive && now > loan.DueAt {
+			if err := model.UpdateLoanOverdue(loan.Id); err != nil {
+				logger.LogWarn(ctx, fmt.Sprintf("bank loan: failed to mark overdue loan %d: %v", loan.Id, err))
+			} else {
+				logger.LogInfo(ctx, fmt.Sprintf("bank loan: loan %d overdue, user %d", loan.Id, loan.UserId))
+			}
+		}
+	}
+
+	if totalInterest > 0 {
+		logger.LogInfo(ctx, fmt.Sprintf("bank loan interest: accrued %d across %d loans", totalInterest, len(loans)))
 	}
 }
 

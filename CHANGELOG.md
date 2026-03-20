@@ -2,6 +2,29 @@
 
 All notable changes to Nox API will be documented in this file.
 
+## [0.1.13] - 2026-03-20
+
+### New Features
+
+#### Gringotts Credit Loan (古灵阁信用贷款)
+- **Credit loan system**: Users can borrow against a configurable credit limit, with loans tracked per-user and per-term.
+- **5 loan terms**: 1/3/7/14/30 days with decreasing annual rates (default 36.5%/24%/18%/15%/12%).
+- **Hourly interest accrual**: Loan interest accumulates every hour via the existing bank interest task. Interest continues accruing even after overdue.
+- **Flexible repayment**: Partial or full repayment at any time. Payments apply to interest first, then principal.
+- **Overdue handling**: No penalty fees — overdue loans are simply marked and displayed on the "deadbeat leaderboard" (老赖排行榜, top 20 by outstanding debt).
+- **Per-user credit limits**: Admin can set custom credit limits for individual users; others use the global default ($5).
+- **Fund flow**: Loans drawn from bank pool → user wallet; repayments return to bank pool.
+- **Red-themed UI**: Loan section in bank page with red/dark-red styling, distinct from deposit green/amber. Borrow dialog with term selector, repay dialog with "pay all" shortcut.
+- **Admin panel**: Loan stats (outstanding, interest earned, overdue count), 9 loan settings, user credit management input.
+- **New transaction types**: `loan_borrow`, `loan_repay`, `loan_interest`.
+- **DB**: 2 new tables (`gringotts_loans`, `gringotts_loan_credits`), reuses `gringotts_bank_transactions`.
+- **API**: 4 user endpoints + 1 admin endpoint.
+
+### Improvements
+
+#### Token Default Unlimited Quota
+- New tokens now default to **unlimited quota** instead of 0, so users don't need to manually toggle the setting.
+
 ## [0.1.12] - 2026-03-19
 
 ### Improvements

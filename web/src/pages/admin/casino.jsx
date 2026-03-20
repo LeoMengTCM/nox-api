@@ -559,8 +559,20 @@ function BankTab() {
     'bank_setting.max_premium_balance': 5000000,
     'bank_setting.max_fixed_per_user': 5,
     'bank_setting.early_withdraw_penalty': 50,
+    // Loan settings
+    'bank_setting.loan_enabled': false,
+    'bank_setting.default_credit_limit': 2500000,
+    'bank_setting.loan_rate_1': 3650,
+    'bank_setting.loan_rate_3': 2400,
+    'bank_setting.loan_rate_7': 1800,
+    'bank_setting.loan_rate_14': 1500,
+    'bank_setting.loan_rate_30': 1200,
+    'bank_setting.max_active_loans': 3,
+    'bank_setting.min_loan_amount': 50000,
   });
   const [injectAmount, setInjectAmount] = useState('');
+  const [creditUserId, setCreditUserId] = useState('');
+  const [creditLimit, setCreditLimit] = useState('');
 
   const fetchData = async () => {
     setLoading(true);
@@ -633,6 +645,25 @@ function BankTab() {
     }
   };
 
+  const handleSetCredit = async () => {
+    const uid = parseInt(creditUserId);
+    const limit = parseFloat(creditLimit);
+    if (!uid || uid <= 0) return showError('请输入有效用户ID');
+    if (isNaN(limit) || limit < 0) return showError('请输入有效额度');
+    try {
+      const res = await API.post('/api/casino/admin/bank/loan/credit', { user_id: uid, credit_limit: limit });
+      if (res.data.success) {
+        showSuccess('信用额度设置成功');
+        setCreditUserId('');
+        setCreditLimit('');
+      } else {
+        showError(res.data.message);
+      }
+    } catch (e) {
+      showError(e.message);
+    }
+  };
+
   const updateSetting = (key, value) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
@@ -676,6 +707,19 @@ function BankTab() {
           <Card className="p-4">
             <p className="text-xs text-text-secondary">{t('活跃账户数')}</p>
             <p className="text-lg font-heading">{stats.account_count}</p>
+          </Card>
+          {/* Loan stats */}
+          <Card className="p-4 border-red-500/20">
+            <p className="text-xs text-text-secondary">{t('贷款总额')}</p>
+            <p className="text-lg font-heading font-bold text-red-500">{fmtQ(stats.loan_outstanding)}</p>
+          </Card>
+          <Card className="p-4 border-red-500/20">
+            <p className="text-xs text-text-secondary">{t('贷款利息收入')}</p>
+            <p className="text-lg font-heading text-emerald-500">{fmtQ(stats.loan_interest_earned)}</p>
+          </Card>
+          <Card className="p-4 border-red-500/20">
+            <p className="text-xs text-text-secondary">{t('逾期贷款数')}</p>
+            <p className="text-lg font-heading text-red-500">{stats.loan_overdue_count}</p>
           </Card>
         </div>
       )}
@@ -726,10 +770,63 @@ function BankTab() {
             </div>
           ))}
         </div>
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? t('保存中...') : t('保存设置')}
-        </Button>
       </Card>
+
+      <Card className="p-4 space-y-4 border-red-500/20">
+        <h3 className="text-sm font-heading font-semibold text-red-600">{t('贷款设置')}</h3>
+        <div className="flex items-center justify-between">
+          <span className="text-sm">{t('启用贷款功能')}</span>
+          <Switch
+            checked={settings['bank_setting.loan_enabled']}
+            onCheckedChange={(v) => updateSetting('bank_setting.loan_enabled', v)}
+          />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {[
+            ['bank_setting.default_credit_limit', '默认信用额度 (额度)'],
+            ['bank_setting.loan_rate_1', '1天贷款年化 (万分比)'],
+            ['bank_setting.loan_rate_3', '3天贷款年化'],
+            ['bank_setting.loan_rate_7', '7天贷款年化'],
+            ['bank_setting.loan_rate_14', '14天贷款年化'],
+            ['bank_setting.loan_rate_30', '30天贷款年化'],
+            ['bank_setting.max_active_loans', '最大活跃贷款数'],
+            ['bank_setting.min_loan_amount', '最小贷款额 (额度)'],
+          ].map(([key, label]) => (
+            <div key={key}>
+              <label className="text-xs text-text-secondary">{t(label)}</label>
+              <Input type="number" value={settings[key]}
+                onChange={(e) => updateSetting(key, parseInt(e.target.value) || 0)} />
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="p-4 space-y-3 border-red-500/20">
+        <h3 className="text-sm font-heading font-semibold text-red-600">{t('用户信用管理')}</h3>
+        <p className="text-xs text-text-tertiary">{t('为单个用户设置自定义信用额度（0 = 使用默认）')}</p>
+        <div className="flex gap-2 items-center">
+          <Input
+            type="number"
+            className="w-[120px]"
+            placeholder={t('用户ID')}
+            value={creditUserId}
+            onChange={(e) => setCreditUserId(e.target.value)}
+          />
+          <Input
+            type="number"
+            step="0.01"
+            className="w-[160px]"
+            placeholder={t('信用额度 ($)')}
+            value={creditLimit}
+            onChange={(e) => setCreditLimit(e.target.value)}
+          />
+          <Button size="sm" onClick={handleSetCredit}>{t('设置')}</Button>
+        </div>
+      </Card>
+
+      <Button onClick={handleSave} disabled={saving}>
+        {saving ? t('保存中...') : t('保存所有设置')}
+      </Button>
     </div>
   );
 }

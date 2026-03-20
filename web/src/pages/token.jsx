@@ -37,7 +37,7 @@ const defaultTokenForm = {
   name: '',
   remain_quota: 0,
   expired_time: '',
-  unlimited_quota: false,
+  unlimited_quota: true,
   model_limits_enabled: false,
   model_limits: '',
   allow_ips: '',
@@ -132,8 +132,7 @@ export default function TokenPage() {
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({ ...defaultTokenForm });
   const [createdKey, setCreatedKey] = useState('');
-  const [revealedKeys, setRevealedKeys] = useState({});
-  const [revealingKeys, setRevealingKeys] = useState({});
+  const [copyingKeys, setCopyingKeys] = useState({});
 
   // Models and groups loaded when dialog opens
   const [availableModels, setAvailableModels] = useState([]);
@@ -325,16 +324,11 @@ export default function TokenPage() {
   };
 
   const handleCopyKey = async (token) => {
-    if (revealedKeys[token.id]) {
-      await copy(revealedKeys[token.id]);
-      showSuccess('已复制到剪贴板');
-      return;
-    }
+    setCopyingKeys((prev) => ({ ...prev, [token.id]: true }));
     try {
       const res = await API.post(`/api/token/${token.id}/key`);
       const { success, message, data } = res.data;
       if (success) {
-        setRevealedKeys((prev) => ({ ...prev, [token.id]: data.key }));
         await copy(data.key);
         showSuccess('已复制到剪贴板');
       } else {
@@ -342,31 +336,8 @@ export default function TokenPage() {
       }
     } catch (err) {
       showError('获取密钥失败');
-    }
-  };
-
-  const handleRevealKey = async (token) => {
-    if (revealedKeys[token.id]) {
-      setRevealedKeys((prev) => {
-        const next = { ...prev };
-        delete next[token.id];
-        return next;
-      });
-      return;
-    }
-    setRevealingKeys((prev) => ({ ...prev, [token.id]: true }));
-    try {
-      const res = await API.post(`/api/token/${token.id}/key`);
-      const { success, message, data } = res.data;
-      if (success) {
-        setRevealedKeys((prev) => ({ ...prev, [token.id]: data.key }));
-      } else {
-        showError(message || '获取密钥失败');
-      }
-    } catch (err) {
-      showError('获取密钥失败');
     } finally {
-      setRevealingKeys((prev) => {
+      setCopyingKeys((prev) => {
         const next = { ...prev };
         delete next[token.id];
         return next;
@@ -421,43 +392,30 @@ export default function TokenPage() {
       accessorKey: 'key',
       cell: ({ row }) => {
         const token = row.original;
-        const isRevealed = !!revealedKeys[token.id];
-        const isRevealing = !!revealingKeys[token.id];
+        const isCopying = !!copyingKeys[token.id];
         return (
-          <div className="flex items-center gap-2">
-            <code className="text-text-secondary text-sm bg-surface px-2 py-0.5 rounded">
-              {isRevealed ? revealedKeys[token.id] : `sk-${maskKey(token.key)}`}
+          <div className="flex items-center gap-1.5">
+            <code className="text-text-secondary text-sm bg-surface px-2 py-0.5 rounded font-mono">
+              sk-{maskKey(token.key)}
             </code>
             <Button
               variant="ghost"
               size="sm"
-              className="p-1 h-7 w-7"
-              onClick={() => handleRevealKey(token)}
-              disabled={isRevealing}
-              title={isRevealed ? '隐藏密钥' : '显示完整密钥'}
+              className="p-1 h-7 w-7 shrink-0"
+              onClick={() => handleCopyKey(token)}
+              disabled={isCopying}
+              title="复制密钥"
             >
-              {isRevealing ? (
-                <svg className="h-4 w-4 animate-spin text-text-tertiary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              {isCopying ? (
+                <svg className="h-3.5 w-3.5 animate-spin text-text-tertiary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-              ) : isRevealed ? (
-                <svg className="h-4 w-4 text-text-tertiary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12c1.292 4.338 5.31 7.5 10.066 7.5.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
-                </svg>
               ) : (
-                <svg className="h-4 w-4 text-text-tertiary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                <svg className="h-3.5 w-3.5 text-text-tertiary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9.75a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
                 </svg>
               )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleCopyKey(token)}
-            >
-              复制
             </Button>
           </div>
         );
@@ -507,9 +465,6 @@ export default function TokenPage() {
         const token = row.original;
         return (
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" onClick={() => handleCopyKey(token)}>
-              复制Key
-            </Button>
             <Button variant="ghost" size="sm" onClick={() => openEditDialog(token)}>
               编辑
             </Button>

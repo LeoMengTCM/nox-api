@@ -17,6 +17,16 @@ type BankSetting struct {
 	MaxPremiumBalance    int   `json:"max_premium_balance"`      // 高息活期最大余额
 	MaxFixedPerUser      int   `json:"max_fixed_per_user"`       // 每人最多定期存单数
 	EarlyWithdrawPenalty int   `json:"early_withdraw_penalty"`   // 提前取出利息罚没百分比
+	// Loan settings (贷款)
+	LoanEnabled        bool `json:"loan_enabled"`         // 贷款开关
+	DefaultCreditLimit int  `json:"default_credit_limit"` // 默认信用额度 (quota)
+	LoanRate1          int  `json:"loan_rate_1"`          // 1天贷款年化 万分比
+	LoanRate3          int  `json:"loan_rate_3"`          // 3天贷款年化 万分比
+	LoanRate7          int  `json:"loan_rate_7"`          // 7天贷款年化 万分比
+	LoanRate14         int  `json:"loan_rate_14"`         // 14天贷款年化 万分比
+	LoanRate30         int  `json:"loan_rate_30"`         // 30天贷款年化 万分比
+	MaxActiveLoans     int  `json:"max_active_loans"`     // 最大活跃贷款数
+	MinLoanAmount      int  `json:"min_loan_amount"`      // 最小贷款额 (quota)
 }
 
 // 默认配置 — 额度单位: 500000 = $1
@@ -34,6 +44,16 @@ var bankSetting = BankSetting{
 	MaxPremiumBalance:    5000000, // $10
 	MaxFixedPerUser:      5,
 	EarlyWithdrawPenalty: 50, // 50%
+	// Loan defaults
+	LoanEnabled:        false,
+	DefaultCreditLimit: 2500000, // $5
+	LoanRate1:          3650,    // 36.5% 年化
+	LoanRate3:          2400,    // 24% 年化
+	LoanRate7:          1800,    // 18% 年化
+	LoanRate14:         1500,    // 15% 年化
+	LoanRate30:         1200,    // 12% 年化
+	MaxActiveLoans:     3,
+	MinLoanAmount:      50000, // $0.10
 }
 
 func init() {
@@ -46,6 +66,10 @@ func GetBankSetting() *BankSetting {
 
 func IsBankEnabled() bool {
 	return bankSetting.Enabled
+}
+
+func IsLoanEnabled() bool {
+	return bankSetting.LoanEnabled
 }
 
 func GetDemandRate() int {
@@ -82,6 +106,59 @@ func GetFixedRate(termDays int) int {
 	default:
 		return 0
 	}
+}
+
+func GetLoanRate(termDays int) int {
+	switch termDays {
+	case 1:
+		if bankSetting.LoanRate1 <= 0 {
+			return 3650
+		}
+		return bankSetting.LoanRate1
+	case 3:
+		if bankSetting.LoanRate3 <= 0 {
+			return 2400
+		}
+		return bankSetting.LoanRate3
+	case 7:
+		if bankSetting.LoanRate7 <= 0 {
+			return 1800
+		}
+		return bankSetting.LoanRate7
+	case 14:
+		if bankSetting.LoanRate14 <= 0 {
+			return 1500
+		}
+		return bankSetting.LoanRate14
+	case 30:
+		if bankSetting.LoanRate30 <= 0 {
+			return 1200
+		}
+		return bankSetting.LoanRate30
+	default:
+		return 0
+	}
+}
+
+func GetDefaultCreditLimit() int {
+	if bankSetting.DefaultCreditLimit <= 0 {
+		return 2500000
+	}
+	return bankSetting.DefaultCreditLimit
+}
+
+func GetMaxActiveLoans() int {
+	if bankSetting.MaxActiveLoans <= 0 {
+		return 3
+	}
+	return bankSetting.MaxActiveLoans
+}
+
+func GetMinLoanAmount() int {
+	if bankSetting.MinLoanAmount <= 0 {
+		return 50000
+	}
+	return bankSetting.MinLoanAmount
 }
 
 func GetMinDeposit() int {

@@ -263,6 +263,10 @@ func AdminGetBankStats(c *gin.Context) {
 		"premium_interest_paid": quotaToDollar64(stats["premium_interest_paid"].(int64)),
 		"fixed_interest_paid":   quotaToDollar64(stats["fixed_interest_paid"].(int64)),
 		"account_count":         stats["account_count"],
+		// Loan stats
+		"loan_outstanding":     quotaToDollar64(stats["loan_outstanding"].(int64)),
+		"loan_interest_earned": quotaToDollar64(stats["loan_interest_earned"].(int64)),
+		"loan_overdue_count":   stats["loan_overdue_count"],
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
 }
