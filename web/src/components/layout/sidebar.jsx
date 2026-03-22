@@ -18,6 +18,9 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
+  CalendarCheck,
+  MessageCircle,
+  Trophy,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { isAdmin, isRoot } from '../../lib/utils';
@@ -47,6 +50,9 @@ const iconMap = {
   personal: Settings,
   midjourney: FileText,
   task: FileText,
+  checkin: CalendarCheck,
+  community: MessageCircle,
+  ranking: Trophy,
 };
 
 const getIcon = (itemKey, size = 18) => {
@@ -74,6 +80,9 @@ const routerMap = {
   deployment: '/console/deployment',
   playground: '/console/playground',
   personal: '/console/personal',
+  checkin: '/console/checkin',
+  community: '/console/community',
+  ranking: '/console/ranking',
 };
 
 const COLLAPSED_SECTIONS_KEY = 'sidebar-collapsed-sections';
@@ -225,6 +234,9 @@ const Sidebar = ({ collapsed, onToggleCollapse, onNavigate = () => {} }) => {
   const accountItems = useMemo(() => {
     const items = [
       { text: t('钱包管理'), itemKey: 'topup' },
+      { text: t('每日签到'), itemKey: 'checkin' },
+      { text: t('社区'), itemKey: 'community' },
+      { text: t('排行榜'), itemKey: 'ranking' },
       { text: t('个人设置'), itemKey: 'personal' },
     ];
     return items.filter((item) => isModuleVisible('personal', item.itemKey));

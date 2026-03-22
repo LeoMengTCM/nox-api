@@ -1119,3 +1119,73 @@ func GetAIKingRanking(limit int) ([]RankingUser, error) {
 	}
 	return result, nil
 }
+
+// GetRequestKingRanking returns top users by request count (请求之王排名)
+func GetRequestKingRanking(limit int) ([]RankingUser, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	var users []struct {
+		Id           int
+		Username     string
+		DisplayName  string
+		AvatarUrl    string
+		RequestCount int
+	}
+	err := DB.Model(&User{}).
+		Select("id, username, display_name, avatar_url, request_count").
+		Where("status = ? AND request_count > 0", common.UserStatusEnabled).
+		Order("request_count DESC").
+		Limit(limit).
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	result := make([]RankingUser, len(users))
+	for i, u := range users {
+		result[i] = RankingUser{
+			Rank:        i + 1,
+			Id:          u.Id,
+			Username:    u.Username,
+			DisplayName: u.DisplayName,
+			AvatarUrl:   u.AvatarUrl,
+			Value:       u.RequestCount,
+		}
+	}
+	return result, nil
+}
+
+// GetInviterRanking returns top users by invitation count (邀请达人排名)
+func GetInviterRanking(limit int) ([]RankingUser, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	var users []struct {
+		Id          int
+		Username    string
+		DisplayName string
+		AvatarUrl   string
+		AffCount    int
+	}
+	err := DB.Model(&User{}).
+		Select("id, username, display_name, avatar_url, aff_count").
+		Where("status = ? AND aff_count > 0", common.UserStatusEnabled).
+		Order("aff_count DESC").
+		Limit(limit).
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	result := make([]RankingUser, len(users))
+	for i, u := range users {
+		result[i] = RankingUser{
+			Rank:        i + 1,
+			Id:          u.Id,
+			Username:    u.Username,
+			DisplayName: u.DisplayName,
+			AvatarUrl:   u.AvatarUrl,
+			Value:       u.AffCount,
+		}
+	}
+	return result, nil
+}

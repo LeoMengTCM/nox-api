@@ -1,9 +1,10 @@
 import { useState, useEffect, useContext } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '../components/ui';
 import { API } from '../lib/api';
 import { showError, renderQuota } from '../lib/utils';
 import { UserContext } from '../contexts/user-context';
-import { Crown, Wallet, Trophy } from 'lucide-react';
+import { Crown, Wallet, Trophy, Zap, Users } from 'lucide-react';
 
 const MEDAL_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];
 
@@ -37,6 +38,7 @@ function UserAvatar({ user }) {
 }
 
 function RankingBoard({ title, icon: Icon, iconColor, data, currentUserId, valueLabel, formatValue }) {
+  const { t } = useTranslation();
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-surface-hover/30">
@@ -50,7 +52,7 @@ function RankingBoard({ title, icon: Icon, iconColor, data, currentUserId, value
       </div>
       <div className="divide-y divide-border">
         {data.length === 0 ? (
-          <div className="py-12 text-center text-sm text-text-tertiary">暂无数据</div>
+          <div className="py-12 text-center text-sm text-text-tertiary">{t('暂无数据')}</div>
         ) : (
           data.map((user) => (
             <div
@@ -73,7 +75,7 @@ function RankingBoard({ title, icon: Icon, iconColor, data, currentUserId, value
                 {formatValue(user.value)}
               </div>
               {user.id === currentUserId && (
-                <span className="text-[10px] text-accent font-medium bg-accent/10 px-1.5 py-0.5 rounded shrink-0">你</span>
+                <span className="text-[10px] text-accent font-medium bg-accent/10 px-1.5 py-0.5 rounded shrink-0">{t('你')}</span>
               )}
             </div>
           ))
@@ -84,8 +86,9 @@ function RankingBoard({ title, icon: Icon, iconColor, data, currentUserId, value
 }
 
 export default function RankingPage() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState({ hoarder: [], ai_king: [] });
+  const [data, setData] = useState({ hoarder: [], ai_king: [], request_king: [], inviter: [] });
   const [userState] = useContext(UserContext);
   const currentUserId = userState?.user?.id;
 
@@ -95,12 +98,12 @@ export default function RankingPage() {
         const res = await API.get('/api/user/ranking?limit=20');
         const { success, data: rankData, message } = res.data;
         if (success) {
-          setData(rankData || { hoarder: [], ai_king: [] });
+          setData(rankData || { hoarder: [], ai_king: [], request_king: [], inviter: [] });
         } else {
-          showError(message || '加载排名失败');
+          showError(message || t('加载排名失败'));
         }
       } catch {
-        showError('加载排名失败');
+        showError(t('加载排名失败'));
       }
       setLoading(false);
     };
@@ -111,11 +114,11 @@ export default function RankingPage() {
     return (
       <div className="p-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-heading text-text-primary">排行榜</h1>
-          <p className="text-sm text-text-tertiary mt-1">看看谁是 Nox API 的风云人物</p>
+          <h1 className="text-2xl font-heading text-text-primary">{t('排行榜')}</h1>
+          <p className="text-sm text-text-tertiary mt-1">{t('看看谁是 Nox API 的风云人物')}</p>
         </div>
         <div className="grid gap-6 lg:grid-cols-2">
-          {[0, 1].map((i) => (
+          {[0, 1, 2, 3].map((i) => (
             <Card key={i} className="h-64 animate-pulse bg-surface-hover/30" />
           ))}
         </div>
@@ -123,30 +126,50 @@ export default function RankingPage() {
     );
   }
 
+  const formatNumber = (v) => v.toLocaleString();
+
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-heading text-text-primary">排行榜</h1>
-        <p className="text-sm text-text-tertiary mt-1">看看谁是 Nox API 的风云人物</p>
+        <h1 className="text-2xl font-heading text-text-primary">{t('排行榜')}</h1>
+        <p className="text-sm text-text-tertiary mt-1">{t('看看谁是 Nox API 的风云人物')}</p>
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <RankingBoard
-          title="屯屯鼠排名"
+          title={t('屯屯鼠排名')}
           icon={Wallet}
           iconColor="#F59E0B"
           data={data.hoarder}
           currentUserId={currentUserId}
-          valueLabel="可用余额最高的用户"
+          valueLabel={t('可用余额最高的用户')}
           formatValue={renderQuota}
         />
         <RankingBoard
-          title="AI大王排名"
+          title={t('AI大王排名')}
           icon={Crown}
           iconColor="#8B5CF6"
           data={data.ai_king}
           currentUserId={currentUserId}
-          valueLabel="已用额度最高的用户"
+          valueLabel={t('已用额度最高的用户')}
           formatValue={renderQuota}
+        />
+        <RankingBoard
+          title={t('请求之王')}
+          icon={Zap}
+          iconColor="#EF4444"
+          data={data.request_king}
+          currentUserId={currentUserId}
+          valueLabel={t('API请求次数最多的用户')}
+          formatValue={formatNumber}
+        />
+        <RankingBoard
+          title={t('邀请达人')}
+          icon={Users}
+          iconColor="#10B981"
+          data={data.inviter}
+          currentUserId={currentUserId}
+          valueLabel={t('邀请好友最多的用户')}
+          formatValue={formatNumber}
         />
       </div>
     </div>

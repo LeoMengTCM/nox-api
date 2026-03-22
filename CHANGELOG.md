@@ -2,6 +2,24 @@
 
 All notable changes to Nox API will be documented in this file.
 
+## [0.1.14] - 2026-03-23
+
+### Improvements
+
+#### Sidebar Reorganization
+- Moved **Check-in**, **Community**, and **Ranking** from Hogwarts Portal back into the AI Console sidebar under the "Account" section, making them accessible without entering the Hogwarts portal.
+- Routes available at both `/console/checkin|community|ranking` and `/console/hogwarts/...` for backward compatibility.
+
+#### Enriched Leaderboard (2 → 4 dimensions)
+- Added **Request King** (请求之王): ranked by total API request count.
+- Added **Top Inviter** (邀请达人): ranked by invitation count.
+- Leaderboard page now displays a 2×2 grid of ranking boards.
+
+#### Token Management Fixes
+- **Copy fix**: Rewrote clipboard utility with `isSecureContext` detection, `focus()` + `setSelectionRange()` fallback to reliably copy on all browsers.
+- **Reveal key**: Added eye icon button to view/hide the full token key inline without copying. Toggling hides it again.
+- **sk- prefix**: `GetTokenKey` API now returns the full key with `sk-` prefix, matching the format shown at creation time. Copy produces a ready-to-use key.
+
 ## [0.1.13] - 2026-03-20
 
 ### New Features

@@ -228,26 +228,32 @@ export function removeTrailingSlash(url) {
 }
 
 export async function copy(text) {
-  let okay = true;
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
+  if (!text) return false;
+  // Try modern clipboard API first
+  if (navigator.clipboard && window.isSecureContext) {
     try {
-      const textarea = window.document.createElement('textarea');
-      textarea.value = text;
-      textarea.setAttribute('readonly', '');
-      textarea.style.position = 'fixed';
-      textarea.style.left = '-9999px';
-      textarea.style.top = '-9999px';
-      window.document.body.appendChild(textarea);
-      textarea.select();
-      window.document.execCommand('copy');
-      window.document.body.removeChild(textarea);
+      await navigator.clipboard.writeText(text);
+      return true;
     } catch {
-      okay = false;
+      // fall through to fallback
     }
   }
-  return okay;
+  // Fallback: textarea + execCommand
+  try {
+    const textarea = window.document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+    window.document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    textarea.setSelectionRange(0, text.length);
+    const ok = window.document.execCommand('copy');
+    window.document.body.removeChild(textarea);
+    return ok;
+  } catch {
+    return false;
+  }
 }
 
 export function getTodayStartTimestamp() {

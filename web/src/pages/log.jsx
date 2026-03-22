@@ -186,49 +186,82 @@ export default function LogPage() {
       },
     },
     {
-      header: '内容',
-      accessorKey: 'content',
-      cell: ({ row }) => {
-        const content = row.original.content;
-        if (!content) return <span className="text-sm text-text-secondary">-</span>;
-        const truncated = content.length > 40 ? content.slice(0, 40) + '...' : content;
-        if (content.length > 40) {
-          return (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="text-sm truncate max-w-[240px] inline-block cursor-default">
-                  {truncated}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-sm">{content}</TooltipContent>
-            </Tooltip>
-          );
-        }
-        return <span className="text-sm">{content}</span>;
-      },
-    },
-    {
-      header: '用户',
-      accessorKey: 'username',
-      cell: ({ row }) => (
-        <span className="text-sm">{row.original.username || '-'}</span>
-      ),
-    },
-    {
-      header: '令牌',
-      accessorKey: 'token_name',
-      cell: ({ row }) => (
-        <span className="text-sm truncate max-w-[120px] inline-block">
-          {row.original.token_name || '-'}
-        </span>
-      ),
-    },
-    {
       header: '模型',
       accessorKey: 'model_name',
       cell: ({ row }) => (
         <span className="text-sm truncate max-w-[160px] inline-block font-mono">
           {row.original.model_name || '-'}
+        </span>
+      ),
+    },
+    {
+      header: '用量',
+      accessorKey: 'prompt_tokens',
+      cell: ({ row }) => {
+        const prompt = row.original.prompt_tokens;
+        const completion = row.original.completion_tokens;
+        if (!prompt && !completion) return <span className="text-sm text-text-secondary">-</span>;
+        const total = (prompt || 0) + (completion || 0);
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="text-sm tabular-nums cursor-default">
+                {total.toLocaleString()}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="text-xs space-y-0.5">
+                <div>输入: {(prompt || 0).toLocaleString()}</div>
+                <div>输出: {(completion || 0).toLocaleString()}</div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      header: '额度',
+      accessorKey: 'quota',
+      cell: ({ row }) => (
+        <span className="text-sm tabular-nums font-medium">
+          {row.original.quota != null && row.original.quota !== 0 ? formatQuota(row.original.quota) : '-'}
+        </span>
+      ),
+    },
+    {
+      header: '耗时',
+      accessorKey: 'use_time',
+      cell: ({ row }) => {
+        const elapsed = row.original.use_time;
+        if (!elapsed) return <span className="text-sm text-text-secondary">-</span>;
+        // Format: show seconds if >= 1000ms
+        const display = elapsed >= 1000
+          ? (elapsed / 1000).toFixed(1) + 's'
+          : elapsed + 'ms';
+        return (
+          <span className={`text-sm tabular-nums font-medium ${getElapsedTimeColor(elapsed)}`}>
+            {display}
+          </span>
+        );
+      },
+    },
+    ...(admin
+      ? [
+          {
+            header: '用户',
+            accessorKey: 'username',
+            cell: ({ row }) => (
+              <span className="text-sm">{row.original.username || '-'}</span>
+            ),
+          },
+        ]
+      : []),
+    {
+      header: '令牌',
+      accessorKey: 'token_name',
+      cell: ({ row }) => (
+        <span className="text-sm truncate max-w-[100px] inline-block">
+          {row.original.token_name || '-'}
         </span>
       ),
     },
@@ -259,24 +292,21 @@ export default function LogPage() {
         ]
       : []),
     {
-      header: '额度',
-      accessorKey: 'quota',
-      cell: ({ row }) => (
-        <span className="text-sm tabular-nums font-medium">
-          {row.original.quota != null ? formatQuota(row.original.quota) : '-'}
-        </span>
-      ),
-    },
-    {
-      header: '耗时(ms)',
-      accessorKey: 'elapsed_time',
+      header: '内容',
+      accessorKey: 'content',
       cell: ({ row }) => {
-        const elapsed = row.original.elapsed_time;
-        if (elapsed == null) return <span className="text-sm">-</span>;
+        const content = row.original.content;
+        if (!content) return <span className="text-sm text-text-secondary">-</span>;
+        const truncated = content.length > 20 ? content.slice(0, 20) + '…' : content;
         return (
-          <span className={`text-sm tabular-nums font-medium ${getElapsedTimeColor(elapsed)}`}>
-            {elapsed.toLocaleString()}
-          </span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="text-sm text-text-secondary truncate max-w-[140px] inline-block cursor-default">
+                {truncated}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-sm whitespace-pre-wrap">{content}</TooltipContent>
+          </Tooltip>
         );
       },
     },
@@ -404,82 +434,111 @@ export default function LogPage() {
             <DialogTitle>日志详情</DialogTitle>
           </DialogHeader>
           {selectedLog && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <DetailField label="ID" value={selectedLog.id} />
-              <DetailField
-                label="时间"
-                value={timestamp2string(selectedLog.created_at)}
-              />
-              <DetailField
-                label="类型"
-                value={
-                  <Badge variant={TYPE_BADGE_VARIANT[selectedLog.type] || 'default'}>
-                    {LOG_TYPES[selectedLog.type] || '未知'}
-                  </Badge>
-                }
-              />
-              <DetailField label="用户" value={selectedLog.username || '-'} />
-              <DetailField label="令牌" value={selectedLog.token_name || '-'} />
-              <DetailField label="模型" value={selectedLog.model_name || '-'} />
-              <DetailField label="渠道" value={
-                selectedLog.channel
-                  ? selectedLog.channel_name
-                    ? `${selectedLog.channel} (${selectedLog.channel_name})`
-                    : selectedLog.channel
-                  : '-'
-              } />
-              <DetailField
-                label="提示tokens"
-                value={
-                  selectedLog.prompt_tokens != null
-                    ? selectedLog.prompt_tokens.toLocaleString()
-                    : '-'
-                }
-              />
-              <DetailField
-                label="补全tokens"
-                value={
-                  selectedLog.completion_tokens != null
-                    ? selectedLog.completion_tokens.toLocaleString()
-                    : '-'
-                }
-              />
-              <DetailField
-                label="额度"
-                value={
-                  selectedLog.quota != null ? formatQuota(selectedLog.quota) : '-'
-                }
-              />
-              <DetailField
-                label="耗时"
-                value={
-                  selectedLog.elapsed_time != null ? (
-                    <span className={getElapsedTimeColor(selectedLog.elapsed_time)}>
-                      {selectedLog.elapsed_time.toLocaleString()} ms
-                    </span>
-                  ) : (
-                    '-'
-                  )
-                }
-              />
-              <DetailField
-                label="Request ID"
-                value={
-                  <span className="font-mono text-xs break-all">
-                    {selectedLog.request_id || '-'}
-                  </span>
-                }
-              />
-              <div className="md:col-span-2">
+            <div className="space-y-4 mt-4">
+              {/* Core usage stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-muted/50 rounded-lg p-3 text-center">
+                  <div className="text-xs text-text-secondary mb-1">输入 tokens</div>
+                  <div className="text-lg font-semibold tabular-nums">
+                    {selectedLog.prompt_tokens ? selectedLog.prompt_tokens.toLocaleString() : '-'}
+                  </div>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3 text-center">
+                  <div className="text-xs text-text-secondary mb-1">输出 tokens</div>
+                  <div className="text-lg font-semibold tabular-nums">
+                    {selectedLog.completion_tokens ? selectedLog.completion_tokens.toLocaleString() : '-'}
+                  </div>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3 text-center">
+                  <div className="text-xs text-text-secondary mb-1">总计 tokens</div>
+                  <div className="text-lg font-semibold tabular-nums">
+                    {(selectedLog.prompt_tokens || selectedLog.completion_tokens)
+                      ? ((selectedLog.prompt_tokens || 0) + (selectedLog.completion_tokens || 0)).toLocaleString()
+                      : '-'}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-muted/50 rounded-lg p-3 text-center">
+                  <div className="text-xs text-text-secondary mb-1">费用</div>
+                  <div className="text-lg font-semibold tabular-nums">
+                    {selectedLog.quota ? formatQuota(selectedLog.quota) : '-'}
+                  </div>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3 text-center">
+                  <div className="text-xs text-text-secondary mb-1">耗时</div>
+                  <div className={`text-lg font-semibold tabular-nums ${selectedLog.use_time ? getElapsedTimeColor(selectedLog.use_time) : ''}`}>
+                    {selectedLog.use_time
+                      ? selectedLog.use_time >= 1000
+                        ? (selectedLog.use_time / 1000).toFixed(1) + 's'
+                        : selectedLog.use_time + 'ms'
+                      : '-'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Detail fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t">
                 <DetailField
-                  label="内容"
+                  label="时间"
+                  value={timestamp2string(selectedLog.created_at)}
+                />
+                <DetailField
+                  label="类型"
                   value={
-                    <pre className="whitespace-pre-wrap break-words text-sm bg-muted p-3 rounded-md max-h-[300px] overflow-y-auto">
-                      {selectedLog.content || '-'}
-                    </pre>
+                    <Badge variant={TYPE_BADGE_VARIANT[selectedLog.type] || 'default'}>
+                      {LOG_TYPES[selectedLog.type] || '未知'}
+                    </Badge>
+                  }
+                />
+                <DetailField label="模型" value={
+                  <span className="font-mono text-sm">{selectedLog.model_name || '-'}</span>
+                } />
+                <DetailField label="用户" value={selectedLog.username || '-'} />
+                <DetailField label="令牌" value={selectedLog.token_name || '-'} />
+                <DetailField label="渠道" value={
+                  selectedLog.channel
+                    ? selectedLog.channel_name
+                      ? `${selectedLog.channel} (${selectedLog.channel_name})`
+                      : selectedLog.channel
+                    : '-'
+                } />
+                <DetailField label="流式" value={selectedLog.is_stream ? '是' : '否'} />
+                <DetailField
+                  label="Request ID"
+                  value={
+                    <span className="font-mono text-xs break-all">
+                      {selectedLog.request_id || '-'}
+                    </span>
                   }
                 />
               </div>
+
+              {/* Content */}
+              {selectedLog.content && (
+                <div className="pt-2 border-t">
+                  <DetailField
+                    label="内容"
+                    value={
+                      <pre className="whitespace-pre-wrap break-words text-sm bg-muted p-3 rounded-md max-h-[200px] overflow-y-auto">
+                        {selectedLog.content}
+                      </pre>
+                    }
+                  />
+                </div>
+              )}
+
+              {/* Other (parsed) */}
+              {selectedLog.other && selectedLog.other !== '{}' && selectedLog.other !== 'null' && (
+                <div className="pt-2 border-t">
+                  <DetailField
+                    label="其他信息"
+                    value={
+                      <OtherInfo data={selectedLog.other} />
+                    }
+                  />
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
@@ -493,6 +552,47 @@ function DetailField({ label, value }) {
     <div className="space-y-1">
       <dt className="text-xs font-medium text-text-secondary">{label}</dt>
       <dd className="text-sm text-text-primary">{value}</dd>
+    </div>
+  );
+}
+
+const OTHER_LABELS = {
+  model_ratio: '模型倍率',
+  model_price: '模型价格',
+  group_ratio: '分组倍率',
+  completion_ratio: '补全倍率',
+  cache_tokens: '缓存 tokens',
+  cache_creation_tokens: '缓存创建 tokens',
+  cache_discount: '缓存折扣',
+  admin_info: '管理信息',
+  reject_reason: '拒绝原因',
+  billing_info: '计费信息',
+  fused_count: '合并请求数',
+  channel_name: '渠道名称',
+};
+
+function OtherInfo({ data }) {
+  let parsed;
+  try {
+    parsed = typeof data === 'string' ? JSON.parse(data) : data;
+  } catch {
+    return <span className="text-sm text-text-secondary font-mono">{data}</span>;
+  }
+  if (!parsed || typeof parsed !== 'object') return null;
+
+  const entries = Object.entries(parsed).filter(([, v]) => v != null && v !== '');
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm bg-muted p-3 rounded-md">
+      {entries.map(([key, value]) => (
+        <div key={key} className="contents">
+          <span className="text-text-secondary">{OTHER_LABELS[key] || key}</span>
+          <span className="font-mono tabular-nums">
+            {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

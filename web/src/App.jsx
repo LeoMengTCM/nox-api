@@ -166,6 +166,9 @@ function App() {
           <Route path="/console/personal" element={<PrivateRoute><Page><PersonalSetting /></Page></PrivateRoute>} />
           <Route path="/console/topup" element={<PrivateRoute><Page><TopUp /></Page></PrivateRoute>} />
           <Route path="/console/notifications" element={<PrivateRoute><Page><Notifications /></Page></PrivateRoute>} />
+          <Route path="/console/checkin" element={<PrivateRoute><Page><Checkin /></Page></PrivateRoute>} />
+          <Route path="/console/community" element={<PrivateRoute><Page><Community /></Page></PrivateRoute>} />
+          <Route path="/console/ranking" element={<PrivateRoute><Page><Ranking /></Page></PrivateRoute>} />
           <Route path="/console/user/:id" element={<PrivateRoute><Page><UserProfile /></Page></PrivateRoute>} />
           <Route path="/console/playground" element={<PrivateRoute><Page><Playground /></Page></PrivateRoute>} />
           <Route path="/console/midjourney" element={<PrivateRoute><Page><Midjourney /></Page></PrivateRoute>} />
@@ -185,6 +188,7 @@ function App() {
           <Route path="/console/hogwarts/checkin" element={<PrivateRoute><Page><Checkin /></Page></PrivateRoute>} />
           <Route path="/console/hogwarts/community" element={<PrivateRoute><Page><Community /></Page></PrivateRoute>} />
           <Route path="/console/hogwarts/ranking" element={<PrivateRoute><Page><Ranking /></Page></PrivateRoute>} />
+          {/* Legacy redirects handled by rendering same components */}
           <Route path="/console/hogwarts/titles" element={<PrivateRoute><Page><Titles /></Page></PrivateRoute>} />
           <Route path="/console/hogwarts/casino" element={<PrivateRoute><Page><CasinoLobby /></Page></PrivateRoute>} />
           <Route path="/console/hogwarts/casino/blackjack" element={<PrivateRoute><Page><CasinoBlackjack /></Page></PrivateRoute>} />

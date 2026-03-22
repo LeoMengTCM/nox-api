@@ -90,7 +90,7 @@ func GetTokenKey(c *gin.Context) {
 		return
 	}
 	common.ApiSuccess(c, gin.H{
-		"key": token.GetFullKey(),
+		"key": "sk-" + token.GetFullKey(),
 	})
 }
 
