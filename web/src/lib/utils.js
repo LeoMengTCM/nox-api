@@ -229,16 +229,8 @@ export function removeTrailingSlash(url) {
 
 export async function copy(text) {
   if (!text) return false;
-  // Try modern clipboard API first
-  if (navigator.clipboard && window.isSecureContext) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch {
-      // fall through to fallback
-    }
-  }
-  // Fallback: textarea + execCommand
+  // Always try textarea fallback first — it works synchronously and reliably
+  // even after async operations (e.g. API calls) where clipboard API may be blocked
   try {
     const textarea = window.document.createElement('textarea');
     textarea.value = text;
@@ -250,10 +242,20 @@ export async function copy(text) {
     textarea.setSelectionRange(0, text.length);
     const ok = window.document.execCommand('copy');
     window.document.body.removeChild(textarea);
-    return ok;
+    if (ok) return true;
   } catch {
-    return false;
+    // fall through
   }
+  // Fallback to async clipboard API (works in secure contexts with user gesture)
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // fall through
+    }
+  }
+  return false;
 }
 
 export function getTodayStartTimestamp() {

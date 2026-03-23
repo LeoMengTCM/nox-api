@@ -637,7 +637,7 @@ export default function BankPage() {
                     <p className={`text-sm font-medium tabular-nums ${
                       tx.tx_type.includes('interest') || tx.tx_type.includes('deposit') || tx.tx_type.includes('mature') || tx.tx_type === 'loan_borrow'
                         ? 'text-emerald-500'
-                        : tx.tx_type === 'loan_repay' ? 'text-red-500' : 'text-text-primary'
+                        : tx.tx_type === 'loan_repay' || tx.tx_type.includes('withdraw') ? 'text-red-500' : 'text-text-primary'
                     }`}>
                       {tx.tx_type.includes('withdraw') || tx.tx_type === 'loan_repay' ? '-' : '+'}{fmtDollar(tx.amount)}
                     </p>

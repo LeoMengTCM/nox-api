@@ -16,9 +16,14 @@ All notable changes to Nox API will be documented in this file.
 - Leaderboard page now displays a 2×2 grid of ranking boards.
 
 #### Token Management Fixes
-- **Copy fix**: Rewrote clipboard utility with `isSecureContext` detection, `focus()` + `setSelectionRange()` fallback to reliably copy on all browsers.
-- **Reveal key**: Added eye icon button to view/hide the full token key inline without copying. Toggling hides it again.
-- **sk- prefix**: `GetTokenKey` API now returns the full key with `sk-` prefix, matching the format shown at creation time. Copy produces a ready-to-use key.
+- **Copy fix**: Rewrote clipboard utility — uses synchronous `execCommand` first (works after async API calls where `navigator.clipboard` is blocked by browser security), falls back to async clipboard API. Shows explicit error if copy truly fails.
+- **Reveal key**: Added eye icon button to view/hide the full token key inline without copying.
+- **sk- prefix**: `GetTokenKey` API now returns the full key with `sk-` prefix, matching the format shown at creation time.
+
+### Bug Fixes
+- **Loan available_credit negative**: Clamped to 0 when admin reduces credit limit below current usage.
+- **Loan CreateLoan rollback**: Added proper rollback if wallet credit fails after loan record is created.
+- **Bank transaction colors**: Withdraw transactions now consistently show in red.
 
 ## [0.1.13] - 2026-03-20
 

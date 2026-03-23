@@ -325,10 +325,10 @@ export default function TokenPage() {
   };
 
   const handleCopyKey = async (token) => {
-    // If already revealed, copy directly
+    // If already revealed, copy directly (synchronous — user gesture preserved)
     if (revealedKeys[token.id]) {
-      await copy(revealedKeys[token.id]);
-      showSuccess('已复制到剪贴板');
+      const ok = await copy(revealedKeys[token.id]);
+      ok ? showSuccess('已复制到剪贴板') : showError('复制失败，请手动复制');
       return;
     }
     setCopyingKeys((prev) => ({ ...prev, [token.id]: true }));
@@ -336,8 +336,8 @@ export default function TokenPage() {
       const res = await API.post(`/api/token/${token.id}/key`);
       const { success, message, data } = res.data;
       if (success) {
-        await copy(data.key);
-        showSuccess('已复制到剪贴板');
+        const ok = await copy(data.key);
+        ok ? showSuccess('已复制到剪贴板') : showError('复制失败，请手动复制');
       } else {
         showError(message || '获取密钥失败');
       }

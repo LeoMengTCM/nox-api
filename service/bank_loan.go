@@ -40,10 +40,15 @@ func GetLoanInfo(userId int) (map[string]interface{}, error) {
 		usedCredit += int64(loan.Amount - loan.PrincipalPaid)
 	}
 
+	available := int64(creditLimit) - usedCredit
+	if available < 0 {
+		available = 0
+	}
+
 	return map[string]interface{}{
 		"credit_limit":    creditLimit,
 		"used_credit":     usedCredit,
-		"available_credit": int64(creditLimit) - usedCredit,
+		"available_credit": available,
 		"loans":           loans,
 		"max_active_loans": operation_setting.GetMaxActiveLoans(),
 		"min_loan_amount": operation_setting.GetMinLoanAmount(),
@@ -117,6 +122,9 @@ func CreateLoan(userId int, amount int, termDays int) (map[string]interface{}, e
 	}
 
 	if err := model.CreateLoan(loan); err != nil {
+		// Rollback: return funds to pool
+		operation_setting.SetBankPoolMemory(pool)
+		_ = model.UpdateOption("bank_setting.bank_pool", fmt.Sprintf("%d", pool))
 		return nil, err
 	}
 
@@ -126,7 +134,13 @@ func CreateLoan(userId int, amount int, termDays int) (map[string]interface{}, e
 	_ = model.UpdateOption("bank_setting.bank_pool", fmt.Sprintf("%d", newPool))
 
 	// Add to user wallet
-	_ = model.IncreaseUserQuota(userId, amount, true)
+	if err := model.IncreaseUserQuota(userId, amount, true); err != nil {
+		// Rollback loan record — mark as repaid immediately
+		_ = model.UpdateLoanRepayment(loan.Id, 0, amount, 0, model.LoanStatusRepaid)
+		operation_setting.SetBankPoolMemory(pool)
+		_ = model.UpdateOption("bank_setting.bank_pool", fmt.Sprintf("%d", pool))
+		return nil, err
+	}
 
 	// Record transaction
 	_ = model.CreateBankTransaction(&model.BankTransaction{
