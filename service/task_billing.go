@@ -277,9 +277,13 @@ func RecalculateTaskQuotaByTokens(ctx context.Context, task *model.Task, totalTo
 		finalGroupRatio = groupRatio
 	}
 
-	// 计算实际应扣费额度: totalTokens * modelRatio * groupRatio
-	actualQuota := int(float64(totalTokens) * modelRatio * finalGroupRatio)
+	// 计算实际应扣费额度
+	// 注意: totalTokens 不区分 prompt/completion，这里用加权平均近似
+	// 假设 prompt:completion ≈ 1:1（对异步任务来说输出通常更多）
+	completionRatio := ratio_setting.GetCompletionRatio(modelName)
+	weightedRatio := (1.0 + completionRatio) / 2.0
+	actualQuota := int(float64(totalTokens) * modelRatio * finalGroupRatio * weightedRatio)
 
-	reason := fmt.Sprintf("token重算：tokens=%d, modelRatio=%.2f, groupRatio=%.2f", totalTokens, modelRatio, finalGroupRatio)
+	reason := fmt.Sprintf("token重算：tokens=%d, modelRatio=%.2f, completionRatio=%.2f, groupRatio=%.2f", totalTokens, modelRatio, completionRatio, finalGroupRatio)
 	RecalculateTaskQuota(ctx, task, actualQuota, reason)
 }

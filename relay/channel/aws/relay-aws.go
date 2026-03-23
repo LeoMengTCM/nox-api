@@ -280,11 +280,9 @@ func awsStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, a *Adaptor) (
 				return respErr, nil
 			}
 		case *bedrockruntimeTypes.UnknownUnionMember:
-			fmt.Println("unknown tag:", v.Tag)
-			return types.NewError(errors.New("unknown response type"), types.ErrorCodeInvalidRequest), nil
+			common.SysLog("aws stream: unknown event tag: " + v.Tag)
 		default:
-			fmt.Println("union is nil or unknown type")
-			return types.NewError(errors.New("nil or unknown response type"), types.ErrorCodeInvalidRequest), nil
+			common.SysLog("aws stream: nil or unknown event type")
 		}
 	}
 
@@ -325,6 +323,10 @@ func handleNovaRequest(c *gin.Context, info *relaycommon.RelayInfo, a *Adaptor) 
 	}
 
 	// 构造OpenAI格式响应
+	var responseText string
+	if len(novaResp.Output.Message.Content) > 0 {
+		responseText = novaResp.Output.Message.Content[0].Text
+	}
 	response := dto.OpenAITextResponse{
 		Id:      helper.GetResponseID(c),
 		Object:  "chat.completion",
@@ -334,7 +336,7 @@ func handleNovaRequest(c *gin.Context, info *relaycommon.RelayInfo, a *Adaptor) 
 			Index: 0,
 			Message: dto.Message{
 				Role:    "assistant",
-				Content: novaResp.Output.Message.Content[0].Text,
+				Content: responseText,
 			},
 			FinishReason: "stop",
 		}},

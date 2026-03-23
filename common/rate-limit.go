@@ -68,3 +68,22 @@ func (l *InMemoryRateLimiter) Request(key string, maxRequestNum int, duration in
 	}
 	return true
 }
+
+// Check returns whether a request would be allowed WITHOUT incrementing the counter.
+// Use this to check rate limit status without consuming a slot.
+func (l *InMemoryRateLimiter) Check(key string, maxRequestNum int, duration int64) bool {
+	if maxRequestNum <= 0 {
+		return true
+	}
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	queue, ok := l.store[key]
+	if !ok {
+		return true
+	}
+	now := time.Now().Unix()
+	if len(*queue) < maxRequestNum {
+		return true
+	}
+	return now-(*queue)[0] >= duration
+}

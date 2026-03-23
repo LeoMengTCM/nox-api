@@ -110,7 +110,7 @@ func buildXunfeiAuthUrl(hostUrl string, apiKey, apiSecret string) string {
 	}
 	ul, err := url.Parse(hostUrl)
 	if err != nil {
-		fmt.Println(err)
+		common.SysLog("error parsing xunfei auth url: " + err.Error())
 	}
 	date := time.Now().UTC().Format(time.RFC1123)
 	signString := []string{"host: " + ul.Host, "date: " + date, "GET " + ul.Path + " HTTP/1.1"}
@@ -214,8 +214,8 @@ func xunfeiMakeRequest(textRequest dto.GeneralOpenAIRequest, domain, authUrl, ap
 		return nil, nil, err
 	}
 
-	dataChan := make(chan XunfeiChatResponse)
-	stopChan := make(chan bool)
+	dataChan := make(chan XunfeiChatResponse, 10)
+	stopChan := make(chan bool, 1)
 	go func() {
 		defer func() {
 			conn.Close()

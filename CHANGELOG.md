@@ -2,6 +2,31 @@
 
 All notable changes to Nox API will be documented in this file.
 
+## [0.1.15] - 2026-03-23
+
+### Bug Fixes
+
+#### Critical — Crash Fixes
+- **Dify nil pointer panic**: Fixed `relay/channel/dify/relay-dify.go` — `*DifyFile` pointer was declared but never allocated, causing a nil pointer dereference on any request containing a remote image URL. Now properly initializes with `&DifyFile{}`.
+- **AWS Nova empty content panic**: Fixed `relay/channel/aws/relay-aws.go` — `Content[0].Text` accessed without bounds check. Nova responses with empty content (refusals, tool-use-only) would crash. Added `len(Content) > 0` guard.
+
+#### High — Billing & Stream Fixes
+- **WebSocket/Realtime double-billing**: Fixed `service/quota.go` — `PreWssConsumeQuota` was independently deducting via `PostConsumeQuota` while `BillingSession` had already pre-deducted, and `PostWssConsumeQuota` never called `SettleBilling`. Users were charged twice for realtime sessions. Now `PreWssConsumeQuota` only checks quota sufficiency, and `PostWssConsumeQuota` calls `SettleBilling` for unified settlement.
+- **AWS stream incomplete termination**: Fixed `relay/channel/aws/relay-aws.go` — unknown event types caused immediate error return, leaving the SSE stream without a `[DONE]` sentinel and clients hanging. Now logs warnings and continues the event loop.
+
+#### Medium — Logic & Security Fixes
+- **Memory rate limiter `_check` key bug**: Fixed `middleware/model-rate-limit.go` — the `_check` key counted all attempts (including failures) instead of only successful requests, making the success-based rate limit ineffective. Added `InMemoryRateLimiter.Check()` method for read-only limit checking.
+- **AWS Nova model name mismatch**: Fixed `relay/channel/aws/adaptor.go` — `isNovaModel()` checked client-facing model name instead of `info.UpstreamModelName`, causing Nova requests to be misrouted as Claude when using channel alias mappings.
+- **OpenAI think-to-content ignored error**: Fixed `relay/channel/openai/relay-openai.go` — `</think>` closing tag write error was silently discarded. Now properly checks and propagates the error.
+- **Xunfei WebSocket goroutine leak**: Fixed `relay/channel/xunfei/relay-xunfei.go` — unbuffered channels caused producer goroutine to block forever when consumer returned early. Changed to buffered channels (10/1).
+- **Task quota recalculation ignoring completion ratio**: Fixed `service/task_billing.go` — `RecalculateTaskQuotaByTokens` used flat `totalTokens * modelRatio`, ignoring that output tokens cost more. Now applies weighted average with completion ratio.
+- **Audio quota UsePrice truncation**: Fixed `service/quota.go` — `calculateAudioQuota` UsePrice path used `IntPart()` (truncation) while ratio path used `Round(0)`. Now both paths round consistently.
+
+#### Low — Resource & Observability Fixes
+- **Gemini image handler body leak**: Fixed `relay/channel/gemini/relay-gemini.go` — `resp.Body.Close()` was called directly instead of via `defer service.CloseResponseBodyGracefully`, risking TCP connection leaks on panic.
+- **Structured logging**: Replaced all `fmt.Println` calls in `relay/channel/aws/relay-aws.go`, `relay/channel/xunfei/relay-xunfei.go`, `middleware/rate-limit.go`, and `middleware/model-rate-limit.go` with `common.SysLog` for proper structured logging.
+- **Removed stale `log` import**: Cleaned up unused `log` package import from `service/quota.go`.
+
 ## [0.1.14] - 2026-03-23
 
 ### Improvements
