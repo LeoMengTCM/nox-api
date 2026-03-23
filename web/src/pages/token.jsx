@@ -17,9 +17,17 @@ import {
   SelectContent,
   SelectItem,
   SelectValue,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  EmptyState,
 } from '../components/ui';
 import { Textarea } from '../components/ui/textarea';
-import { DataTable } from '../components/ui/data-table';
 import { Pagination } from '../components/ui/pagination';
 import { API } from '../lib/api';
 import {
@@ -27,11 +35,16 @@ import {
   showSuccess,
   showInfo,
   copy,
+  copyAsync,
   timestamp2string,
   getQuotaPerUnit,
 } from '../lib/utils';
 import { isAdmin } from '../lib/utils';
 import { UserContext } from '../contexts/user-context';
+import {
+  Key, Search, MoreVertical, Eye, EyeOff, Copy, Pencil, Power, Trash2,
+  Plus, CheckCircle2, TrendingUp, Clock, Shield,
+} from 'lucide-react';
 
 const defaultTokenForm = {
   name: '',
@@ -50,23 +63,12 @@ function getExpiryPresetTime(preset) {
   if (preset === 'never') return '';
   const now = new Date();
   switch (preset) {
-    case '1h':
-      now.setHours(now.getHours() + 1);
-      break;
-    case '1d':
-      now.setDate(now.getDate() + 1);
-      break;
-    case '7d':
-      now.setDate(now.getDate() + 7);
-      break;
-    case '30d':
-      now.setDate(now.getDate() + 30);
-      break;
-    case '90d':
-      now.setDate(now.getDate() + 90);
-      break;
-    default:
-      return '';
+    case '1h': now.setHours(now.getHours() + 1); break;
+    case '1d': now.setDate(now.getDate() + 1); break;
+    case '7d': now.setDate(now.getDate() + 7); break;
+    case '30d': now.setDate(now.getDate() + 30); break;
+    case '90d': now.setDate(now.getDate() + 90); break;
+    default: return '';
   }
   return formatDateForInput(now);
 }
@@ -78,6 +80,10 @@ function formatDateForInput(date) {
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
   return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function formatQuota(quota) {
+  return (quota / getQuotaPerUnit()).toFixed(2);
 }
 
 // --- Section wrapper for form sections inside dialog ---
@@ -116,6 +122,126 @@ function FormField({ label, description, children, htmlFor }) {
         <p className="text-xs text-text-tertiary leading-relaxed">{description}</p>
       )}
     </div>
+  );
+}
+
+// --- Token Card ---
+function TokenCard({ token, copyingKeys, revealedKeys, onCopy, onReveal, onEdit, onToggle, onDelete }) {
+  const isCopying = !!copyingKeys[token.id];
+  const revealed = revealedKeys[token.id];
+  const isEnabled = token.status === 1;
+
+  const maskKey = (key) => {
+    if (!key) return '';
+    if (key.length <= 8) return key;
+    return key.substring(0, 4) + '····' + key.substring(key.length - 4);
+  };
+
+  const displayKey = revealed || `sk-${maskKey(token.key)}`;
+
+  const expiry = token.expired_time <= 0 || token.expired_time === -1
+    ? '永不过期'
+    : timestamp2string(token.expired_time);
+
+  return (
+    <Card className="p-4 transition-all duration-150 hover:shadow-md">
+      {/* Row 1: Name + Status + Menu */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <Key className="h-4 w-4 text-accent shrink-0" strokeWidth={1.8} />
+          <span className="text-sm font-semibold text-text-primary truncate">{token.name}</span>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Badge variant={isEnabled ? 'success' : 'danger'} className="text-[10px] px-1.5 py-0">
+            {isEnabled ? '已启用' : '已禁用'}
+          </Badge>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                <MoreVertical className="h-4 w-4 text-text-tertiary" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onEdit(token)}>
+                <Pencil className="h-3.5 w-3.5" />
+                <span>编辑</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onToggle(token)}>
+                <Power className="h-3.5 w-3.5" />
+                <span>{isEnabled ? '禁用' : '启用'}</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-danger focus:text-danger"
+                onClick={() => onDelete(token)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>删除</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {/* Row 2: Key + actions */}
+      <div className="flex items-center gap-1.5 mt-2.5">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <code className="flex-1 min-w-0 text-xs bg-surface-hover px-2.5 py-1.5 rounded-md font-mono text-text-secondary truncate select-all cursor-default">
+              {displayKey}
+            </code>
+          </TooltipTrigger>
+          {revealed && (
+            <TooltipContent side="bottom" className="max-w-[420px] break-all font-mono text-xs">
+              {revealed}
+            </TooltipContent>
+          )}
+        </Tooltip>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 w-7 p-0 shrink-0"
+          onClick={() => onReveal(token)}
+          disabled={isCopying}
+          title={revealed ? '隐藏' : '查看'}
+        >
+          {revealed
+            ? <EyeOff className="h-3.5 w-3.5 text-text-tertiary" />
+            : <Eye className="h-3.5 w-3.5 text-text-tertiary" />
+          }
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 w-7 p-0 shrink-0"
+          onClick={() => onCopy(token)}
+          disabled={isCopying}
+          title="复制"
+        >
+          {isCopying
+            ? <div className="h-3.5 w-3.5 animate-spin border-2 border-text-tertiary border-t-transparent rounded-full" />
+            : <Copy className="h-3.5 w-3.5 text-text-tertiary" />
+          }
+        </Button>
+      </div>
+
+      {/* Row 3: Meta info */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5 text-xs text-text-tertiary">
+        <span>已用 <span className="text-text-secondary">${formatQuota(token.used_quota)}</span></span>
+        <span className="text-border-strong">·</span>
+        <span>剩余 <span className="text-text-secondary">{token.unlimited_quota ? '无限' : `$${formatQuota(token.remain_quota)}`}</span></span>
+        <span className="text-border-strong">·</span>
+        <span>{timestamp2string(token.created_time)}</span>
+        <span className="text-border-strong">·</span>
+        <span>{expiry}</span>
+        {token.group && (
+          <>
+            <span className="text-border-strong">·</span>
+            <span className="bg-surface-hover px-1.5 py-0.5 rounded text-[10px]">{token.group}</span>
+          </>
+        )}
+      </div>
+    </Card>
   );
 }
 
@@ -184,12 +310,11 @@ export default function TokenPage() {
           label: info?.desc || key,
           ratio: info?.ratio,
         }));
-        // Sort so 'auto' comes first if present
         groupList.sort((a, b) => (a.value === 'auto' ? -1 : b.value === 'auto' ? 1 : 0));
         setAvailableGroups(groupList);
       }
     } catch {
-      // silently fail — fields are optional
+      // silently fail
     } finally {
       setModelsLoading(false);
     }
@@ -205,9 +330,7 @@ export default function TokenPage() {
   };
 
   const handleSearchKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
+    if (e.key === 'Enter') handleSearch();
   };
 
   const openCreateDialog = () => {
@@ -265,7 +388,6 @@ export default function TokenPage() {
           ? Math.floor(new Date(formData.expired_time).getTime() / 1000)
           : -1,
       };
-
       let res;
       if (editingToken) {
         body.id = editingToken.id;
@@ -273,12 +395,9 @@ export default function TokenPage() {
       } else {
         res = await API.post('/api/token/', body);
       }
-
       const { success, message, data } = res.data;
       if (success) {
-        if (!editingToken && data) {
-          setCreatedKey(data);
-        }
+        if (!editingToken && data) setCreatedKey(data);
         showSuccess(editingToken ? '令牌更新成功' : '令牌创建成功');
         setShowDialog(false);
         loadTokens();
@@ -296,12 +415,11 @@ export default function TokenPage() {
     if (!window.confirm(`确定要删除令牌「${token.name}」吗？`)) return;
     try {
       const res = await API.delete(`/api/token/${token.id}`);
-      const { success, message } = res.data;
-      if (success) {
+      if (res.data.success) {
         showSuccess('令牌已删除');
         loadTokens();
       } else {
-        showError(message);
+        showError(res.data.message);
       }
     } catch (err) {
       showError('删除失败');
@@ -311,13 +429,12 @@ export default function TokenPage() {
   const handleToggleStatus = async (token) => {
     const newStatus = token.status === 1 ? 2 : 1;
     try {
-      const res = await API.put(`/api/token/?status=${token.id}`);
-      const { success, message } = res.data;
-      if (success) {
+      const res = await API.put('/api/token/?status_only=true', { id: token.id, status: newStatus });
+      if (res.data.success) {
         showSuccess(newStatus === 1 ? '令牌已启用' : '令牌已禁用');
         loadTokens();
       } else {
-        showError(message);
+        showError(res.data.message);
       }
     } catch (err) {
       showError('操作失败');
@@ -325,24 +442,21 @@ export default function TokenPage() {
   };
 
   const handleCopyKey = async (token) => {
-    // If already revealed, copy directly (synchronous — user gesture preserved)
     if (revealedKeys[token.id]) {
       const ok = await copy(revealedKeys[token.id]);
       ok ? showSuccess('已复制到剪贴板') : showError('复制失败，请手动复制');
       return;
     }
     setCopyingKeys((prev) => ({ ...prev, [token.id]: true }));
+    const keyPromise = API.post(`/api/token/${token.id}/key`).then((res) => {
+      if (res.data.success) return res.data.data.key;
+      throw new Error(res.data.message || '获取密钥失败');
+    });
     try {
-      const res = await API.post(`/api/token/${token.id}/key`);
-      const { success, message, data } = res.data;
-      if (success) {
-        const ok = await copy(data.key);
-        ok ? showSuccess('已复制到剪贴板') : showError('复制失败，请手动复制');
-      } else {
-        showError(message || '获取密钥失败');
-      }
+      const ok = await copyAsync(keyPromise);
+      ok ? showSuccess('已复制到剪贴板') : showInfo('复制失败，请点击眼睛图标查看后手动复制');
     } catch (err) {
-      showError('获取密钥失败');
+      showError(err.message || '获取密钥失败');
     } finally {
       setCopyingKeys((prev) => {
         const next = { ...prev };
@@ -354,236 +468,151 @@ export default function TokenPage() {
 
   const handleRevealKey = async (token) => {
     if (revealedKeys[token.id]) {
-      // Toggle hide
-      setRevealedKeys((prev) => {
-        const next = { ...prev };
-        delete next[token.id];
-        return next;
-      });
+      setRevealedKeys((prev) => { const n = { ...prev }; delete n[token.id]; return n; });
       return;
     }
     setCopyingKeys((prev) => ({ ...prev, [token.id]: true }));
     try {
       const res = await API.post(`/api/token/${token.id}/key`);
-      const { success, message, data } = res.data;
-      if (success) {
-        setRevealedKeys((prev) => ({ ...prev, [token.id]: data.key }));
+      if (res.data.success) {
+        setRevealedKeys((prev) => ({ ...prev, [token.id]: res.data.data.key }));
       } else {
-        showError(message || '获取密钥失败');
+        showError(res.data.message || '获取密钥失败');
       }
     } catch (err) {
       showError('获取密钥失败');
     } finally {
-      setCopyingKeys((prev) => {
-        const next = { ...prev };
-        delete next[token.id];
-        return next;
-      });
+      setCopyingKeys((prev) => { const n = { ...prev }; delete n[token.id]; return n; });
     }
-  };
-
-  const maskKey = (key) => {
-    if (!key) return '';
-    if (key.length <= 8) return key;
-    return key.substring(0, 4) + '****' + key.substring(key.length - 4);
-  };
-
-  const formatQuota = (quota) => {
-    return (quota / getQuotaPerUnit()).toFixed(2);
   };
 
   const renderQuotaHint = (rawQuota) => {
     const val = parseFloat(rawQuota) || 0;
-    const dollars = (val / getQuotaPerUnit()).toFixed(2);
-    return `$${dollars}`;
+    return `$${(val / getQuotaPerUnit()).toFixed(2)}`;
   };
 
-  // Toggle a model in the comma-separated model_limits string
   const toggleModel = (model) => {
-    const current = formData.model_limits
-      ? formData.model_limits.split(',').filter(Boolean)
-      : [];
+    const current = formData.model_limits ? formData.model_limits.split(',').filter(Boolean) : [];
     const idx = current.indexOf(model);
-    if (idx >= 0) {
-      current.splice(idx, 1);
-    } else {
-      current.push(model);
-    }
+    if (idx >= 0) current.splice(idx, 1);
+    else current.push(model);
     updateForm({ model_limits: current.join(',') });
   };
 
-  const selectedModels = formData.model_limits
-    ? formData.model_limits.split(',').filter(Boolean)
-    : [];
+  const selectedModels = formData.model_limits ? formData.model_limits.split(',').filter(Boolean) : [];
 
-  const columns = [
-    {
-      header: '名称',
-      accessorKey: 'name',
-      cell: ({ row }) => (
-        <span className="text-text-primary font-medium">{row.original.name}</span>
-      ),
-    },
-    {
-      header: 'Key',
-      accessorKey: 'key',
-      cell: ({ row }) => {
-        const token = row.original;
-        const isCopying = !!copyingKeys[token.id];
-        const revealed = revealedKeys[token.id];
-        return (
-          <div className="flex items-center gap-1.5">
-            <code className="text-text-secondary text-sm bg-surface px-2 py-0.5 rounded font-mono max-w-[280px] truncate select-all">
-              {revealed || `sk-${maskKey(token.key)}`}
-            </code>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="p-1 h-7 w-7 shrink-0"
-              onClick={() => handleRevealKey(token)}
-              disabled={isCopying}
-              title={revealed ? '隐藏密钥' : '查看密钥'}
-            >
-              {revealed ? (
-                <svg className="h-3.5 w-3.5 text-text-tertiary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
-                </svg>
-              ) : (
-                <svg className="h-3.5 w-3.5 text-text-tertiary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                </svg>
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="p-1 h-7 w-7 shrink-0"
-              onClick={() => handleCopyKey(token)}
-              disabled={isCopying}
-              title="复制密钥"
-            >
-              {isCopying ? (
-                <svg className="h-3.5 w-3.5 animate-spin text-text-tertiary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              ) : (
-                <svg className="h-3.5 w-3.5 text-text-tertiary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9.75a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
-                </svg>
-              )}
-            </Button>
-          </div>
-        );
-      },
-    },
-    {
-      header: '状态',
-      accessorKey: 'status',
-      cell: ({ row }) => {
-        const status = row.original.status;
-        return status === 1 ? (
-          <Badge variant="success">已启用</Badge>
-        ) : (
-          <Badge variant="danger">已禁用</Badge>
-        );
-      },
-    },
-    {
-      header: '已用额度',
-      accessorKey: 'used_quota',
-      cell: ({ row }) => (
-        <span className="text-text-secondary">${formatQuota(row.original.used_quota)}</span>
-      ),
-    },
-    {
-      header: '剩余额度',
-      accessorKey: 'remain_quota',
-      cell: ({ row }) => (
-        <span className="text-text-secondary">
-          {row.original.unlimited_quota ? '无限' : '$' + formatQuota(row.original.remain_quota)}
-        </span>
-      ),
-    },
-    {
-      header: '创建时间',
-      accessorKey: 'created_time',
-      cell: ({ row }) => (
-        <span className="text-text-tertiary text-sm">
-          {timestamp2string(row.original.created_time)}
-        </span>
-      ),
-    },
-    {
-      header: '操作',
-      id: 'actions',
-      cell: ({ row }) => {
-        const token = row.original;
-        return (
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" onClick={() => openEditDialog(token)}>
-              编辑
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleToggleStatus(token)}
-            >
-              {token.status === 1 ? '禁用' : '启用'}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
-              onClick={() => handleDelete(token)}
-            >
-              删除
-            </Button>
-          </div>
-        );
-      },
-    },
-  ];
+  // Stats
+  const enabledCount = tokens.filter((t) => t.status === 1).length;
+  const totalUsed = tokens.reduce((acc, t) => acc + (t.used_quota || 0), 0);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-heading text-text-primary">令牌管理</h1>
-        <Button onClick={openCreateDialog}>创建令牌</Button>
+    <div className="p-6 max-w-5xl mx-auto space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-text-primary">令牌管理</h1>
+          <p className="text-sm text-text-tertiary mt-0.5">管理你的 API 访问密钥</p>
+        </div>
+        <Button onClick={openCreateDialog} className="gap-1.5">
+          <Plus className="h-4 w-4" />
+          创建令牌
+        </Button>
       </div>
 
-      <Card className="bg-surface border border-border">
-        <div className="p-4">
-          <div className="flex items-center gap-3 mb-4">
-            <Input
-              placeholder="搜索令牌名称..."
-              value={searchKeyword}
-              onChange={(e) => setSearchKeyword(e.target.value)}
-              onKeyDown={handleSearchKeyDown}
-              className="max-w-sm"
-            />
-            <Button variant="outline" onClick={handleSearch}>
-              搜索
-            </Button>
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="p-4 flex items-center gap-3">
+          <div className="h-9 w-9 rounded-lg bg-accent/10 flex items-center justify-center">
+            <Key className="h-4.5 w-4.5 text-accent" strokeWidth={1.8} />
           </div>
-
-          <DataTable columns={columns} data={tokens} loading={loading} />
-
-          <div className="mt-4 flex justify-end">
-            <Pagination
-              current={page}
-              pageSize={pageSize}
-              total={total}
-              onChange={(newPage) => setPage(newPage)}
-              onPageSizeChange={(newSize) => {
-                setPageSize(newSize);
-                setPage(1);
-              }}
-            />
+          <div>
+            <p className="text-xs text-text-tertiary">令牌总数</p>
+            <p className="text-lg font-heading font-bold text-text-primary">{total}</p>
           </div>
+        </Card>
+        <Card className="p-4 flex items-center gap-3">
+          <div className="h-9 w-9 rounded-lg bg-success/10 flex items-center justify-center">
+            <CheckCircle2 className="h-4.5 w-4.5 text-success" strokeWidth={1.8} />
+          </div>
+          <div>
+            <p className="text-xs text-text-tertiary">已启用</p>
+            <p className="text-lg font-heading font-bold text-text-primary">{enabledCount}</p>
+          </div>
+        </Card>
+        <Card className="p-4 flex items-center gap-3">
+          <div className="h-9 w-9 rounded-lg bg-warning/10 flex items-center justify-center">
+            <TrendingUp className="h-4.5 w-4.5 text-warning" strokeWidth={1.8} />
+          </div>
+          <div>
+            <p className="text-xs text-text-tertiary">本页已用额度</p>
+            <p className="text-lg font-heading font-bold text-text-primary">${formatQuota(totalUsed)}</p>
+          </div>
+        </Card>
+      </div>
+
+      {/* Search */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary pointer-events-none" />
+          <Input
+            placeholder="搜索令牌名称..."
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            className="pl-9"
+          />
         </div>
-      </Card>
+        <Button variant="outline" onClick={handleSearch}>搜索</Button>
+      </div>
+
+      {/* Token List */}
+      {loading ? (
+        <div className="space-y-3">
+          {[0, 1, 2].map((i) => (
+            <Card key={i} className="p-4 h-24 animate-pulse bg-surface-hover/50" />
+          ))}
+        </div>
+      ) : tokens.length === 0 ? (
+        <EmptyState
+          icon={Key}
+          title="还没有令牌"
+          description="创建一个 API 令牌来开始使用模型接口"
+          action={
+            <Button onClick={openCreateDialog} className="gap-1.5">
+              <Plus className="h-4 w-4" /> 创建令牌
+            </Button>
+          }
+        />
+      ) : (
+        <div className="space-y-3">
+          {tokens.map((token) => (
+            <TokenCard
+              key={token.id}
+              token={token}
+              copyingKeys={copyingKeys}
+              revealedKeys={revealedKeys}
+              onCopy={handleCopyKey}
+              onReveal={handleRevealKey}
+              onEdit={openEditDialog}
+              onToggle={handleToggleStatus}
+              onDelete={handleDelete}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {total > 0 && (
+        <div className="flex justify-end">
+          <Pagination
+            current={page}
+            pageSize={pageSize}
+            total={total}
+            onChange={(newPage) => setPage(newPage)}
+            onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(1); }}
+          />
+        </div>
+      )}
 
       {/* Create / Edit Token Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
@@ -601,11 +630,7 @@ export default function TokenPage() {
             <div className="space-y-4 py-4">
               {/* === Section 1: Basic Info === */}
               <FormSection
-                icon={
-                  <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
-                  </svg>
-                }
+                icon={<Key className="h-4 w-4" />}
                 title="基本信息"
                 description="设置令牌名称和所属分组"
               >
@@ -660,11 +685,7 @@ export default function TokenPage() {
 
               {/* === Section 2: Quota === */}
               <FormSection
-                icon={
-                  <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
-                  </svg>
-                }
+                icon={<TrendingUp className="h-4 w-4" />}
                 title="额度设置"
                 description="配置令牌的可用额度上限"
               >
@@ -718,11 +739,7 @@ export default function TokenPage() {
 
               {/* === Section 3: Expiry === */}
               <FormSection
-                icon={
-                  <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                  </svg>
-                }
+                icon={<Clock className="h-4 w-4" />}
                 title="过期时间"
                 description="设置令牌的有效期限"
               >
@@ -735,17 +752,12 @@ export default function TokenPage() {
                     { label: '30 天', value: '30d' },
                     { label: '90 天', value: '90d' },
                   ].map((preset) => {
-                    const isActive =
-                      preset.value === 'never'
-                        ? !formData.expired_time
-                        : false; // presets are one-click, not tracked
+                    const isActive = preset.value === 'never' ? !formData.expired_time : false;
                     return (
                       <button
                         key={preset.value}
                         type="button"
-                        onClick={() =>
-                          updateForm({ expired_time: getExpiryPresetTime(preset.value) })
-                        }
+                        onClick={() => updateForm({ expired_time: getExpiryPresetTime(preset.value) })}
                         className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
                           isActive
                             ? 'bg-accent text-white border-accent'
@@ -773,24 +785,16 @@ export default function TokenPage() {
 
               {/* === Section 4: Access Control === */}
               <FormSection
-                icon={
-                  <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
-                  </svg>
-                }
+                icon={<Shield className="h-4 w-4" />}
                 title="访问限制"
                 description="限制令牌可访问的模型和来源 IP"
               >
-                {/* Model limits */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between rounded-md bg-surface px-3 py-2.5 border border-border">
                     <Switch
                       checked={formData.model_limits_enabled}
                       onCheckedChange={(checked) =>
-                        updateForm({
-                          model_limits_enabled: checked,
-                          model_limits: checked ? formData.model_limits : '',
-                        })
+                        updateForm({ model_limits_enabled: checked, model_limits: checked ? formData.model_limits : '' })
                       }
                       label="启用模型限制"
                       description="开启后，令牌只能使用指定的模型。非必要不建议启用。"
@@ -829,9 +833,7 @@ export default function TokenPage() {
                           </div>
                         </div>
                       ) : (
-                        <FormField
-                          description="无法加载可用模型列表，请手动输入模型名称，用逗号分隔。"
-                        >
+                        <FormField description="无法加载可用模型列表，请手动输入模型名称，用逗号分隔。">
                           <Input
                             placeholder="gpt-4o,claude-3-5-sonnet,..."
                             value={formData.model_limits}
@@ -843,10 +845,9 @@ export default function TokenPage() {
                   )}
                 </div>
 
-                {/* IP whitelist */}
                 <FormField
                   label="IP 白名单"
-                  description="限制只有指定 IP 才能使用此令牌。支持 CIDR 表达式（如 192.168.0.0/24），每行一个。留空表示不限制。请勿过度信任此功能，IP 可能被伪造，建议配合 nginx 或 CDN 网关使用。"
+                  description="限制只有指定 IP 才能使用此令牌。支持 CIDR 表达式（如 192.168.0.0/24），每行一个。留空表示不限制。"
                   htmlFor="token-allowips"
                 >
                   <Textarea
@@ -862,9 +863,7 @@ export default function TokenPage() {
           </div>
 
           <DialogFooter className="shrink-0">
-            <Button variant="outline" onClick={() => setShowDialog(false)}>
-              取消
-            </Button>
+            <Button variant="outline" onClick={() => setShowDialog(false)}>取消</Button>
             <Button onClick={handleSubmit} disabled={submitting}>
               {submitting ? '提交中...' : editingToken ? '保存更改' : '创建令牌'}
             </Button>
@@ -876,7 +875,10 @@ export default function TokenPage() {
       <Dialog open={!!createdKey} onOpenChange={(open) => { if (!open) setCreatedKey(''); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>令牌创建成功</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-success" />
+              令牌创建成功
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <p className="text-sm text-text-secondary">
@@ -887,19 +889,19 @@ export default function TokenPage() {
                 {createdKey}
               </code>
               <Button
-                variant="outline"
                 size="sm"
+                className="shrink-0"
                 onClick={async () => {
-                  await copy(createdKey);
-                  showSuccess('已复制到剪贴板');
+                  const ok = await copy(createdKey);
+                  ok ? showSuccess('已复制到剪贴板') : showError('复制失败');
                 }}
               >
-                复制
+                <Copy className="h-3.5 w-3.5 mr-1" /> 复制
               </Button>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="primary" onClick={() => setCreatedKey('')}>
+            <Button variant="outline" onClick={() => setCreatedKey('')}>
               我已保存，关闭
             </Button>
           </DialogFooter>

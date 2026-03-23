@@ -229,8 +229,7 @@ export function removeTrailingSlash(url) {
 
 export async function copy(text) {
   if (!text) return false;
-  // Always try textarea fallback first — it works synchronously and reliably
-  // even after async operations (e.g. API calls) where clipboard API may be blocked
+  // Try sync textarea approach first
   try {
     const textarea = window.document.createElement('textarea');
     textarea.value = text;
@@ -246,7 +245,7 @@ export async function copy(text) {
   } catch {
     // fall through
   }
-  // Fallback to async clipboard API (works in secure contexts with user gesture)
+  // Fallback to async clipboard API
   if (navigator.clipboard && window.isSecureContext) {
     try {
       await navigator.clipboard.writeText(text);
@@ -256,6 +255,32 @@ export async function copy(text) {
     }
   }
   return false;
+}
+
+/**
+ * Copy text that will be available in the future (from an async operation like an API call).
+ * Uses ClipboardItem with a Promise to preserve the user gesture context.
+ * Must be called SYNCHRONOUSLY in the click handler — pass a Promise that resolves to text.
+ *
+ * @param {Promise<string>} textPromise - a promise that resolves to the text to copy
+ * @returns {Promise<boolean>} whether the copy succeeded
+ */
+export function copyAsync(textPromise) {
+  // Modern approach: ClipboardItem with deferred Blob
+  if (navigator.clipboard?.write && typeof ClipboardItem !== 'undefined' && window.isSecureContext) {
+    try {
+      const blobPromise = textPromise.then(
+        (text) => new Blob([text], { type: 'text/plain' }),
+      );
+      const item = new ClipboardItem({ 'text/plain': blobPromise });
+      // This call is SYNCHRONOUS — preserves user gesture
+      return navigator.clipboard.write([item]).then(() => true).catch(() => false);
+    } catch {
+      // fall through
+    }
+  }
+  // Fallback: wait for promise, then try regular copy (may fail after async)
+  return textPromise.then((text) => copy(text));
 }
 
 export function getTodayStartTimestamp() {

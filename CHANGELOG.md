@@ -6,8 +6,19 @@ All notable changes to Nox API will be documented in this file.
 
 ### Improvements
 
+#### Token Management Page Redesign
+- **Card-based layout**: Replaced DataTable with card list — each token is a distinct card with name, key, status badge, and metadata.
+- **Stats header**: 3 summary cards at the top (total tokens, enabled count, used quota).
+- **DropdownMenu actions**: Edit/enable-disable/delete collapsed into a `⋯` menu per card, reducing visual clutter.
+- **Key display**: Fixed-width truncated key inside card, hover tooltip shows full key when revealed — no layout shift.
+- **Async copy (ClipboardItem)**: Clicking copy on a hidden key uses `ClipboardItem` with a deferred Promise to preserve user gesture across the API call. Works without revealing the key first.
+- **Reveal/hide**: Eye icon toggles full key visibility inline.
+- **Empty state**: Shows `EmptyState` component with create button when no tokens exist.
+- **Search icon**: Search input now has a `Search` icon prefix.
+- **Created key dialog**: Green checkmark icon, accent-colored copy button.
+
 #### Sidebar Reorganization
-- Moved **Check-in**, **Community**, and **Ranking** from Hogwarts Portal back into the AI Console sidebar under the "Account" section, making them accessible without entering the Hogwarts portal.
+- Moved **Check-in**, **Community**, and **Ranking** from Hogwarts Portal back into the AI Console sidebar under the "Account" section.
 - Routes available at both `/console/checkin|community|ranking` and `/console/hogwarts/...` for backward compatibility.
 
 #### Enriched Leaderboard (2 → 4 dimensions)
@@ -15,13 +26,10 @@ All notable changes to Nox API will be documented in this file.
 - Added **Top Inviter** (邀请达人): ranked by invitation count.
 - Leaderboard page now displays a 2×2 grid of ranking boards.
 
-#### Token Management Fixes
-- **Copy fix**: Rewrote clipboard utility — uses synchronous `execCommand` first (works after async API calls where `navigator.clipboard` is blocked by browser security), falls back to async clipboard API. Shows explicit error if copy truly fails.
-- **Reveal key**: Added eye icon button to view/hide the full token key inline without copying.
-- **sk- prefix**: `GetTokenKey` API now returns the full key with `sk-` prefix, matching the format shown at creation time.
-
 ### Bug Fixes
-- **Loan available_credit negative**: Clamped to 0 when admin reduces credit limit below current usage.
+- **Token toggle status**: Fixed `handleToggleStatus` — was passing `?status=${token.id}` (wrong param), now correctly uses `?status_only=true` with PUT body `{ id, status }`.
+- **Clipboard copy**: Uses synchronous `execCommand` first (survives async user gesture loss), `ClipboardItem` for deferred copy.
+- **Loan available_credit**: Clamped to 0 when admin reduces credit limit below current usage.
 - **Loan CreateLoan rollback**: Added proper rollback if wallet credit fails after loan record is created.
 - **Bank transaction colors**: Withdraw transactions now consistently show in red.
 
