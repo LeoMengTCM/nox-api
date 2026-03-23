@@ -153,14 +153,17 @@ func processDemandInterest(ctx context.Context, now int64) {
 		paid += interest
 	}
 
-	// Deduct from pool
+	// Deduct from pool (with lock)
 	if paid > 0 {
+		operation_setting.LockBankPool()
+		pool = operation_setting.GetBankPool() // re-read inside lock
 		newPool := pool - int64(paid)
 		if newPool < 0 {
 			newPool = 0
 		}
 		operation_setting.SetBankPoolMemory(newPool)
 		_ = model.UpdateOption("bank_setting.bank_pool", fmt.Sprintf("%d", newPool))
+		operation_setting.UnlockBankPool()
 		logger.LogInfo(ctx, fmt.Sprintf("bank interest: paid %d to %d accounts, pool: %d -> %d", paid, len(items), pool, newPool))
 	}
 }

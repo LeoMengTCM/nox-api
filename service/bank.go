@@ -290,11 +290,17 @@ func WithdrawFixedDeposit(userId int, depositId int) (map[string]interface{}, er
 		return nil, err
 	}
 
-	// Deduct interest from pool
+	// Deduct interest from pool (with lock)
 	if interest > 0 {
+		operation_setting.LockBankPool()
+		pool = operation_setting.GetBankPool() // re-read inside lock
 		newPool := pool - int64(interest)
+		if newPool < 0 {
+			newPool = 0
+		}
 		operation_setting.SetBankPoolMemory(newPool)
 		_ = model.UpdateOption("bank_setting.bank_pool", fmt.Sprintf("%d", newPool))
+		operation_setting.UnlockBankPool()
 	}
 
 	// Pay user
@@ -353,6 +359,9 @@ func AdminGetBankStats() map[string]interface{} {
 
 // AdminInjectPool injects or withdraws from the bank pool
 func AdminInjectPool(amount int64, action string) error {
+	operation_setting.LockBankPool()
+	defer operation_setting.UnlockBankPool()
+
 	pool := operation_setting.GetBankPool()
 	switch action {
 	case "inject":

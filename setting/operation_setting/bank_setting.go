@@ -1,6 +1,10 @@
 package operation_setting
 
-import "github.com/LeoMengTCM/nox-api/setting/config"
+import (
+	"sync"
+
+	"github.com/LeoMengTCM/nox-api/setting/config"
+)
 
 // BankSetting 古灵阁银行配置
 type BankSetting struct {
@@ -203,6 +207,9 @@ func GetEarlyWithdrawPenalty() int {
 	return bankSetting.EarlyWithdrawPenalty
 }
 
+// bankPoolMu protects BankPool read-check-modify sequences against concurrent access.
+var bankPoolMu sync.Mutex
+
 func GetBankPool() int64 {
 	return bankSetting.BankPool
 }
@@ -210,4 +217,14 @@ func GetBankPool() int64 {
 // SetBankPoolMemory updates pool in memory only. Caller must persist via model.UpdateOption.
 func SetBankPoolMemory(val int64) {
 	bankSetting.BankPool = val
+}
+
+// LockBankPool acquires the pool mutex. Caller MUST call UnlockBankPool when done.
+func LockBankPool() {
+	bankPoolMu.Lock()
+}
+
+// UnlockBankPool releases the pool mutex.
+func UnlockBankPool() {
+	bankPoolMu.Unlock()
 }

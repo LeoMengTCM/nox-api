@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -93,6 +94,30 @@ func UpdateLoanRepayment(id int, interestPaid, principalPaid, interestAccrued, s
 		updates["repaid_at"] = time.Now().Unix()
 	}
 	return DB.Model(&GringottsLoan{}).Where("id = ?", id).Updates(updates).Error
+}
+
+// UpdateLoanRepaymentOptimistic updates repayment with optimistic lock on interest_accrued.
+// If interest_accrued has changed since the caller read it (e.g. interest task ran),
+// the update affects 0 rows and returns an error — caller should rollback and retry.
+func UpdateLoanRepaymentOptimistic(id int, interestPaid, principalPaid, expectedInterestAccrued, status int) error {
+	updates := map[string]interface{}{
+		"interest_paid":  interestPaid,
+		"principal_paid": principalPaid,
+		"status":         status,
+	}
+	if status == LoanStatusRepaid {
+		updates["repaid_at"] = time.Now().Unix()
+	}
+	result := DB.Model(&GringottsLoan{}).
+		Where("id = ? AND interest_accrued = ?", id, expectedInterestAccrued).
+		Updates(updates)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("贷款数据已变更，请重试")
+	}
+	return nil
 }
 
 // GetUserTotalOutstanding returns total outstanding (principal - principal_paid + interest_accrued - interest_paid) for a user

@@ -1,10 +1,12 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
 
+	"github.com/LeoMengTCM/nox-api/logger"
 	"github.com/LeoMengTCM/nox-api/model"
 	"github.com/LeoMengTCM/nox-api/setting/operation_setting"
 )
@@ -46,17 +48,17 @@ func GetLoanInfo(userId int) (map[string]interface{}, error) {
 	}
 
 	return map[string]interface{}{
-		"credit_limit":    creditLimit,
-		"used_credit":     usedCredit,
+		"credit_limit":     creditLimit,
+		"used_credit":      usedCredit,
 		"available_credit": available,
-		"loans":           loans,
+		"loans":            loans,
 		"max_active_loans": operation_setting.GetMaxActiveLoans(),
-		"min_loan_amount": operation_setting.GetMinLoanAmount(),
-		"loan_rate_1":     operation_setting.GetLoanRate(1),
-		"loan_rate_3":     operation_setting.GetLoanRate(3),
-		"loan_rate_7":     operation_setting.GetLoanRate(7),
-		"loan_rate_14":    operation_setting.GetLoanRate(14),
-		"loan_rate_30":    operation_setting.GetLoanRate(30),
+		"min_loan_amount":  operation_setting.GetMinLoanAmount(),
+		"loan_rate_1":      operation_setting.GetLoanRate(1),
+		"loan_rate_3":      operation_setting.GetLoanRate(3),
+		"loan_rate_7":      operation_setting.GetLoanRate(7),
+		"loan_rate_14":     operation_setting.GetLoanRate(14),
+		"loan_rate_30":     operation_setting.GetLoanRate(30),
 	}, nil
 }
 
@@ -105,7 +107,10 @@ func CreateLoan(userId int, amount int, termDays int) (map[string]interface{}, e
 		return nil, errors.New("超出信用额度")
 	}
 
-	// Check bank pool
+	// Lock pool for atomic check-and-deduct
+	operation_setting.LockBankPool()
+	defer operation_setting.UnlockBankPool()
+
 	pool := operation_setting.GetBankPool()
 	if int64(amount) > pool {
 		return nil, errors.New("银行资金池不足")
@@ -122,23 +127,26 @@ func CreateLoan(userId int, amount int, termDays int) (map[string]interface{}, e
 	}
 
 	if err := model.CreateLoan(loan); err != nil {
-		// Rollback: return funds to pool
-		operation_setting.SetBankPoolMemory(pool)
-		_ = model.UpdateOption("bank_setting.bank_pool", fmt.Sprintf("%d", pool))
 		return nil, err
 	}
 
-	// Deduct from bank pool
+	// Deduct from bank pool (inside lock — safe from concurrent access)
 	newPool := pool - int64(amount)
 	operation_setting.SetBankPoolMemory(newPool)
-	_ = model.UpdateOption("bank_setting.bank_pool", fmt.Sprintf("%d", newPool))
+	if err := model.UpdateOption("bank_setting.bank_pool", fmt.Sprintf("%d", newPool)); err != nil {
+		logger.LogError(context.Background(), fmt.Sprintf("bank loan: failed to persist pool after borrow: %v", err))
+	}
 
 	// Add to user wallet
 	if err := model.IncreaseUserQuota(userId, amount, true); err != nil {
-		// Rollback loan record — mark as repaid immediately
-		_ = model.UpdateLoanRepayment(loan.Id, 0, amount, 0, model.LoanStatusRepaid)
+		// Rollback: restore pool and mark loan as repaid
 		operation_setting.SetBankPoolMemory(pool)
-		_ = model.UpdateOption("bank_setting.bank_pool", fmt.Sprintf("%d", pool))
+		if err2 := model.UpdateOption("bank_setting.bank_pool", fmt.Sprintf("%d", pool)); err2 != nil {
+			logger.LogError(context.Background(), fmt.Sprintf("bank loan: CRITICAL pool rollback persist failed: %v", err2))
+		}
+		if err2 := model.UpdateLoanRepayment(loan.Id, 0, amount, 0, model.LoanStatusRepaid); err2 != nil {
+			logger.LogError(context.Background(), fmt.Sprintf("bank loan: CRITICAL loan rollback failed, orphaned loan %d: %v", loan.Id, err2))
+		}
 		return nil, err
 	}
 
@@ -178,7 +186,7 @@ func RepayLoan(userId int, loanId int, amount int) (map[string]interface{}, erro
 		return nil, errors.New("贷款已还清")
 	}
 
-	// Calculate remaining debt
+	// Calculate remaining debt based on snapshot
 	remainingInterest := loan.InterestAccrued - loan.InterestPaid
 	remainingPrincipal := loan.Amount - loan.PrincipalPaid
 	totalDebt := remainingInterest + remainingPrincipal
@@ -210,24 +218,34 @@ func RepayLoan(userId int, loanId int, amount int) (map[string]interface{}, erro
 	newInterestPaid := loan.InterestPaid + interestPayment
 	newPrincipalPaid := loan.PrincipalPaid + principalPayment
 
-	// Determine new status
+	// Determine new status — only mark repaid if principal fully paid.
+	// Don't check interest here: interest may have grown since snapshot.
+	// The optimistic lock in UpdateLoanRepaymentOptimistic will reject if stale.
 	newStatus := loan.Status
 	if newPrincipalPaid >= loan.Amount && newInterestPaid >= loan.InterestAccrued {
 		newStatus = model.LoanStatusRepaid
 	}
 
-	// Update loan
-	if err := model.UpdateLoanRepayment(loan.Id, newInterestPaid, newPrincipalPaid, loan.InterestAccrued, newStatus); err != nil {
+	// Update loan with optimistic lock on interest_accrued
+	if err := model.UpdateLoanRepaymentOptimistic(
+		loan.Id, newInterestPaid, newPrincipalPaid, loan.InterestAccrued, newStatus,
+	); err != nil {
 		// Rollback wallet deduction
-		_ = model.IncreaseUserQuota(userId, amount, true)
+		if err2 := model.IncreaseUserQuota(userId, amount, true); err2 != nil {
+			logger.LogError(context.Background(), fmt.Sprintf("bank loan: CRITICAL wallet rollback failed for user %d amount %d: %v", userId, amount, err2))
+		}
 		return nil, err
 	}
 
-	// Return repayment to bank pool
+	// Return repayment to bank pool (with lock)
+	operation_setting.LockBankPool()
 	pool := operation_setting.GetBankPool()
 	newPool := pool + int64(amount)
 	operation_setting.SetBankPoolMemory(newPool)
-	_ = model.UpdateOption("bank_setting.bank_pool", fmt.Sprintf("%d", newPool))
+	if err := model.UpdateOption("bank_setting.bank_pool", fmt.Sprintf("%d", newPool)); err != nil {
+		logger.LogError(context.Background(), fmt.Sprintf("bank loan: failed to persist pool after repay: %v", err))
+	}
+	operation_setting.UnlockBankPool()
 
 	// Record transaction
 	desc := fmt.Sprintf("贷款还款 利息 %d + 本金 %d", interestPayment, principalPayment)
@@ -261,9 +279,9 @@ func GetDeadbeatLeaderboard() ([]model.DeadbeatEntry, error) {
 // AdminGetLoanStats returns loan statistics for admin
 func AdminGetLoanStats() map[string]interface{} {
 	return map[string]interface{}{
-		"loan_outstanding":      model.GetLoanTotalOutstanding(),
-		"loan_interest_earned":  model.GetLoanTotalInterestEarned(),
-		"loan_overdue_count":    model.GetOverdueLoanCount(),
+		"loan_outstanding":     model.GetLoanTotalOutstanding(),
+		"loan_interest_earned": model.GetLoanTotalInterestEarned(),
+		"loan_overdue_count":   model.GetOverdueLoanCount(),
 	}
 }
 

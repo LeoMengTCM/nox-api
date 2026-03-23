@@ -47,11 +47,19 @@ func GetLoanInfo(c *gin.Context) {
 		result["loans"] = converted
 	}
 
-	// Convert quota values to dollars
-	result["credit_limit"] = quotaToDollar(info["credit_limit"].(int))
-	result["used_credit"] = quotaToDollar64(info["used_credit"].(int64))
-	result["available_credit"] = quotaToDollar64(info["available_credit"].(int64))
-	result["min_loan_amount"] = quotaToDollar(info["min_loan_amount"].(int))
+	// Convert quota values to dollars (safe type assertions)
+	if v, ok := info["credit_limit"].(int); ok {
+		result["credit_limit"] = quotaToDollar(v)
+	}
+	if v, ok := info["used_credit"].(int64); ok {
+		result["used_credit"] = quotaToDollar64(v)
+	}
+	if v, ok := info["available_credit"].(int64); ok {
+		result["available_credit"] = quotaToDollar64(v)
+	}
+	if v, ok := info["min_loan_amount"].(int); ok {
+		result["min_loan_amount"] = quotaToDollar(v)
+	}
 
 	// Pass through non-quota values
 	result["max_active_loans"] = info["max_active_loans"]

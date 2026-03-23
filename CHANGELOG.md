@@ -19,19 +19,20 @@ All notable changes to Nox API will be documented in this file.
 
 #### Sidebar Reorganization
 - Moved **Check-in**, **Community**, and **Ranking** from Hogwarts Portal back into the AI Console sidebar under the "Account" section.
-- Routes available at both `/console/checkin|community|ranking` and `/console/hogwarts/...` for backward compatibility.
 
 #### Enriched Leaderboard (2 → 4 dimensions)
-- Added **Request King** (请求之王): ranked by total API request count.
-- Added **Top Inviter** (邀请达人): ranked by invitation count.
-- Leaderboard page now displays a 2×2 grid of ranking boards.
+- Added **Request King** and **Top Inviter** rankings.
 
 ### Bug Fixes
-- **Token toggle status**: Fixed `handleToggleStatus` — was passing `?status=${token.id}` (wrong param), now correctly uses `?status_only=true` with PUT body `{ id, status }`.
-- **Clipboard copy**: Uses synchronous `execCommand` first (survives async user gesture loss), `ClipboardItem` for deferred copy.
-- **Loan available_credit**: Clamped to 0 when admin reduces credit limit below current usage.
-- **Loan CreateLoan rollback**: Added proper rollback if wallet credit fails after loan record is created.
-- **Bank transaction colors**: Withdraw transactions now consistently show in red.
+- **Bank pool concurrency**: Added `sync.Mutex` to protect all bank pool read-check-modify sequences (borrow, repay, interest, inject, fixed withdraw) against concurrent overdraft.
+- **Loan repay optimistic lock**: `UpdateLoanRepaymentOptimistic` uses `WHERE interest_accrued = ?` to prevent stale-read race with the hourly interest task; returns error if data changed, wallet auto-rolls back.
+- **Loan CreateLoan rollback**: Removed dead no-op pool rollback on `CreateLoan` DB failure; added proper rollback with CRITICAL error logging when wallet credit or pool persist fails.
+- **Critical error logging**: All money-path `_ = model.*` calls now log errors via `logger.LogError` instead of silently discarding.
+- **Safe type assertions**: Controller bare `.(int)` / `.(int64)` assertions replaced with `v, ok :=` form to prevent panics.
+- **Token toggle status**: Fixed wrong PUT params — now uses `?status_only=true` with correct body.
+- **Clipboard copy**: Synchronous `execCommand` first, `ClipboardItem` for deferred async copy.
+- **Loan available_credit**: Clamped to 0 when negative.
+- **Bank transaction colors**: Withdraw transactions consistently red.
 
 ## [0.1.13] - 2026-03-20
 
