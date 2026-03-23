@@ -56,6 +56,7 @@ import {
   MessageSquareMore,
   PawPrint,
 } from 'lucide-react';
+import { HtmlRenderer } from '../components/ui/html-renderer';
 
 // Generic settings section component
 const SettingsSection = ({ title, children }) => (
@@ -158,10 +159,18 @@ const PreviewableTextarea = ({ label, description, value, onChange, placeholder,
         </Button>
       </div>
       {previewing ? (
-        <div
-          className="min-h-[120px] rounded-md border border-border bg-surface-hover/30 px-3 py-2 text-sm text-text-primary prose prose-sm max-w-none"
-          dangerouslySetInnerHTML={{ __html: value || '<span class="text-text-tertiary">暂无内容</span>' }}
-        />
+        (value?.trim()) ? (
+          <div className="min-h-[120px] rounded-md border border-border bg-surface-hover/30 px-3 py-2 text-sm text-text-primary">
+            <HtmlRenderer
+              content={value}
+              className="prose prose-sm max-w-none"
+            />
+          </div>
+        ) : (
+          <div className="min-h-[120px] rounded-md border border-border bg-surface-hover/30 px-3 py-2 text-sm text-text-primary prose prose-sm max-w-none">
+            <span className="text-text-tertiary">暂无内容</span>
+          </div>
+        )
       ) : (
         <Textarea value={value || ''} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows} />
       )}

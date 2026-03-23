@@ -2,6 +2,18 @@
 
 All notable changes to Nox API will be documented in this file.
 
+## [0.1.16] - 2026-03-23
+
+### Bug Fixes
+
+#### HTML Content Rendering
+- **Full HTML documents broken in notices/announcements**: Fixed all HTML rendering paths — content with `<!DOCTYPE html>` or `<html>` tags was being passed through `marked.parse()` (Markdown parser), which mangled structural tags (`<head>`, `<style>`, `<body>`). Browsers then stripped these invalid nested tags, causing styles and layout to display as plain text.
+- **New `HtmlRenderer` component**: Smart content renderer that auto-detects three content types:
+  - **Full HTML document** (`<!DOCTYPE` / `<html>`): rendered in sandboxed `<iframe srcDoc>` with auto-height, preserving all styles and animations in isolation.
+  - **HTML fragment** (starts with tags like `<div>`, `<p>`): rendered directly via `dangerouslySetInnerHTML`, skipping Markdown parsing.
+  - **Markdown**: parsed with `marked` as before.
+- **Affected pages**: Home notice dialog, home page custom content, dashboard announcements, admin settings preview, about page, user agreement, privacy policy — all now use `HtmlRenderer`.
+
 ## [0.1.15] - 2026-03-23
 
 ### Bug Fixes

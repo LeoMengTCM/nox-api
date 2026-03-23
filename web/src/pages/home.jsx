@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
+import { HtmlRenderer, detectContentType } from '../components/ui/html-renderer';
 import { marked } from 'marked';
 import { ChevronDown } from 'lucide-react';
 import { API } from '../lib/api';
@@ -132,9 +133,14 @@ export default function Home() {
         const res = await API.get('/api/home_page_content');
         const { success, data } = res.data;
         if (success) {
-          const content = data.startsWith('https://') ? data : marked.parse(data);
-          setHomePageContent(content);
-          localStorage.setItem('home_page_content', content);
+          if (data.startsWith('https://')) {
+            setHomePageContent(data);
+          } else {
+            const type = detectContentType(data);
+            const content = type === 'markdown' ? marked.parse(data) : data;
+            setHomePageContent(content);
+          }
+          localStorage.setItem('home_page_content', data);
         } else {
           setHomePageContent('');
         }
@@ -155,7 +161,8 @@ export default function Home() {
         const res = await API.get('/api/notice');
         const { success, data } = res.data;
         if (success && data?.trim()) {
-          setNoticeContent(marked.parse(data));
+          const type = detectContentType(data);
+          setNoticeContent(type === 'markdown' ? marked.parse(data) : data);
           setNoticeVisible(true);
         }
       } catch {
@@ -219,9 +226,9 @@ export default function Home() {
             title="Home"
           />
         ) : (
-          <div
+          <HtmlRenderer
+            content={homePageContent}
             className="max-w-4xl mx-auto px-6 py-12 prose prose-neutral dark:prose-invert"
-            dangerouslySetInnerHTML={{ __html: homePageContent }}
           />
         )}
       </div>
@@ -578,9 +585,9 @@ function NoticeDialog({ open, onClose, content }) {
             <span className="sr-only">系统公告内容</span>
           </DialogDescription>
         </DialogHeader>
-        <div
+        <HtmlRenderer
+          content={content}
           className="prose prose-sm prose-neutral dark:prose-invert max-h-[60vh] overflow-y-auto"
-          dangerouslySetInnerHTML={{ __html: content }}
         />
         <div className="flex justify-end pt-4">
           <DialogClose asChild>

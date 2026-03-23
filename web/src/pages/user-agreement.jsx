@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { marked } from 'marked';
+import { HtmlRenderer, detectContentType } from '../components/ui/html-renderer';
 import { API } from '../lib/api';
 import { showError } from '../lib/utils';
 
@@ -16,7 +17,8 @@ export default function UserAgreement() {
         if (success) {
           let parsed = data;
           if (!data.startsWith('https://')) {
-            parsed = marked.parse(data);
+            const type = detectContentType(data);
+            parsed = type === 'markdown' ? marked.parse(data) : data;
           }
           setContent(parsed);
           localStorage.setItem('user_agreement', parsed);
@@ -51,9 +53,9 @@ export default function UserAgreement() {
       {!loaded ? (
         <div className="text-text-tertiary animate-pulse">加载中...</div>
       ) : content ? (
-        <div
+        <HtmlRenderer
+          content={content}
           className="prose prose-neutral dark:prose-invert max-w-none"
-          dangerouslySetInnerHTML={{ __html: content }}
         />
       ) : (
         <p className="text-text-tertiary">暂无用户协议内容</p>

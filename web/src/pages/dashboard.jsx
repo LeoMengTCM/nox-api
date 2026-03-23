@@ -39,6 +39,7 @@ import {
 import { UserContext } from '../contexts/user-context';
 import { StatusContext } from '../contexts/status-context';
 import { marked } from 'marked';
+import { HtmlRenderer } from '../components/ui/html-renderer';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -457,18 +458,14 @@ export default function DashboardPage() {
                           {item.relative} {item.time}
                         </span>
                       </div>
-                      <div
+                      <HtmlRenderer
+                        content={item.content || ''}
                         className='text-sm text-text-primary prose prose-sm max-w-none'
-                        dangerouslySetInnerHTML={{
-                          __html: marked.parse(item.content || ''),
-                        }}
                       />
                       {item.extra && (
-                        <div
+                        <HtmlRenderer
+                          content={item.extra}
                           className='text-xs text-text-tertiary mt-1'
-                          dangerouslySetInnerHTML={{
-                            __html: marked.parse(item.extra),
-                          }}
                         />
                       )}
                     </div>

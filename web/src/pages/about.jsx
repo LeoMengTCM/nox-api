@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { marked } from 'marked';
+import { HtmlRenderer, detectContentType } from '../components/ui/html-renderer';
 import { API } from '../lib/api';
 import { showError } from '../lib/utils';
 
@@ -16,7 +17,8 @@ export default function About() {
       if (success) {
         let aboutContent = data;
         if (!data.startsWith('https://')) {
-          aboutContent = marked.parse(data);
+          const type = detectContentType(data);
+          aboutContent = type === 'markdown' ? marked.parse(data) : data;
         }
         setAbout(aboutContent);
         localStorage.setItem('about', aboutContent);
@@ -50,9 +52,9 @@ export default function About() {
 
     return (
       <div className="max-w-3xl mx-auto px-6 py-12">
-        <div
+        <HtmlRenderer
+          content={about}
           className="prose prose-neutral dark:prose-invert max-w-none"
-          dangerouslySetInnerHTML={{ __html: about }}
         />
       </div>
     );
