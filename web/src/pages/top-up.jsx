@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Button, Input } from '../components/ui';
+import { Button, Input, Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui';
 import { API } from '../lib/api';
 import { showError, showSuccess, showInfo, renderQuota, getQuotaPerUnit, copy } from '../lib/utils';
 import { ArrowRight, Copy } from 'lucide-react';
@@ -139,7 +139,7 @@ export default function TopUpPage() {
   const [plans, setPlans] = useState([]);
   const [plansLoading, setPlansLoading] = useState(true);
   const [buyingPlanId, setBuyingPlanId] = useState(null);
-  const [topupInfo, setTopupInfo] = useState(null);
+  const [confirmPlan, setConfirmPlan] = useState(null);
 
   const loadUserInfo = async () => {
     setLoading(true);
@@ -182,38 +182,10 @@ export default function TopUpPage() {
     setPlansLoading(false);
   };
 
-  const loadTopupInfo = async () => {
-    try {
-      const res = await API.get('/api/user/topup/info');
-      const { success, data } = res.data;
-      if (success) setTopupInfo(data);
-    } catch {
-      // may not be available
-    }
-  };
-
   useEffect(() => {
     loadUserInfo();
     loadAffInfo();
     loadPlans();
-    loadTopupInfo();
-  }, []);
-
-  // Payment result from redirect
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const payResult = params.get('pay');
-    if (payResult === 'success') {
-      showSuccess('支付成功，额度已到账');
-      window.history.replaceState({}, '', window.location.pathname);
-      loadUserInfo();
-    } else if (payResult === 'fail') {
-      showError('支付失败，请重试');
-      window.history.replaceState({}, '', window.location.pathname);
-    } else if (payResult === 'pending') {
-      showInfo('支付处理中，请稍后刷新查看');
-      window.history.replaceState({}, '', window.location.pathname);
-    }
   }, []);
 
   const handleRedeem = async () => {
@@ -244,32 +216,26 @@ export default function TopUpPage() {
     showSuccess('已复制');
   };
 
-  const handleBuyPlan = async (plan) => {
-    if (!plan.id) return;
+  // Show confirmation dialog before buying
+  const handleBuyPlan = (plan) => {
+    setConfirmPlan(plan);
+  };
+
+  // Actually purchase via balance deduction
+  const handleConfirmBuy = async () => {
+    const plan = confirmPlan;
+    if (!plan?.id) return;
     setBuyingPlanId(plan.id);
+    setConfirmPlan(null);
     try {
-      const epayEnabled = topupInfo?.enable_online_topup;
-      const stripeEnabled = topupInfo?.enable_stripe_topup;
-      const creemEnabled = topupInfo?.enable_creem_topup;
-      let res;
-      if (epayEnabled && topupInfo?.pay_methods?.length > 0) {
-        const method = topupInfo.pay_methods[0]?.type || 'alipay';
-        res = await API.post('/api/subscription/epay/pay', { plan_id: plan.id, payment_method: method });
-      } else if (stripeEnabled) {
-        res = await API.post('/api/subscription/stripe/pay', { plan_id: plan.id });
-      } else if (creemEnabled) {
-        res = await API.post('/api/subscription/creem/pay', { plan_id: plan.id });
+      const res = await API.post('/api/subscription/balance/pay', { plan_id: plan.id });
+      const { success, message } = res.data;
+      if (success) {
+        showSuccess('购买成功，套餐已生效');
+        loadUserInfo();
       } else {
-        showError('当前未配置支付方式，请联系管理员');
-        setBuyingPlanId(null);
-        return;
+        showError(message || '购买失败');
       }
-      const { data } = res;
-      if (data?.url) { window.location.href = data.url; return; }
-      if (data?.data?.checkout_url) { window.location.href = data.data.checkout_url; return; }
-      if (data?.data?.url) { window.location.href = data.data.url; return; }
-      if (data?.data && typeof data.data === 'object' && data.url) { window.location.href = data.url; return; }
-      if (data?.success === false) showError(data?.message || '创建订单失败');
     } catch (e) {
       showError(e?.response?.data?.message || '购买失败，请稍后重试');
     }
@@ -392,6 +358,47 @@ export default function TopUpPage() {
 
         </div>
       </section>
+
+      {/* ──── Purchase Confirmation ──── */}
+      <Dialog open={!!confirmPlan} onOpenChange={(open) => !open && setConfirmPlan(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>确认购买</DialogTitle>
+          </DialogHeader>
+          {confirmPlan && (
+            <div className="mt-2 space-y-4">
+              <div className="border-b border-border pb-4">
+                <p className="font-heading text-base font-semibold text-text-primary">{confirmPlan.title}</p>
+                {confirmPlan.subtitle && (
+                  <p className="text-[13px] text-text-tertiary mt-0.5">{confirmPlan.subtitle}</p>
+                )}
+              </div>
+              <dl className="space-y-2 text-[13px]">
+                <div className="flex justify-between">
+                  <dt className="text-text-tertiary">扣除余额</dt>
+                  <dd className="text-text-primary font-semibold">${(confirmPlan.price_amount || 0).toFixed(2)}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-text-tertiary">获得额度</dt>
+                  <dd className="text-text-primary font-medium">{formatQuota(confirmPlan)}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-text-tertiary">有效期</dt>
+                  <dd className="text-text-primary font-medium">{formatDuration(confirmPlan)}</dd>
+                </div>
+              </dl>
+              <div className="flex gap-3 pt-2">
+                <Button variant="outline" className="flex-1" onClick={() => setConfirmPlan(null)}>
+                  取消
+                </Button>
+                <Button className="flex-1" onClick={handleConfirmBuy} disabled={buyingPlanId === confirmPlan.id}>
+                  {buyingPlanId === confirmPlan.id ? '购买中…' : '确认购买'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

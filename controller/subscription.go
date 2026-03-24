@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 
@@ -84,6 +85,104 @@ func UpdateSubscriptionPreference(c *gin.Context) {
 		return
 	}
 	common.ApiSuccess(c, gin.H{"billing_preference": pref})
+}
+
+// ---- Balance Pay (deduct from user wallet) ----
+
+type SubscriptionBalancePayRequest struct {
+	PlanId int `json:"plan_id"`
+}
+
+func SubscriptionBalancePay(c *gin.Context) {
+	var req SubscriptionBalancePayRequest
+	if err := c.ShouldBindJSON(&req); err != nil || req.PlanId <= 0 {
+		common.ApiErrorMsg(c, "参数错误")
+		return
+	}
+
+	plan, err := model.GetSubscriptionPlanById(req.PlanId)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if !plan.Enabled {
+		common.ApiErrorMsg(c, "套餐未启用")
+		return
+	}
+	if plan.PriceAmount <= 0 {
+		common.ApiErrorMsg(c, "套餐价格无效")
+		return
+	}
+
+	userId := c.GetInt("id")
+
+	// Check purchase limit
+	if plan.MaxPurchasePerUser > 0 {
+		count, err := model.CountUserSubscriptionsByPlan(userId, plan.Id)
+		if err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		if count >= int64(plan.MaxPurchasePerUser) {
+			common.ApiErrorMsg(c, "已达到该套餐购买上限")
+			return
+		}
+	}
+
+	// Calculate quota cost: price_amount (USD) * QuotaPerUnit
+	quotaCost := int(plan.PriceAmount * common.QuotaPerUnit)
+	if quotaCost <= 0 {
+		common.ApiErrorMsg(c, "套餐价格无效")
+		return
+	}
+
+	// Check user balance
+	userQuota, err := model.GetUserQuota(userId, true)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if userQuota < quotaCost {
+		common.ApiErrorMsg(c, "余额不足")
+		return
+	}
+
+	// Deduct quota and create subscription in one transaction
+	err = model.DB.Transaction(func(tx *gorm.DB) error {
+		// Deduct user quota with row-level lock
+		result := tx.Model(&model.User{}).Where("id = ? AND quota >= ?", userId, quotaCost).
+			Update("quota", gorm.Expr("quota - ?", quotaCost))
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return errors.New("余额不足")
+		}
+
+		// Create subscription
+		_, err := model.CreateUserSubscriptionFromPlanTx(tx, userId, plan, "balance")
+		return err
+	})
+	if err != nil {
+		common.ApiErrorMsg(c, err.Error())
+		return
+	}
+
+	// DB already deducted in transaction; force cache refresh
+	go func() {
+		_, _ = model.GetUserQuota(userId, true)
+	}()
+
+	// Upgrade group if needed
+	if strings.TrimSpace(plan.UpgradeGroup) != "" {
+		_ = model.UpdateUserGroupCache(userId, plan.UpgradeGroup)
+	}
+
+	// Log
+	model.RecordLog(userId, model.LogTypeTopup,
+		"余额购买套餐: "+plan.Title+"，扣费: $"+strconv.FormatFloat(plan.PriceAmount, 'f', 2, 64))
+
+	common.ApiSuccess(c, nil)
 }
 
 // ---- Admin APIs ----
