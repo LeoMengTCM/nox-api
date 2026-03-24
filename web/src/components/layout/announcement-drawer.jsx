@@ -66,37 +66,37 @@ export default function AnnouncementDrawer() {
   }, [statusState?.status?.announcements]);
 
   // Unread logic: compare latest announcement publishDate with localStorage
-  const hasUnread = useMemo(() => {
-    if (announcements.length === 0) return false;
+  const [hasUnread, setHasUnread] = useState(false);
+
+  // Recompute unread state when announcements change or sheet closes
+  useMemo(() => {
+    if (announcements.length === 0) { setHasUnread(false); return; }
     const lastRead = localStorage.getItem(LS_KEY);
-    if (!lastRead) return true;
+    if (!lastRead) { setHasUnread(true); return; }
     const lastReadTime = parseInt(lastRead, 10);
-    if (isNaN(lastReadTime)) return true;
-    // Check if any announcement is newer than last read
-    return announcements.some((a) => {
+    if (isNaN(lastReadTime)) { setHasUnread(true); return; }
+    setHasUnread(announcements.some((a) => {
       const pub = new Date(a.publishDate).getTime();
       return !isNaN(pub) && pub > lastReadTime;
-    });
-  }, [announcements, open]); // re-check when sheet closes
+    }));
+  }, [announcements]);
 
-  const handleOpenChange = useCallback((isOpen) => {
-    setOpen(isOpen);
-    if (isOpen) {
-      // Mark all as read
-      localStorage.setItem(LS_KEY, String(Date.now()));
-    }
+  const handleOpen = useCallback(() => {
+    setOpen(true);
+    localStorage.setItem(LS_KEY, String(Date.now()));
+    setHasUnread(false);
   }, []);
 
   if (!announcementsEnabled || announcements.length === 0) return null;
 
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
+    <Sheet open={open} onOpenChange={setOpen}>
       {/* Trigger button */}
       <TooltipProvider delayDuration={300}>
         <Tooltip>
           <TooltipTrigger asChild>
             <button
-              onClick={() => setOpen(true)}
+              onClick={handleOpen}
               className={cn(
                 'relative p-2 rounded-md transition-colors',
                 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
