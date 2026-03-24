@@ -2,6 +2,18 @@
 
 All notable changes to Nox API will be documented in this file.
 
+## [0.1.18] - 2026-03-24
+
+### Features
+
+#### Wallet Page Redesign
+- **Subscription plans on wallet page**: The wallet management page now fetches and displays subscription plans from `/api/subscription/plans`. Previously, admin-configured plans had no user-facing purchase UI — users could only redeem codes.
+- **Anthropic-inspired editorial layout**: Complete visual redesign following a restrained, editorial aesthetic — large lightweight typography for balance display (56–72px `font-light`), generous whitespace (`space-y-20`), thin `border-t` section dividers instead of card wrappers, and `dl/dt/dd` definition lists for plan details.
+- **Plan cards with smart featuring**: Clean minimal cards with 40px light-weight pricing, left-right aligned detail rows (quota, duration, reset period, group upgrade, purchase limit). Middle plan auto-highlighted as "推荐" with accent border and filled CTA button; others use outline style.
+- **Multi-gateway payment flow**: Purchase button auto-detects available payment method (epay → Stripe → Creem) from `/api/user/topup/info` and redirects to checkout. Handles redirect URLs for all three gateways.
+- **Payment result handling**: URL query params (`?pay=success|fail|pending`) from payment callbacks trigger appropriate toast notifications and refresh balance.
+- **Two-column utilities**: Redeem code and affiliate sections consolidated into a responsive two-column grid, removing redundant card wrappers and icon decorations.
+
 ## [0.1.17] - 2026-03-24
 
 ### Features
