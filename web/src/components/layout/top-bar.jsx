@@ -26,6 +26,7 @@ import {
   TooltipProvider,
 } from '../ui/tooltip';
 import NotificationBell from '../social/notification-bell';
+import AnnouncementDrawer from './announcement-drawer';
 
 const TopBar = ({ onMobileMenuToggle, drawerOpen, showSidebar = false }) => {
   const { t } = useTranslation();
@@ -199,6 +200,7 @@ const TopBar = ({ onMobileMenuToggle, drawerOpen, showSidebar = false }) => {
               </Tooltip>
             </TooltipProvider>
 
+            <AnnouncementDrawer />
             <NotificationBell />
             <DropdownMenu>
             <DropdownMenuTrigger asChild>
