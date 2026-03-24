@@ -12,33 +12,36 @@ import (
 	"github.com/LeoMengTCM/nox-api/setting/operation_setting"
 )
 
-// 打劫类型配置
-type heistConfig struct {
-	Fee        int     // 入场费 (quota)
-	Cooldown   int64   // 冷却时间 (秒)
-	BaseRate   float64 // 基础成功率
-	MinPct     float64 // 最小金库百分比奖励
-	MaxPct     float64 // 最大金库百分比奖励
-	Name       string  // 显示名
-	Narrative  string  // 叙事
+// 打劫类型元数据（名称、叙事文本）
+type heistMeta struct {
+	Name      string
+	Narrative string
 }
 
-var heistConfigs = map[string]heistConfig{
+var heistMetaMap = map[string]heistMeta{
 	"sneak": {
-		Fee: 50000, Cooldown: 4 * 3600, BaseRate: 0.60,
-		MinPct: 0.001, MaxPct: 0.005,
-		Name: "隐形斗篷潜入", Narrative: "你披上隐形斗篷，悄悄溜进古灵阁的地下金库...",
+		Name:      "隐形斗篷潜入",
+		Narrative: "你披上隐形斗篷，悄悄溜进古灵阁的地下金库...",
 	},
 	"dragon": {
-		Fee: 250000, Cooldown: 12 * 3600, BaseRate: 0.35,
-		MinPct: 0.005, MaxPct: 0.02,
-		Name: "骑龙闯关", Narrative: "你跃上乌克兰铁肚皮龙，冲破古灵阁的穹顶...",
+		Name:      "骑龙闯关",
+		Narrative: "你跃上乌克兰铁肚皮龙，冲破古灵阁的穹顶...",
 	},
 	"imperio": {
-		Fee: 1000000, Cooldown: 24 * 3600, BaseRate: 0.15,
-		MinPct: 0.02, MaxPct: 0.05,
-		Name: "夺魂咒控制妖精", Narrative: "你对一名妖精施放了夺魂咒，命令他打开最深处的金库...",
+		Name:      "夺魂咒控制妖精",
+		Narrative: "你对一名妖精施放了夺魂咒，命令他打开最深处的金库...",
 	},
+}
+
+const minHeistFee = 1000 // 最低入场费 (quota)
+
+// calcFee 计算入场费 = 金库余额 × feePct，保底 minHeistFee
+func calcFee(vaultBalance int64, feePct float64) int {
+	fee := int(float64(vaultBalance) * feePct)
+	if fee < minHeistFee {
+		fee = minHeistFee
+	}
+	return fee
 }
 
 // GetGringottsInfo 获取金库信息（面向用户）
@@ -47,11 +50,19 @@ func GetGringottsInfo(userId int) (map[string]interface{}, error) {
 		return nil, errors.New("赌场系统未启用")
 	}
 
+	if !operation_setting.IsHeistEnabled() {
+		return nil, errors.New("打劫系统未启用")
+	}
+
 	vaultBalance := model.GetGringottsVaultBalance()
 
 	// 获取各类型冷却状态
 	cooldowns := make(map[string]interface{})
-	for heistType, cfg := range heistConfigs {
+	allConfigs := operation_setting.GetAllHeistConfigs()
+	for heistType, cfg := range allConfigs {
+		meta := heistMetaMap[heistType]
+		fee := calcFee(vaultBalance, cfg.FeePct)
+
 		lastRecord, _ := model.GetLastHeistByType(userId, heistType)
 		var cooldownEnds int64
 		var available bool
@@ -62,9 +73,10 @@ func GetGringottsInfo(userId int) (map[string]interface{}, error) {
 			available = time.Now().Unix() >= cooldownEnds
 		}
 		cooldowns[heistType] = map[string]interface{}{
-			"name":          cfg.Name,
-			"fee":           cfg.Fee,
-			"fee_display":   logger.LogQuota(cfg.Fee),
+			"name":          meta.Name,
+			"fee":           fee,
+			"fee_display":   logger.LogQuota(fee),
+			"fee_pct":       fmt.Sprintf("%.2f%%", cfg.FeePct*100),
 			"cooldown_ends": cooldownEnds,
 			"available":     available,
 			"base_rate":     fmt.Sprintf("%.0f%%", cfg.BaseRate*100),
@@ -88,11 +100,19 @@ func ExecuteHeist(userId int, heistType string) (map[string]interface{}, error) 
 		return nil, errors.New("赌场系统未启用")
 	}
 
+	if !operation_setting.IsHeistEnabled() {
+		return nil, errors.New("打劫系统未启用")
+	}
+
 	if IsUserCasinoBanned(userId) {
 		return nil, errors.New("你的赌场权限已被封禁")
 	}
 
-	cfg, ok := heistConfigs[heistType]
+	cfg, ok := operation_setting.GetHeistConfig(heistType)
+	if !ok {
+		return nil, errors.New("无效的打劫方式")
+	}
+	meta, ok := heistMetaMap[heistType]
 	if !ok {
 		return nil, errors.New("无效的打劫方式")
 	}
@@ -109,23 +129,24 @@ func ExecuteHeist(userId int, heistType string) (map[string]interface{}, error) 
 		}
 	}
 
+	// 获取金库余额 & 计算入场费
+	vaultBalance := model.GetGringottsVaultBalance()
+	fee := calcFee(vaultBalance, cfg.FeePct)
+
 	// 检查余额（入场费）
 	quota, err := model.GetUserQuota(userId, false)
 	if err != nil {
 		return nil, errors.New("获取余额失败")
 	}
-	if quota < cfg.Fee {
-		return nil, fmt.Errorf("入场费不足，需要 %s", logger.LogQuota(cfg.Fee))
+	if quota < fee {
+		return nil, fmt.Errorf("入场费不足，需要 %s", logger.LogQuota(fee))
 	}
 
 	// 扣除入场费
-	ok, err = model.SafeDecreaseQuotaForBet(userId, cfg.Fee)
-	if err != nil || !ok {
+	ok2, err := model.SafeDecreaseQuotaForBet(userId, fee)
+	if err != nil || !ok2 {
 		return nil, errors.New("扣除入场费失败，余额不足")
 	}
-
-	// 获取金库余额
-	vaultBalance := model.GetGringottsVaultBalance()
 
 	// 计算成功率
 	successRate := cfg.BaseRate
@@ -167,7 +188,7 @@ func ExecuteHeist(userId int, heistType string) (map[string]interface{}, error) 
 	record := &model.GringottsHeistRecord{
 		UserId:      userId,
 		HeistType:   heistType,
-		EntranceFee: cfg.Fee,
+		EntranceFee: fee,
 		VaultBefore: vaultBalance,
 		Success:     success,
 	}
@@ -175,7 +196,7 @@ func ExecuteHeist(userId int, heistType string) (map[string]interface{}, error) 
 	result := map[string]interface{}{
 		"heist_type":   heistType,
 		"success":      success,
-		"entrance_fee": cfg.Fee,
+		"entrance_fee": fee,
 		"vault_before": vaultBalance,
 	}
 
@@ -191,7 +212,7 @@ func ExecuteHeist(userId int, heistType string) (map[string]interface{}, error) 
 
 		// 发放奖励
 		_ = model.IncreaseUserQuota(userId, reward, true)
-		model.RecordLog(userId, model.LogTypeSystem, fmt.Sprintf("古灵阁打劫成功(%s)，获得 %s", cfg.Name, logger.LogQuota(reward)))
+		model.RecordLog(userId, model.LogTypeSystem, fmt.Sprintf("古灵阁打劫成功(%s)，获得 %s", meta.Name, logger.LogQuota(reward)))
 
 		// 全服跑马灯
 		username, _ := model.GetUsernameById(userId, false)
@@ -199,13 +220,13 @@ func ExecuteHeist(userId int, heistType string) (map[string]interface{}, error) 
 			UserId:     userId,
 			Username:   username,
 			GameType:   "gringotts_" + heistType,
-			BetAmount:  float64(cfg.Fee),
+			BetAmount:  float64(fee),
 			Payout:     float64(reward),
-			Multiplier: float64(reward) / float64(cfg.Fee),
+			Multiplier: float64(reward) / float64(fee),
 		})
 
 		detailsMap := map[string]interface{}{
-			"narrative":    cfg.Narrative + "成功了！你从金库中带走了一袋金加隆！",
+			"narrative":    meta.Narrative + "成功了！你从金库中带走了一袋金加隆！",
 			"success_rate": fmt.Sprintf("%.1f%%", successRate*100),
 			"vault_pct":    fmt.Sprintf("%.2f%%", pct*100),
 		}
@@ -214,7 +235,7 @@ func ExecuteHeist(userId int, heistType string) (map[string]interface{}, error) 
 
 		result["reward"] = reward
 		result["reward_display"] = logger.LogQuota(reward)
-		result["narrative"] = cfg.Narrative + "成功了！你从金库中带走了一袋金加隆！"
+		result["narrative"] = meta.Narrative + "成功了！你从金库中带走了一袋金加隆！"
 
 		// 异步检查称号
 		go func() {
@@ -225,13 +246,13 @@ func ExecuteHeist(userId int, heistType string) (map[string]interface{}, error) 
 	} else {
 		// 失败惩罚
 		penalty := 0
-		narrative := cfg.Narrative + "失败了！"
+		narrative := meta.Narrative + "失败了！"
 
 		// 50% 概率额外罚入场费50%
 		if rand.Float64() < 0.5 {
-			extraPenalty := cfg.Fee / 2
-			ok2, _ := model.SafeDecreaseQuotaForBet(userId, extraPenalty)
-			if ok2 {
+			extraPenalty := fee / 2
+			ok3, _ := model.SafeDecreaseQuotaForBet(userId, extraPenalty)
+			if ok3 {
 				penalty = extraPenalty
 				narrative += "妖精们发现了你，额外罚没了一笔金加隆！"
 			}
@@ -256,7 +277,7 @@ func ExecuteHeist(userId int, heistType string) (map[string]interface{}, error) 
 		}
 
 		record.Penalty = penalty
-		model.RecordLog(userId, model.LogTypeSystem, fmt.Sprintf("古灵阁打劫失败(%s)，损失入场费 %s", cfg.Name, logger.LogQuota(cfg.Fee)))
+		model.RecordLog(userId, model.LogTypeSystem, fmt.Sprintf("古灵阁打劫失败(%s)，损失入场费 %s", meta.Name, logger.LogQuota(fee)))
 
 		detailsMap := map[string]interface{}{
 			"narrative":    narrative,
@@ -279,6 +300,35 @@ func ExecuteHeist(userId int, heistType string) (map[string]interface{}, error) 
 // GetHeistHistory 获取打劫历史
 func GetHeistHistory(userId int, page, perPage int) ([]model.GringottsHeistRecord, int64, error) {
 	return model.GetHeistHistory(userId, page, perPage)
+}
+
+// AdminInjectVault 管理员注入/提取金库资金
+func AdminInjectVault(adminId int, amount int64, action, remark string) error {
+	var recordAmount int64
+	switch action {
+	case "inject":
+		recordAmount = amount
+	case "withdraw":
+		// 检查金库余额
+		balance := model.GetGringottsVaultBalance()
+		if amount > balance {
+			return errors.New("金库余额不足")
+		}
+		recordAmount = -amount
+	default:
+		return errors.New("无效操作")
+	}
+
+	return model.CreateVaultInjection(&model.GringottsVaultInjection{
+		AdminId: adminId,
+		Amount:  recordAmount,
+		Remark:  remark,
+	})
+}
+
+// GetVaultInjectionHistory 获取注入历史
+func GetVaultInjectionHistory(page, perPage int) ([]model.GringottsVaultInjection, int64, error) {
+	return model.GetVaultInjectionHistory(page, perPage)
 }
 
 // CheckHeistTitles 检查打劫相关称号

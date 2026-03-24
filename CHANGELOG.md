@@ -2,6 +2,24 @@
 
 All notable changes to Nox API will be documented in this file.
 
+## [0.1.17] - 2026-03-24
+
+### Features
+
+#### Announcements Admin UI
+- **New visual announcements editor**: Added a full management UI for console announcements in Settings > Dashboard. Previously, the `console_setting.announcements` backend existed but had no frontend editor — announcements were always empty.
+- **Accordion card list**: Each announcement displays as a collapsible card showing content preview, date, and type badge. Click to expand for editing.
+- **Rich editing**: Content field supports HTML and Markdown with live preview toggle. Date picker with datetime-local input (auto-converts to/from RFC3339). Type selector with 5 options (default/ongoing/success/warning/error) shown as colored dots.
+- **Enable/disable switch**: `console_setting.announcements_enabled` toggle to hide the announcements panel from the dashboard without deleting content.
+- **Separated save buttons**: Announcements save independently from other dashboard settings (Notice, FAQ, etc.) to avoid accidental overwrites.
+- **Clarified Notice label**: Renamed "公告内容" to "首页弹窗公告" to distinguish it from the console announcements timeline.
+
+#### Gringotts Heist Improvements
+- **Dynamic entry fees**: Heist fees are now calculated as a percentage of vault balance instead of fixed amounts. Each heist type has a configurable `fee_pct` (sneak 0.1%, dragon 0.5%, imperio 2%), with a minimum floor of 1000 quota.
+- **Vault injection system**: Admins can inject or withdraw funds from the Gringotts vault. New `gringotts_vault_injections` table tracks all admin operations with amount, remark, and timestamp. Vault balance formula updated to include injected funds.
+- **Configurable heist parameters**: All heist settings (fee percentage, cooldown, base success rate, reward range) moved from hardcoded constants to `casino_setting` with 15 new configurable fields. Settings hot-reload without restart.
+- **Heist enable/disable**: New `heist_enabled` toggle in casino settings to independently control heist availability.
+
 ## [0.1.16] - 2026-03-23
 
 ### Bug Fixes

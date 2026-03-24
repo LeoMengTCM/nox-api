@@ -87,7 +87,7 @@ func GetHeistTotalStolen() int64 {
 	return result.Total
 }
 
-// GetGringottsVaultBalance 金库余额 = 赌场总亏损 - 赌场总赢利 - 被打劫总额
+// GetGringottsVaultBalance 金库余额 = 赌场总亏损 - 赌场总赢利 - 被打劫总额 + 管理员注入总额
 func GetGringottsVaultBalance() int64 {
 	var casinoResult struct {
 		TotalLost int64 `gorm:"column:total_lost"`
@@ -98,7 +98,8 @@ func GetGringottsVaultBalance() int64 {
 		Scan(&casinoResult)
 
 	stolen := GetHeistTotalStolen()
-	balance := casinoResult.TotalLost - casinoResult.TotalWon - stolen
+	injected := GetVaultTotalInjected()
+	balance := casinoResult.TotalLost - casinoResult.TotalWon - stolen + injected
 	if balance < 0 {
 		balance = 0
 	}
@@ -121,4 +122,53 @@ func GetUserImperioSuccessCount(userId int) int64 {
 		Where("user_id = ? AND success = ? AND heist_type = ?", userId, true, "imperio").
 		Count(&count)
 	return count
+}
+
+// ==================== Vault Injection ====================
+
+// GringottsVaultInjection 管理员金库注入/提取记录
+type GringottsVaultInjection struct {
+	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	AdminId   int    `json:"admin_id" gorm:"not null;index:idx_vault_inject_admin"`
+	Amount    int64  `json:"amount" gorm:"not null"` // 正=注入, 负=提取
+	Remark    string `json:"remark" gorm:"type:varchar(200)"`
+	CreatedAt int64  `json:"created_at" gorm:"bigint;index:idx_vault_inject_created"`
+}
+
+func (GringottsVaultInjection) TableName() string {
+	return "gringotts_vault_injections"
+}
+
+func CreateVaultInjection(record *GringottsVaultInjection) error {
+	record.CreatedAt = time.Now().Unix()
+	return DB.Create(record).Error
+}
+
+// GetVaultTotalInjected 获取管理员注入净额（注入-提取）
+func GetVaultTotalInjected() int64 {
+	var result struct {
+		Total int64 `gorm:"column:total"`
+	}
+	DB.Model(&GringottsVaultInjection{}).
+		Select("COALESCE(SUM(amount), 0) as total").
+		Scan(&result)
+	return result.Total
+}
+
+// GetVaultInjectionHistory 获取注入历史
+func GetVaultInjectionHistory(page, perPage int) ([]GringottsVaultInjection, int64, error) {
+	var records []GringottsVaultInjection
+	var total int64
+
+	q := DB.Model(&GringottsVaultInjection{})
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * perPage
+	if offset < 0 {
+		offset = 0
+	}
+	err := q.Order("created_at desc").Offset(offset).Limit(perPage).Find(&records).Error
+	return records, total, err
 }

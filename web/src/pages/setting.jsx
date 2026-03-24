@@ -55,6 +55,11 @@ import {
   Send,
   MessageSquareMore,
   PawPrint,
+  Plus,
+  Trash2,
+  Bell,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { HtmlRenderer } from '../components/ui/html-renderer';
 
@@ -190,6 +195,212 @@ const JsonFormatHint = ({ example, title = '格式示例' }) => {
         <pre className="mt-1.5 rounded-md border border-border bg-surface-hover/50 px-3 py-2 text-xs text-text-secondary font-mono overflow-x-auto">
           {example}
         </pre>
+      )}
+    </div>
+  );
+};
+
+// Announcement type metadata
+const ANNOUNCEMENT_TYPES = [
+  { value: 'default', label: '默认', color: 'bg-blue-500' },
+  { value: 'ongoing', label: '进行中', color: 'bg-yellow-500' },
+  { value: 'success', label: '成功', color: 'bg-green-500' },
+  { value: 'warning', label: '警告', color: 'bg-orange-500' },
+  { value: 'error', label: '错误', color: 'bg-red-500' },
+];
+
+// Announcements visual editor
+const AnnouncementsEditor = ({ value, onChange }) => {
+  const items = useMemo(() => {
+    if (!value) return [];
+    try {
+      const arr = JSON.parse(value);
+      return Array.isArray(arr) ? arr : [];
+    } catch {
+      return [];
+    }
+  }, [value]);
+
+  const [expandedIdx, setExpandedIdx] = useState(null);
+  const [previewIdx, setPreviewIdx] = useState(null);
+
+  const update = (newItems) => {
+    onChange(JSON.stringify(newItems));
+  };
+
+  const addItem = () => {
+    const newItem = {
+      content: '',
+      publishDate: new Date().toISOString(),
+      type: 'default',
+      extra: '',
+    };
+    const newItems = [newItem, ...items];
+    update(newItems);
+    setExpandedIdx(0);
+  };
+
+  const removeItem = (idx) => {
+    const newItems = items.filter((_, i) => i !== idx);
+    update(newItems);
+    if (expandedIdx === idx) setExpandedIdx(null);
+    else if (expandedIdx !== null && expandedIdx > idx) setExpandedIdx(expandedIdx - 1);
+  };
+
+  const updateField = (idx, field, val) => {
+    const newItems = items.map((item, i) => i === idx ? { ...item, [field]: val } : item);
+    update(newItems);
+  };
+
+  const typeMeta = (t) => ANNOUNCEMENT_TYPES.find((a) => a.value === t) || ANNOUNCEMENT_TYPES[0];
+
+  const formatDate = (isoStr) => {
+    try {
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return '';
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    } catch {
+      return '';
+    }
+  };
+
+  const toDatetimeLocal = (isoStr) => {
+    try {
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return '';
+      const offset = d.getTimezoneOffset();
+      const local = new Date(d.getTime() - offset * 60000);
+      return local.toISOString().slice(0, 16);
+    } catch {
+      return '';
+    }
+  };
+
+  const fromDatetimeLocal = (localStr) => {
+    try {
+      return new Date(localStr).toISOString();
+    } catch {
+      return new Date().toISOString();
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <label className="text-sm font-medium text-text-primary">系统公告</label>
+          <p className="text-xs text-text-tertiary">展示在控制台概览页的公告列表，支持 HTML 和 Markdown</p>
+        </div>
+        <Button size="sm" variant="outline" onClick={addItem} className="gap-1.5">
+          <Plus className="w-3.5 h-3.5" /> 添加公告
+        </Button>
+      </div>
+
+      {items.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border py-8 text-center text-sm text-text-tertiary">
+          暂无公告，点击上方按钮添加
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {items.map((item, idx) => {
+            const meta = typeMeta(item.type);
+            const isExpanded = expandedIdx === idx;
+            const isPreviewing = previewIdx === idx;
+            return (
+              <div key={idx} className="rounded-lg border border-border bg-surface overflow-hidden">
+                {/* Collapsed header */}
+                <div
+                  className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface-hover transition-colors"
+                  onClick={() => setExpandedIdx(isExpanded ? null : idx)}
+                >
+                  <span className={cn('w-2 h-2 rounded-full shrink-0', meta.color)} />
+                  <span className="text-sm text-text-primary flex-1 min-w-0 truncate">
+                    {item.content ? item.content.replace(/<[^>]*>/g, '').slice(0, 60) || '(空公告)' : '(空公告)'}
+                  </span>
+                  <span className="text-xs text-text-tertiary shrink-0">{formatDate(item.publishDate)}</span>
+                  <Badge variant="outline" size="sm" className="shrink-0">{meta.label}</Badge>
+                  {isExpanded ? <ChevronUp className="w-4 h-4 text-text-tertiary" /> : <ChevronDown className="w-4 h-4 text-text-tertiary" />}
+                </div>
+
+                {/* Expanded editor */}
+                {isExpanded && (
+                  <div className="border-t border-border px-4 py-4 space-y-4">
+                    {/* Content */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-medium text-text-secondary">公告内容</label>
+                        <Button size="sm" variant="ghost" onClick={() => setPreviewIdx(isPreviewing ? null : idx)} className="gap-1.5 text-xs">
+                          {isPreviewing ? <><EyeOff className="w-3.5 h-3.5" /> 编辑</> : <><Eye className="w-3.5 h-3.5" /> 预览</>}
+                        </Button>
+                      </div>
+                      {isPreviewing ? (
+                        <div className="min-h-[80px] rounded-md border border-border bg-surface-hover/30 px-3 py-2 text-sm">
+                          {item.content?.trim() ? (
+                            <HtmlRenderer content={item.content} className="prose prose-sm max-w-none" />
+                          ) : (
+                            <span className="text-text-tertiary">暂无内容</span>
+                          )}
+                        </div>
+                      ) : (
+                        <Textarea
+                          value={item.content || ''}
+                          onChange={(e) => updateField(idx, 'content', e.target.value)}
+                          rows={3}
+                          placeholder="支持 HTML 和 Markdown..."
+                        />
+                      )}
+                    </div>
+
+                    {/* Row: date + type */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-text-secondary">发布日期</label>
+                        <Input
+                          type="datetime-local"
+                          value={toDatetimeLocal(item.publishDate)}
+                          onChange={(e) => updateField(idx, 'publishDate', fromDatetimeLocal(e.target.value))}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-text-secondary">类型</label>
+                        <Select value={item.type || 'default'} onValueChange={(v) => updateField(idx, 'type', v)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {ANNOUNCEMENT_TYPES.map((t) => (
+                              <SelectItem key={t.value} value={t.value}>
+                                <span className="flex items-center gap-2">
+                                  <span className={cn('w-2 h-2 rounded-full', t.color)} />
+                                  {t.label}
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Extra */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-text-secondary">补充说明（可选）</label>
+                      <Input
+                        value={item.extra || ''}
+                        onChange={(e) => updateField(idx, 'extra', e.target.value)}
+                        placeholder="可选的附加说明信息"
+                      />
+                    </div>
+
+                    {/* Delete */}
+                    <div className="flex justify-end">
+                      <Button size="sm" variant="destructive" onClick={() => removeItem(idx)} className="gap-1.5">
+                        <Trash2 className="w-3.5 h-3.5" /> 删除
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );
@@ -1077,8 +1288,20 @@ const Setting = () => {
           <Card>
             <CardHeader><CardTitle>仪表盘设置</CardTitle></CardHeader>
             <CardContent className="space-y-6">
-              <SectionHeader icon={LayoutDashboard} title="公告与内容" description="配置仪表盘展示的信息与链接" />
-              <PreviewableTextarea label="公告内容" description="支持 HTML 语法，将展示在用户仪表盘顶部" value={options.Notice} onChange={(v) => updateOption('Notice', v)} rows={6} placeholder="在这里输入公告内容..." />
+              <SectionHeader icon={Bell} title="系统公告" description="展示在控制台概览页的公告时间线" />
+              <SettingsField label="启用系统公告面板" description="关闭后控制台概览页将不显示公告区域">
+                <Switch checked={options['console_setting.announcements_enabled'] !== 'false'} onCheckedChange={(v) => updateOption('console_setting.announcements_enabled', v ? 'true' : 'false')} />
+              </SettingsField>
+              <AnnouncementsEditor
+                value={options['console_setting.announcements'] || ''}
+                onChange={(v) => updateOption('console_setting.announcements', v)}
+              />
+              <div className="flex justify-end pt-2">
+                <Button variant="primary" onClick={() => saveOptions(['console_setting.announcements', 'console_setting.announcements_enabled'])} loading={saving}>保存系统公告</Button>
+              </div>
+              <Separator />
+              <SectionHeader icon={LayoutDashboard} title="公告与内容" description="配置首页弹窗公告和文档链接" />
+              <PreviewableTextarea label="首页弹窗公告" description="支持 HTML 和 Markdown，用户访问首页时弹窗展示（每天仅弹一次）" value={options.Notice} onChange={(v) => updateOption('Notice', v)} rows={6} placeholder="在这里输入公告内容..." />
               <Separator />
               <SettingsInput label="API 文档链接" description="用户仪表盘中展示的 API 使用文档链接地址" value={options.DocsLink} onChange={(v) => updateOption('DocsLink', v)} placeholder="https://docs.example.com" />
               <Separator />
@@ -1095,7 +1318,7 @@ const Setting = () => {
               <Separator />
               <SettingsInput label="Uptime Kuma URL" description="Uptime Kuma 是开源的服务监控工具，配置后仪表盘将展示服务可用性状态" value={options.UptimeKumaUrl} onChange={(v) => updateOption('UptimeKumaUrl', v)} placeholder="https://status.example.com" />
               <div className="flex justify-end pt-4">
-                <Button variant="primary" onClick={() => saveOptions(['Notice', 'DocsLink', 'FAQ', 'UptimeKumaUrl'])} loading={saving}>保存仪表盘设置</Button>
+                <Button variant="primary" onClick={() => saveOptions(['Notice', 'DocsLink', 'FAQ', 'UptimeKumaUrl'])} loading={saving}>保存其他设置</Button>
               </div>
             </CardContent>
           </Card>
