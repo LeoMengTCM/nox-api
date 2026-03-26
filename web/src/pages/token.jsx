@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import {
   Button,
   Input,
@@ -43,8 +44,21 @@ import { isAdmin } from '../lib/utils';
 import { UserContext } from '../contexts/user-context';
 import {
   Key, Search, MoreVertical, Eye, EyeOff, Copy, Pencil, Power, Trash2,
-  Plus, CheckCircle2, TrendingUp, Clock, Shield,
+  Plus, CheckCircle2, TrendingUp, Clock, Shield, Calendar, Infinity,
 } from 'lucide-react';
+
+// ---------------------------------------------------------------------------
+// Motion variants (matching dashboard.jsx pattern)
+// ---------------------------------------------------------------------------
+const staggerContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.4, 0, 0.2, 1] } },
+};
 
 const defaultTokenForm = {
   name: '',
@@ -125,7 +139,7 @@ function FormField({ label, description, children, htmlFor }) {
   );
 }
 
-// --- Token Card ---
+// --- Token Card (redesigned) ---
 function TokenCard({ token, copyingKeys, revealedKeys, onCopy, onReveal, onEdit, onToggle, onDelete }) {
   const isCopying = !!copyingKeys[token.id];
   const revealed = revealedKeys[token.id];
@@ -144,102 +158,130 @@ function TokenCard({ token, copyingKeys, revealedKeys, onCopy, onReveal, onEdit,
     : timestamp2string(token.expired_time);
 
   return (
-    <Card className="p-4 transition-all duration-150 hover:shadow-md">
-      {/* Row 1: Name + Status + Menu */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <Key className="h-4 w-4 text-accent shrink-0" strokeWidth={1.8} />
-          <span className="text-sm font-semibold text-text-primary truncate">{token.name}</span>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Badge variant={isEnabled ? 'success' : 'danger'} className="text-[10px] px-1.5 py-0">
-            {isEnabled ? '已启用' : '已禁用'}
-          </Badge>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                <MoreVertical className="h-4 w-4 text-text-tertiary" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onEdit(token)}>
-                <Pencil className="h-3.5 w-3.5" />
-                <span>编辑</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onToggle(token)}>
-                <Power className="h-3.5 w-3.5" />
-                <span>{isEnabled ? '禁用' : '启用'}</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-danger focus:text-danger"
-                onClick={() => onDelete(token)}
+    <Card className={`overflow-hidden transition-all duration-200 hover:shadow-md ${!isEnabled ? 'opacity-55' : ''}`}>
+      {/* Left accent border + content */}
+      <div className={`border-l-[3px] ${isEnabled ? 'border-l-accent' : 'border-l-border-strong'}`}>
+        <div className="p-4 space-y-3">
+          {/* Row 1: Name + Status + Menu */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isEnabled ? 'bg-accent/10' : 'bg-surface-hover'}`}>
+                <Key className={`h-4 w-4 ${isEnabled ? 'text-accent' : 'text-text-tertiary'}`} strokeWidth={1.8} />
+              </div>
+              <div className="min-w-0">
+                <span className="text-sm font-semibold text-text-primary truncate block">{token.name}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Badge variant={isEnabled ? 'success' : 'danger'} size="sm">
+                {isEnabled ? '已启用' : '已禁用'}
+              </Badge>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                    <MoreVertical className="h-4 w-4 text-text-tertiary" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onEdit(token)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                    <span>编辑</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onToggle(token)}>
+                    <Power className="h-3.5 w-3.5" />
+                    <span>{isEnabled ? '禁用' : '启用'}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-danger focus:text-danger"
+                    onClick={() => onDelete(token)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>删除</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
+          {/* Row 2: Key display with inline actions */}
+          <div className="flex items-center gap-1 rounded-lg bg-surface-hover/60 border border-border-subtle px-1 py-0.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <code className="flex-1 min-w-0 text-xs px-2 py-1.5 font-mono text-text-secondary truncate select-all cursor-default">
+                  {displayKey}
+                </code>
+              </TooltipTrigger>
+              {revealed && (
+                <TooltipContent side="bottom" className="max-w-[420px] break-all font-mono text-xs">
+                  {revealed}
+                </TooltipContent>
+              )}
+            </Tooltip>
+            <div className="flex items-center shrink-0 border-l border-border-subtle ml-1 pl-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => onReveal(token)}
+                disabled={isCopying}
+                title={revealed ? '隐藏' : '查看'}
               >
-                <Trash2 className="h-3.5 w-3.5" />
-                <span>删除</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+                {revealed
+                  ? <EyeOff className="h-3.5 w-3.5 text-text-tertiary" />
+                  : <Eye className="h-3.5 w-3.5 text-text-tertiary" />
+                }
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => onCopy(token)}
+                disabled={isCopying}
+                title="复制"
+              >
+                {isCopying
+                  ? <div className="h-3.5 w-3.5 animate-spin border-2 border-text-tertiary border-t-transparent rounded-full" />
+                  : <Copy className="h-3.5 w-3.5 text-text-tertiary" />
+                }
+              </Button>
+            </div>
+          </div>
 
-      {/* Row 2: Key + actions */}
-      <div className="flex items-center gap-1.5 mt-2.5">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <code className="flex-1 min-w-0 text-xs bg-surface-hover px-2.5 py-1.5 rounded-md font-mono text-text-secondary truncate select-all cursor-default">
-              {displayKey}
-            </code>
-          </TooltipTrigger>
-          {revealed && (
-            <TooltipContent side="bottom" className="max-w-[420px] break-all font-mono text-xs">
-              {revealed}
-            </TooltipContent>
+          {/* Row 3: Meta info grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2 pt-0.5">
+            <div className="space-y-0.5">
+              <p className="text-[10px] uppercase tracking-wider text-text-tertiary">已用</p>
+              <p className="text-xs font-medium text-text-primary font-mono">${formatQuota(token.used_quota)}</p>
+            </div>
+            <div className="space-y-0.5">
+              <p className="text-[10px] uppercase tracking-wider text-text-tertiary">剩余</p>
+              <p className="text-xs font-medium text-text-primary font-mono">
+                {token.unlimited_quota ? (
+                  <span className="flex items-center gap-1">
+                    <Infinity className="h-3 w-3 text-accent" />
+                    <span>无限</span>
+                  </span>
+                ) : `$${formatQuota(token.remain_quota)}`}
+              </p>
+            </div>
+            <div className="space-y-0.5">
+              <p className="text-[10px] uppercase tracking-wider text-text-tertiary">创建于</p>
+              <p className="text-xs text-text-secondary">{timestamp2string(token.created_time)}</p>
+            </div>
+            <div className="space-y-0.5">
+              <p className="text-[10px] uppercase tracking-wider text-text-tertiary">过期</p>
+              <p className="text-xs text-text-secondary">{expiry}</p>
+            </div>
+          </div>
+
+          {/* Group tag (if present) */}
+          {token.group && (
+            <div className="pt-0.5">
+              <Badge variant="outline" size="sm">{token.group}</Badge>
+            </div>
           )}
-        </Tooltip>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 w-7 p-0 shrink-0"
-          onClick={() => onReveal(token)}
-          disabled={isCopying}
-          title={revealed ? '隐藏' : '查看'}
-        >
-          {revealed
-            ? <EyeOff className="h-3.5 w-3.5 text-text-tertiary" />
-            : <Eye className="h-3.5 w-3.5 text-text-tertiary" />
-          }
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 w-7 p-0 shrink-0"
-          onClick={() => onCopy(token)}
-          disabled={isCopying}
-          title="复制"
-        >
-          {isCopying
-            ? <div className="h-3.5 w-3.5 animate-spin border-2 border-text-tertiary border-t-transparent rounded-full" />
-            : <Copy className="h-3.5 w-3.5 text-text-tertiary" />
-          }
-        </Button>
-      </div>
-
-      {/* Row 3: Meta info */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5 text-xs text-text-tertiary">
-        <span>已用 <span className="text-text-secondary">${formatQuota(token.used_quota)}</span></span>
-        <span className="text-border-strong">·</span>
-        <span>剩余 <span className="text-text-secondary">{token.unlimited_quota ? '无限' : `$${formatQuota(token.remain_quota)}`}</span></span>
-        <span className="text-border-strong">·</span>
-        <span>{timestamp2string(token.created_time)}</span>
-        <span className="text-border-strong">·</span>
-        <span>{expiry}</span>
-        {token.group && (
-          <>
-            <span className="text-border-strong">·</span>
-            <span className="bg-surface-hover px-1.5 py-0.5 rounded text-[10px]">{token.group}</span>
-          </>
-        )}
+        </div>
       </div>
     </Card>
   );
@@ -507,98 +549,119 @@ export default function TokenPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-heading font-bold text-text-primary">令牌管理</h1>
-          <p className="text-sm text-text-tertiary mt-0.5">管理你的 API 访问密钥</p>
+      {/* Header + Search toolbar */}
+      <div className="space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-heading font-bold text-text-primary">令牌管理</h1>
+            <p className="text-sm text-text-tertiary mt-0.5">管理你的 API 访问密钥</p>
+          </div>
+          <Button onClick={openCreateDialog} className="gap-1.5 shrink-0">
+            <Plus className="h-4 w-4" />
+            创建令牌
+          </Button>
         </div>
-        <Button onClick={openCreateDialog} className="gap-1.5">
-          <Plus className="h-4 w-4" />
-          创建令牌
-        </Button>
-      </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <Card className="p-4 flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-accent/10 flex items-center justify-center">
-            <Key className="h-4.5 w-4.5 text-accent" strokeWidth={1.8} />
-          </div>
-          <div>
-            <p className="text-xs text-text-tertiary">令牌总数</p>
-            <p className="text-lg font-heading font-bold text-text-primary">{total}</p>
-          </div>
-        </Card>
-        <Card className="p-4 flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-success/10 flex items-center justify-center">
-            <CheckCircle2 className="h-4.5 w-4.5 text-success" strokeWidth={1.8} />
-          </div>
-          <div>
-            <p className="text-xs text-text-tertiary">已启用</p>
-            <p className="text-lg font-heading font-bold text-text-primary">{enabledCount}</p>
-          </div>
-        </Card>
-        <Card className="p-4 flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-warning/10 flex items-center justify-center">
-            <TrendingUp className="h-4.5 w-4.5 text-warning" strokeWidth={1.8} />
-          </div>
-          <div>
-            <p className="text-xs text-text-tertiary">本页已用额度</p>
-            <p className="text-lg font-heading font-bold text-text-primary">${formatQuota(totalUsed)}</p>
-          </div>
-        </Card>
-      </div>
+        {/* Compact inline stats + search */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {/* Stats bar */}
+          <Card className="flex items-center divide-x divide-border shrink-0">
+            <div className="flex items-center gap-2 px-4 py-2.5">
+              <Key className="h-3.5 w-3.5 text-accent" strokeWidth={2} />
+              <span className="text-xs text-text-tertiary">总数</span>
+              <span className="text-sm font-heading font-bold text-text-primary tabular-nums">{total}</span>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2.5">
+              <CheckCircle2 className="h-3.5 w-3.5 text-success" strokeWidth={2} />
+              <span className="text-xs text-text-tertiary">启用</span>
+              <span className="text-sm font-heading font-bold text-text-primary tabular-nums">{enabledCount}</span>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2.5">
+              <TrendingUp className="h-3.5 w-3.5 text-warning" strokeWidth={2} />
+              <span className="text-xs text-text-tertiary">已用</span>
+              <span className="text-sm font-heading font-bold text-text-primary tabular-nums">${formatQuota(totalUsed)}</span>
+            </div>
+          </Card>
 
-      {/* Search */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary pointer-events-none" />
-          <Input
-            placeholder="搜索令牌名称..."
-            value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
-            onKeyDown={handleSearchKeyDown}
-            className="pl-9"
-          />
+          {/* Search */}
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary pointer-events-none" />
+            <Input
+              placeholder="搜索令牌名称..."
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              className="pl-9"
+            />
+          </div>
         </div>
-        <Button variant="outline" onClick={handleSearch}>搜索</Button>
       </div>
 
       {/* Token List */}
       {loading ? (
         <div className="space-y-3">
           {[0, 1, 2].map((i) => (
-            <Card key={i} className="p-4 h-24 animate-pulse bg-surface-hover/50" />
+            <Card key={i} className="overflow-hidden">
+              <div className="border-l-[3px] border-l-border">
+                <div className="p-4 space-y-3 animate-pulse">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-8 w-8 rounded-lg bg-surface-hover" />
+                    <div className="h-4 w-32 rounded bg-surface-hover" />
+                    <div className="ml-auto h-5 w-14 rounded-full bg-surface-hover" />
+                  </div>
+                  <div className="h-9 rounded-lg bg-surface-hover/60" />
+                  <div className="grid grid-cols-4 gap-4">
+                    {[0, 1, 2, 3].map((j) => (
+                      <div key={j} className="space-y-1.5">
+                        <div className="h-2.5 w-8 rounded bg-surface-hover" />
+                        <div className="h-3.5 w-16 rounded bg-surface-hover" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Card>
           ))}
         </div>
       ) : tokens.length === 0 ? (
-        <EmptyState
-          icon={Key}
-          title="还没有令牌"
-          description="创建一个 API 令牌来开始使用模型接口"
-          action={
-            <Button onClick={openCreateDialog} className="gap-1.5">
-              <Plus className="h-4 w-4" /> 创建令牌
-            </Button>
-          }
-        />
-      ) : (
-        <div className="space-y-3">
-          {tokens.map((token) => (
-            <TokenCard
-              key={token.id}
-              token={token}
-              copyingKeys={copyingKeys}
-              revealedKeys={revealedKeys}
-              onCopy={handleCopyKey}
-              onReveal={handleRevealKey}
-              onEdit={openEditDialog}
-              onToggle={handleToggleStatus}
-              onDelete={handleDelete}
-            />
-          ))}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-[400px] h-[300px] bg-gradient-to-b from-accent/[0.04] via-accent/[0.02] to-transparent rounded-full blur-3xl" />
+          </div>
+          <EmptyState
+            icon={Key}
+            title="还没有令牌"
+            description="创建一个 API 令牌来开始使用模型接口"
+            action={
+              <Button onClick={openCreateDialog} className="gap-1.5">
+                <Plus className="h-4 w-4" /> 创建令牌
+              </Button>
+            }
+          />
         </div>
+      ) : (
+        <motion.div
+          className="space-y-3"
+          variants={staggerContainer}
+          initial="hidden"
+          animate="show"
+          key={`${page}-${pageSize}`}
+        >
+          {tokens.map((token) => (
+            <motion.div key={token.id} variants={fadeUp}>
+              <TokenCard
+                token={token}
+                copyingKeys={copyingKeys}
+                revealedKeys={revealedKeys}
+                onCopy={handleCopyKey}
+                onReveal={handleRevealKey}
+                onEdit={openEditDialog}
+                onToggle={handleToggleStatus}
+                onDelete={handleDelete}
+              />
+            </motion.div>
+          ))}
+        </motion.div>
       )}
 
       {/* Pagination */}

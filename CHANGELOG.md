@@ -2,6 +2,20 @@
 
 All notable changes to Nox API will be documented in this file.
 
+## [0.1.20] - 2026-03-26
+
+### Improvements
+
+#### Token Management Page Redesign
+- **Compact stats bar**: Merged three separate stat cards into a single inline card with dividers, displayed alongside the search input in one row — saves vertical space and feels more cohesive.
+- **Left accent border on token cards**: Each card now has a 3px left border — Terra Cotta accent for enabled tokens, muted gray for disabled — giving instant visual status at a glance.
+- **Structured metadata grid**: Replaced the dot-separated text row with a 4-column grid (used / remaining / created / expires), each with its own label and value. Much easier to scan.
+- **Integrated key display**: The API key area is now a bordered container with reveal/copy buttons inlined on the right behind a subtle divider, reducing visual clutter.
+- **Disabled token dimming**: Disabled tokens render at reduced opacity (55%) so active tokens stand out naturally.
+- **Staggered entrance animation**: Token cards fade-in with a staggered upward motion (framer-motion), matching the dashboard page's animation style.
+- **Improved skeleton loading**: Loading placeholders now mimic the real card structure (left border + icon + text + grid) instead of plain gray rectangles.
+- **Empty state glow**: Added a subtle accent gradient backdrop behind the empty state for visual warmth.
+
 ## [0.1.19] - 2026-03-26
 
 ### Improvements
