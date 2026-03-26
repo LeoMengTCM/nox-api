@@ -257,8 +257,9 @@ func TestGetTokenKeyRequiresOwnershipAndReturnsFullKey(t *testing.T) {
 	if err := common.Unmarshal(authorizedResponse.Data, &keyData); err != nil {
 		t.Fatalf("failed to decode token key response: %v", err)
 	}
-	if keyData.Key != token.GetFullKey() {
-		t.Fatalf("expected full key %q, got %q", token.GetFullKey(), keyData.Key)
+	expectedKey := "sk-" + token.GetFullKey()
+	if keyData.Key != expectedKey {
+		t.Fatalf("expected full key %q, got %q", expectedKey, keyData.Key)
 	}
 
 	unauthorizedCtx, unauthorizedRecorder := newAuthenticatedContext(t, http.MethodPost, "/api/token/"+strconv.Itoa(token.Id)+"/key", nil, 2)

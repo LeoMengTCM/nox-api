@@ -172,15 +172,22 @@ func main() {
 	server.Use(middleware.I18n())
 	middleware.SetUpLogger(server)
 	// Initialize session store
+	var sessionCookieSecureOverride *bool
+	if raw := strings.TrimSpace(os.Getenv("SESSION_COOKIE_SECURE")); raw != "" {
+		secure := common.GetEnvOrDefaultBool("SESSION_COOKIE_SECURE", false)
+		sessionCookieSecureOverride = &secure
+	}
 	store := cookie.NewStore([]byte(common.SessionSecret))
-	store.Options(sessions.Options{
-		Path:     "/",
-		MaxAge:   2592000, // 30 days
-		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteStrictMode,
-	})
+	store.Options(getSessionOptions(false))
 	server.Use(sessions.Sessions("session", store))
+	server.Use(func(c *gin.Context) {
+		secure := shouldUseSecureSessionCookie(c.Request)
+		if sessionCookieSecureOverride != nil {
+			secure = *sessionCookieSecureOverride
+		}
+		sessions.Default(c).Options(getSessionOptions(secure))
+		c.Next()
+	})
 
 	InjectUmamiAnalytics()
 	InjectGoogleAnalytics()
@@ -240,6 +247,26 @@ func InjectGoogleAnalytics() {
 	analyticsInjectBuilder.WriteString("<!--Google Analytics LeoMengTCM-->\n")
 	analyticsInject := analyticsInjectBuilder.String()
 	indexPage = bytes.ReplaceAll(indexPage, []byte("<!--Google Analytics-->\n"), []byte(analyticsInject))
+}
+
+func getSessionOptions(secure bool) sessions.Options {
+	return sessions.Options{
+		Path:     "/",
+		MaxAge:   2592000, // 30 days
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteStrictMode,
+	}
+}
+
+func shouldUseSecureSessionCookie(r *http.Request) bool {
+	if r.TLS != nil {
+		return true
+	}
+	if strings.EqualFold(strings.TrimSpace(r.Header.Get("X-Forwarded-Proto")), "https") {
+		return true
+	}
+	return strings.Contains(strings.ToLower(r.Header.Get("Forwarded")), "proto=https")
 }
 
 func InitResources() error {

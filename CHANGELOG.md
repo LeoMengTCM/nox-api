@@ -2,6 +2,21 @@
 
 All notable changes to Nox API will be documented in this file.
 
+## [0.1.19] - 2026-03-26
+
+### Improvements
+
+#### Small Stability Pass
+- **New channels take effect immediately**: Refresh channel cache right after batch channel creation, so newly added channels no longer wait for the next sync cycle before they can be used.
+- **Quota dashboard flush is lighter under load**: Swap the in-memory usage map under lock and flush outside the critical section, while removing an extra pre-read query before upsert. This reduces lock hold time and unnecessary database work.
+- **Session cookie now follows request scheme**: Session cookies will use `Secure` automatically on HTTPS or common reverse-proxy HTTPS headers, and can still be overridden with `SESSION_COOKIE_SECURE` when needed.
+- **Frontend eslint no longer scans build output**: Ignore `web/dist` so lint output focuses on source files instead of generated assets.
+
+### Fixes
+
+#### Contract Alignment
+- **Token key contract aligned across code and tests**: Keep the existing `sk-` prefixed token behavior unchanged, while updating backend tests and frontend helper notes to match the actual API contract.
+
 ## [0.1.18] - 2026-03-24
 
 ### Features

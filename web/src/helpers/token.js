@@ -22,7 +22,7 @@ import { API } from './api';
 /**
  * 按需获取单个令牌的真实 key
  * @param {number|string} tokenId
- * @returns {Promise<string>} 返回不带 sk- 前缀的真实 token key
+ * @returns {Promise<string>} 返回带 sk- 前缀的真实 token key
  */
 export async function fetchTokenKey(tokenId) {
   const response = await API.post(`/api/token/${tokenId}/key`);
@@ -35,7 +35,7 @@ export async function fetchTokenKey(tokenId) {
 
 /**
  * 获取可用的 token keys
- * @returns {Promise<string[]>} 返回 active 状态的不带 sk- 前缀的真实 token key 数组
+ * @returns {Promise<string[]>} 返回 active 状态的带 sk- 前缀的真实 token key 数组
  */
 export async function fetchTokenKeys() {
   try {
