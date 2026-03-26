@@ -1,8 +1,22 @@
 import { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { Button, Input, Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui';
 import { API } from '../lib/api';
 import { showError, showSuccess, showInfo, renderQuota, getQuotaPerUnit, copy } from '../lib/utils';
-import { ArrowRight, Copy } from 'lucide-react';
+import { ArrowRight, Copy, Gift, Users } from 'lucide-react';
+
+// ---------------------------------------------------------------------------
+// Motion variants
+// ---------------------------------------------------------------------------
+const staggerContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.1 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.25, 0.1, 0.25, 1] } },
+};
 
 // ---- Helpers ----
 
@@ -32,94 +46,99 @@ function formatResetPeriod(period) {
   return map[period] || null;
 }
 
-// ---- Plan Card ----
+// ---- Plan Card (Anthropic editorial style) ----
 
 function PlanCard({ plan, featured, onBuy, buying }) {
   const price = plan.price_amount || 0;
 
   return (
     <div className={`
-      group relative flex flex-col
-      ${featured
-        ? 'border-2 border-accent/40 bg-accent/[0.03]'
-        : 'border border-border hover:border-border-strong'
-      }
-      rounded-xl transition-colors duration-200
+      group relative flex flex-col pt-6
+      border-t-2 transition-colors duration-200
+      ${featured ? 'border-t-accent' : 'border-t-border-strong hover:border-t-text-tertiary'}
     `}>
       {featured && (
-        <div className="absolute -top-3 left-6">
-          <span className="inline-block px-3 py-0.5 text-[11px] font-medium tracking-wide bg-accent text-text-inverse rounded-full">
+        <div className="absolute -top-3.5 left-0">
+          <span className="inline-block px-2.5 py-0.5 text-[10px] font-medium tracking-wide uppercase bg-accent text-text-inverse rounded-full">
             推荐
           </span>
         </div>
       )}
 
-      <div className="p-6 pb-0 flex-1">
+      <div className="flex-1 space-y-5">
         {/* Title */}
-        <p className="font-heading text-base font-semibold text-text-primary leading-snug">
-          {plan.title}
-        </p>
-        {plan.subtitle && (
-          <p className="text-[13px] text-text-tertiary mt-1 leading-relaxed">{plan.subtitle}</p>
-        )}
+        <div>
+          <p className="font-heading text-base font-medium text-text-primary leading-snug">
+            {plan.title}
+          </p>
+          {plan.subtitle && (
+            <p className="text-[13px] text-text-tertiary mt-1 leading-relaxed">{plan.subtitle}</p>
+          )}
+        </div>
 
         {/* Price */}
-        <div className="mt-5 flex items-baseline gap-0.5">
-          <span className="text-[13px] text-text-secondary font-medium -translate-y-3">$</span>
-          <span className="text-[40px] font-heading font-light text-text-primary leading-none tracking-tight">
+        <div className="flex items-baseline gap-0.5">
+          <span className="text-[13px] text-text-tertiary font-medium -translate-y-2.5">$</span>
+          <span className="text-[36px] font-heading font-light text-text-primary leading-none tracking-tight">
             {price < 1 ? price.toFixed(2) : price % 1 === 0 ? price.toFixed(0) : price.toFixed(2)}
           </span>
         </div>
 
-        {/* Details — minimal, separated by middle dots */}
-        <div className="mt-4 pt-4 border-t border-border/60">
-          <dl className="space-y-2.5 text-[13px]">
+        {/* Details */}
+        <dl className="space-y-2 text-[13px]">
+          <div className="flex justify-between">
+            <dt className="text-text-tertiary">额度</dt>
+            <dd className="text-text-primary font-medium">{formatQuota(plan)}</dd>
+          </div>
+          <div className="flex justify-between">
+            <dt className="text-text-tertiary">有效期</dt>
+            <dd className="text-text-primary font-medium">{formatDuration(plan)}</dd>
+          </div>
+          {plan.quota_reset_period && plan.quota_reset_period !== 'never' && (
             <div className="flex justify-between">
-              <dt className="text-text-tertiary">额度</dt>
-              <dd className="text-text-primary font-medium">{formatQuota(plan)}</dd>
+              <dt className="text-text-tertiary">额度重置</dt>
+              <dd className="text-text-primary font-medium">{formatResetPeriod(plan.quota_reset_period)}</dd>
             </div>
+          )}
+          {plan.upgrade_group && (
             <div className="flex justify-between">
-              <dt className="text-text-tertiary">有效期</dt>
-              <dd className="text-text-primary font-medium">{formatDuration(plan)}</dd>
+              <dt className="text-text-tertiary">升级分组</dt>
+              <dd className="text-text-primary font-medium">{plan.upgrade_group}</dd>
             </div>
-            {plan.quota_reset_period && plan.quota_reset_period !== 'never' && (
-              <div className="flex justify-between">
-                <dt className="text-text-tertiary">额度重置</dt>
-                <dd className="text-text-primary font-medium">{formatResetPeriod(plan.quota_reset_period)}</dd>
-              </div>
-            )}
-            {plan.upgrade_group && (
-              <div className="flex justify-between">
-                <dt className="text-text-tertiary">升级分组</dt>
-                <dd className="text-text-primary font-medium">{plan.upgrade_group}</dd>
-              </div>
-            )}
-            {plan.max_purchase_per_user > 0 && (
-              <div className="flex justify-between">
-                <dt className="text-text-tertiary">限购</dt>
-                <dd className="text-text-primary font-medium">{plan.max_purchase_per_user} 次</dd>
-              </div>
-            )}
-          </dl>
-        </div>
+          )}
+          {plan.max_purchase_per_user > 0 && (
+            <div className="flex justify-between">
+              <dt className="text-text-tertiary">限购</dt>
+              <dd className="text-text-primary font-medium">{plan.max_purchase_per_user} 次</dd>
+            </div>
+          )}
+        </dl>
       </div>
 
       {/* CTA */}
-      <div className="p-6 pt-5">
-        <button
-          onClick={() => onBuy(plan)}
-          disabled={buying}
-          className={`
-            w-full h-10 rounded-lg text-sm font-medium transition-all duration-150
-            disabled:opacity-50 disabled:pointer-events-none
-            ${featured
-              ? 'bg-accent text-text-inverse hover:bg-accent-hover active:bg-accent-active'
-              : 'bg-transparent text-text-primary border border-border-strong hover:bg-surface-hover active:bg-surface-active'
-            }
-          `}
-        >
-          {buying ? '处理中…' : '选择方案'}
-        </button>
+      <div className="pt-6 pb-2">
+        {featured ? (
+          <button
+            onClick={() => onBuy(plan)}
+            disabled={buying}
+            className="w-full h-10 rounded-lg text-sm font-medium transition-all duration-150
+              bg-accent text-text-inverse hover:bg-accent-hover active:bg-accent-active
+              disabled:opacity-50 disabled:pointer-events-none"
+          >
+            {buying ? '处理中…' : '选择方案'}
+          </button>
+        ) : (
+          <button
+            onClick={() => onBuy(plan)}
+            disabled={buying}
+            className="group/btn inline-flex items-center gap-1.5 text-sm font-medium text-text-secondary
+              hover:text-accent transition-colors duration-150
+              disabled:opacity-50 disabled:pointer-events-none"
+          >
+            {buying ? '处理中…' : '选择方案'}
+            {!buying && <ArrowRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover/btn:translate-x-0.5" />}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -216,12 +235,10 @@ export default function TopUpPage() {
     showSuccess('已复制');
   };
 
-  // Show confirmation dialog before buying
   const handleBuyPlan = (plan) => {
     setConfirmPlan(plan);
   };
 
-  // Actually purchase via balance deduction
   const handleConfirmBuy = async () => {
     const plan = confirmPlan;
     if (!plan?.id) return;
@@ -246,52 +263,62 @@ export default function TopUpPage() {
     return [...plans].sort((a, b) => (b.sort_order || 0) - (a.sort_order || 0));
   }, [plans]);
 
-  // The middle plan (by sort order) is "featured" when there are 3+
   const featuredIndex = sortedPlans.length >= 3
     ? Math.floor(sortedPlans.length / 2)
     : sortedPlans.length === 2 ? 1 : -1;
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12 space-y-20">
+    <motion.div
+      className="max-w-4xl mx-auto px-6 py-10 space-y-16"
+      variants={staggerContainer}
+      initial="hidden"
+      animate="show"
+    >
 
-      {/* ──── Balance ──── */}
-      <section>
-        <p className="text-[11px] font-medium tracking-[0.15em] uppercase text-text-tertiary mb-6">
-          账户余额
-        </p>
+      {/* ──── Page Header ──── */}
+      <motion.div variants={fadeUp}>
+        <h1 className="text-2xl font-heading font-bold text-text-primary">钱包</h1>
+        <p className="text-sm text-text-tertiary mt-0.5">管理余额、充值和邀请奖励</p>
+      </motion.div>
 
+      {/* ──── Balance Hero ──── */}
+      <motion.section variants={fadeUp}>
         {loading ? (
-          <div className="space-y-4">
-            <div className="h-14 w-48 animate-pulse rounded bg-border/30" />
-            <div className="flex gap-12">
-              <div className="h-5 w-24 animate-pulse rounded bg-border/20" />
-              <div className="h-5 w-24 animate-pulse rounded bg-border/20" />
+          <div className="border-l-[3px] border-l-border pl-8 space-y-4">
+            <div className="h-16 w-56 animate-pulse rounded bg-border/20" />
+            <div className="flex gap-8">
+              <div className="h-4 w-28 animate-pulse rounded bg-border/15" />
+              <div className="h-4 w-28 animate-pulse rounded bg-border/15" />
             </div>
           </div>
         ) : userInfo ? (
-          <>
+          <div className="border-l-[3px] border-l-accent pl-8">
+            <p className="text-[10px] font-medium tracking-[0.18em] uppercase text-text-tertiary mb-4">
+              账户余额
+            </p>
+
             <div className="text-[56px] sm:text-[72px] font-heading font-light text-text-primary leading-[0.9] tracking-tight">
               {renderQuota(userInfo.quota)}
             </div>
 
-            <div className="flex items-center gap-10 mt-6 text-[13px] text-text-tertiary">
+            <div className="flex items-center gap-8 mt-6 text-[13px] text-text-tertiary">
               <span>
-                已使用 <span className="text-text-secondary font-medium">{renderQuota(userInfo.used_quota)}</span>
+                已使用 <span className="text-text-secondary font-medium tabular-nums">{renderQuota(userInfo.used_quota)}</span>
               </span>
-              <span className="w-px h-3 bg-border" />
+              <span className="w-px h-3.5 bg-border-strong" />
               <span>
-                请求 <span className="text-text-secondary font-medium">{(userInfo.request_count || 0).toLocaleString()}</span> 次
+                请求 <span className="text-text-secondary font-medium tabular-nums">{(userInfo.request_count || 0).toLocaleString()}</span> 次
               </span>
             </div>
-          </>
+          </div>
         ) : null}
-      </section>
+      </motion.section>
 
       {/* ──── Plans ──── */}
       {!plansLoading && sortedPlans.length > 0 && (
-        <section>
-          <div className="border-t border-border pt-10 mb-8">
-            <h2 className="font-heading text-2xl font-semibold text-text-primary tracking-tight">
+        <motion.section variants={fadeUp}>
+          <div className="border-t border-border pt-10 mb-10">
+            <h2 className="font-heading text-xl font-semibold text-text-primary tracking-tight">
               充值方案
             </h2>
             <p className="text-[13px] text-text-tertiary mt-1.5 leading-relaxed max-w-md">
@@ -299,7 +326,7 @@ export default function TopUpPage() {
             </p>
           </div>
 
-          <div className={`grid gap-5 ${
+          <div className={`grid gap-8 ${
             sortedPlans.length === 1 ? 'grid-cols-1 max-w-xs'
               : sortedPlans.length === 2 ? 'grid-cols-1 sm:grid-cols-2 max-w-2xl'
               : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
@@ -314,17 +341,20 @@ export default function TopUpPage() {
               />
             ))}
           </div>
-        </section>
+        </motion.section>
       )}
 
       {/* ──── Redeem + Affiliate ──── */}
-      <section className="border-t border-border pt-10">
+      <motion.section variants={fadeUp} className="border-t border-border pt-10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
 
           {/* Redeem */}
           <div>
-            <h3 className="font-heading text-base font-semibold text-text-primary mb-1">兑换码</h3>
-            <p className="text-[13px] text-text-tertiary mb-5">输入兑换码为账户充值额度</p>
+            <div className="flex items-center gap-2.5 mb-1">
+              <Gift className="h-4 w-4 text-accent" strokeWidth={1.8} />
+              <h3 className="font-heading text-base font-semibold text-text-primary">兑换码</h3>
+            </div>
+            <p className="text-[13px] text-text-tertiary mb-5 pl-[26px]">输入兑换码为账户充值额度</p>
             <div className="flex gap-2">
               <Input
                 value={redemptionCode}
@@ -342,9 +372,12 @@ export default function TopUpPage() {
 
           {/* Affiliate */}
           <div>
-            <h3 className="font-heading text-base font-semibold text-text-primary mb-1">邀请奖励</h3>
-            <p className="text-[13px] text-text-tertiary mb-5">
-              已邀请 <span className="text-text-secondary font-medium">{affCount}</span> 人，累计奖励 <span className="text-text-secondary font-medium">{renderQuota(affQuota)}</span>
+            <div className="flex items-center gap-2.5 mb-1">
+              <Users className="h-4 w-4 text-accent" strokeWidth={1.8} />
+              <h3 className="font-heading text-base font-semibold text-text-primary">邀请奖励</h3>
+            </div>
+            <p className="text-[13px] text-text-tertiary mb-5 pl-[26px]">
+              已邀请 <span className="text-text-secondary font-medium tabular-nums">{affCount}</span> 人，累计奖励 <span className="text-text-secondary font-medium">{renderQuota(affQuota)}</span>
             </p>
             {affLink && (
               <div className="flex gap-2">
@@ -357,7 +390,7 @@ export default function TopUpPage() {
           </div>
 
         </div>
-      </section>
+      </motion.section>
 
       {/* ──── Purchase Confirmation ──── */}
       <Dialog open={!!confirmPlan} onOpenChange={(open) => !open && setConfirmPlan(null)}>
@@ -399,6 +432,6 @@ export default function TopUpPage() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }

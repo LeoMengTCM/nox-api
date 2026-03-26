@@ -2,6 +2,18 @@
 
 All notable changes to Nox API will be documented in this file.
 
+## [0.1.21] - 2026-03-26
+
+### Improvements
+
+#### Wallet Page Redesign (Anthropic Editorial Style)
+- **Page header**: Added unified serif heading "钱包" with subtitle, consistent with the token management page.
+- **Balance hero with accent bar**: Left 3px Terra Cotta vertical line frames the balance display like an editorial pull-quote, with an uppercase tracking label above.
+- **Plan cards — flat editorial style**: Replaced rounded bordered cards with top `border-t-2` dividers (accent for featured, muted for others). Transparent backgrounds, no shadows. Non-featured CTA changed from bordered button to minimal text-link with arrow.
+- **Staggered entrance animation**: Each section (header → balance → plans → utilities) fades in sequentially using framer-motion, matching the dashboard and token page motion patterns.
+- **Utility section polish**: Redeem and affiliate sections now have icon decorations (Gift/Users) with accent color, aligned descriptions.
+- **Skeleton loading**: Balance skeleton now mirrors the accent bar layout structure.
+
 ## [0.1.20] - 2026-03-26
 
 ### Improvements
