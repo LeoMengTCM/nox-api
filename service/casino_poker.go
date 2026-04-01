@@ -22,6 +22,9 @@ type PokerState struct {
 	ActivePlayer   int           `json:"active_player"`
 	DealerIndex    int           `json:"dealer_index"`
 	LastRaiser     int           `json:"last_raiser"`
+	BigBlind       int           `json:"big_blind"`
+	LastRaiseSize  int           `json:"last_raise_size"`
+	WinnerIndices  []int         `json:"winner_indices,omitempty"`
 }
 
 // PokerPlayer represents a single player in the poker game
@@ -35,6 +38,7 @@ type PokerPlayer struct {
 	IsAI     bool   `json:"is_ai"`
 	Style    string `json:"style"` // aggressive, conservative, balanced
 	IsAllIn  bool   `json:"is_all_in"`
+	HasActed bool   `json:"has_acted"`
 }
 
 // Hand ranking constants
@@ -216,6 +220,8 @@ func DealPoker(userId int, betAmount int) (map[string]interface{}, error) {
 		ActivePlayer:   3, // UTG = player after big blind (index 3)
 		DealerIndex:    dealerIdx,
 		LastRaiser:     bigBlindIdx,
+		BigBlind:       bigBlind,
+		LastRaiseSize:  bigBlind,
 	}
 
 	// 创建游戏记录
@@ -268,6 +274,20 @@ func PokerAction(userId int, gameId int, action string, raiseAmount int) (map[st
 		return nil, errors.New("读取游戏状态失败")
 	}
 
+	// Migrate old game state without BigBlind
+	if state.BigBlind == 0 {
+		state.BigBlind = record.BetAmount / 10
+		if state.BigBlind < 1 {
+			state.BigBlind = 1
+		}
+		state.LastRaiseSize = state.BigBlind
+		for i, p := range state.Players {
+			if !p.Folded && !p.IsAllIn && p.Bet >= state.CurrentBet && i != state.ActivePlayer {
+				state.Players[i].HasActed = true
+			}
+		}
+	}
+
 	if state.Phase == "complete" || state.Phase == "showdown" {
 		return nil, errors.New("游戏已结束")
 	}
@@ -285,18 +305,22 @@ func PokerAction(userId int, gameId int, action string, raiseAmount int) (map[st
 	switch action {
 	case "fold":
 		player.Folded = true
+		player.HasActed = true
 	case "call":
 		callAmount := state.CurrentBet - player.Bet
 		if callAmount > player.Stack {
 			callAmount = player.Stack
-			player.IsAllIn = true
 		}
 		player.Stack -= callAmount
 		player.Bet += callAmount
 		player.TotalBet += callAmount
 		state.Pot += callAmount
+		player.HasActed = true
+		if player.Stack == 0 {
+			player.IsAllIn = true
+		}
 	case "raise":
-		minRaise := state.CurrentBet * 2
+		minRaise := state.CurrentBet + state.LastRaiseSize
 		if raiseAmount < minRaise {
 			return nil, fmt.Errorf("加注金额必须至少为 %d", minRaise)
 		}
@@ -304,16 +328,20 @@ func PokerAction(userId int, gameId int, action string, raiseAmount int) (map[st
 			return nil, errors.New("加注金额超过筹码")
 		}
 		needed := raiseAmount - player.Bet
-		if needed > player.Stack {
-			needed = player.Stack
-			player.IsAllIn = true
-		}
 		player.Stack -= needed
 		player.Bet += needed
 		player.TotalBet += needed
 		state.Pot += needed
+		state.LastRaiseSize = player.Bet - state.CurrentBet
 		state.CurrentBet = player.Bet
 		state.LastRaiser = 0
+		player.HasActed = true
+		for i := 1; i < len(state.Players); i++ {
+			state.Players[i].HasActed = false
+		}
+		if player.Stack == 0 {
+			player.IsAllIn = true
+		}
 	case "allin":
 		allInAmount := player.Stack
 		player.Bet += allInAmount
@@ -321,9 +349,14 @@ func PokerAction(userId int, gameId int, action string, raiseAmount int) (map[st
 		state.Pot += allInAmount
 		player.Stack = 0
 		player.IsAllIn = true
+		player.HasActed = true
 		if player.Bet > state.CurrentBet {
+			state.LastRaiseSize = player.Bet - state.CurrentBet
 			state.CurrentBet = player.Bet
 			state.LastRaiser = 0
+			for i := 1; i < len(state.Players); i++ {
+				state.Players[i].HasActed = false
+			}
 		}
 	default:
 		return nil, errors.New("无效的操作，可选: fold, call, raise, allin")
@@ -356,12 +389,16 @@ func PokerAction(userId int, gameId int, action string, raiseAmount int) (map[st
 
 // pokerRunAITurns runs AI decisions until it's the user's turn or the round ends
 func pokerRunAITurns(state *PokerState) {
-	maxIterations := 20 // safety valve
+	maxIterations := 50 // safety valve
 	for i := 0; i < maxIterations; i++ {
-		if state.Phase == "complete" || state.Phase == "showdown" {
-			break
-		}
+		// Check round/hand completion before next action
 		if activePlayers(state) <= 1 {
+			finishPokerHand(state)
+			return
+		}
+		pokerCheckRoundComplete(state)
+
+		if state.Phase == "complete" || state.Phase == "showdown" {
 			break
 		}
 
@@ -384,15 +421,13 @@ func pokerRunAITurns(state *PokerState) {
 
 		// Move to next player
 		state.ActivePlayer = nextActivePlayer(state, ap)
-
-		// Check if all active players have matched bets
-		pokerCheckRoundComplete(state)
 	}
 }
 
 // applyPokerAction applies an action for a given player index
 func applyPokerAction(state *PokerState, playerIdx int, action string, amount int) {
 	player := &state.Players[playerIdx]
+	player.HasActed = true
 
 	switch action {
 	case "fold":
@@ -401,24 +436,34 @@ func applyPokerAction(state *PokerState, playerIdx int, action string, amount in
 		callAmount := state.CurrentBet - player.Bet
 		if callAmount > player.Stack {
 			callAmount = player.Stack
-			player.IsAllIn = true
 		}
 		player.Stack -= callAmount
 		player.Bet += callAmount
 		player.TotalBet += callAmount
 		state.Pot += callAmount
+		if player.Stack == 0 {
+			player.IsAllIn = true
+		}
 	case "raise":
 		needed := amount - player.Bet
 		if needed > player.Stack {
 			needed = player.Stack
-			player.IsAllIn = true
 		}
 		player.Stack -= needed
 		player.Bet += needed
 		player.TotalBet += needed
 		state.Pot += needed
+		state.LastRaiseSize = player.Bet - state.CurrentBet
 		state.CurrentBet = player.Bet
 		state.LastRaiser = playerIdx
+		for i := range state.Players {
+			if i != playerIdx {
+				state.Players[i].HasActed = false
+			}
+		}
+		if player.Stack == 0 {
+			player.IsAllIn = true
+		}
 	case "allin":
 		allIn := player.Stack
 		player.Bet += allIn
@@ -427,8 +472,14 @@ func applyPokerAction(state *PokerState, playerIdx int, action string, amount in
 		player.Stack = 0
 		player.IsAllIn = true
 		if player.Bet > state.CurrentBet {
+			state.LastRaiseSize = player.Bet - state.CurrentBet
 			state.CurrentBet = player.Bet
 			state.LastRaiser = playerIdx
+			for i := range state.Players {
+				if i != playerIdx {
+					state.Players[i].HasActed = false
+				}
+			}
 		}
 	}
 }
@@ -440,58 +491,29 @@ func pokerCheckRoundComplete(state *PokerState) {
 		return
 	}
 
-	// Check if all non-folded, non-all-in players have matched the current bet
-	allMatched := true
-	activeNonAllIn := 0
-	for i, p := range state.Players {
-		if p.Folded {
+	// Round is complete when every non-folded, non-all-in player has acted
+	// and matched the current bet
+	for _, p := range state.Players {
+		if p.Folded || p.IsAllIn {
 			continue
 		}
-		if p.IsAllIn {
-			continue
-		}
-		activeNonAllIn++
-		if p.Bet < state.CurrentBet {
-			allMatched = false
-			break
-		}
-		// LastRaiser hasn't had everyone else respond yet
-		if i == state.LastRaiser {
-			continue
-		}
-	}
-
-	// If only one non-all-in player remains and they've matched, or all have matched
-	if !allMatched {
-		return
-	}
-
-	// Check if we've gone around: the active player is back to the last raiser
-	// or all players have acted
-	ap := state.ActivePlayer
-	if activeNonAllIn > 0 && ap != state.LastRaiser {
-		// Still more players to act
-		p := state.Players[ap]
-		if !p.Folded && !p.IsAllIn && p.Bet < state.CurrentBet {
-			return
-		}
-		// If the active player has matched but isn't the last raiser, keep going
-		if !p.Folded && !p.IsAllIn && ap != state.LastRaiser {
+		if !p.HasActed || p.Bet < state.CurrentBet {
 			return
 		}
 	}
 
-	// Advance phase
 	advancePokerPhase(state)
 }
 
 // advancePokerPhase moves to the next phase and deals community cards
 func advancePokerPhase(state *PokerState) {
-	// Reset bets for new round
+	// Reset bets, HasActed, and LastRaiseSize for new round
 	for i := range state.Players {
 		state.Players[i].Bet = 0
+		state.Players[i].HasActed = false
 	}
 	state.CurrentBet = 0
+	state.LastRaiseSize = state.BigBlind
 
 	switch state.Phase {
 	case "preflop":
@@ -525,18 +547,15 @@ func advancePokerPhase(state *PokerState) {
 	state.LastRaiser = -1
 	firstPlayer := nextActivePlayer(state, state.DealerIndex)
 	state.ActivePlayer = firstPlayer
-	state.LastRaiser = firstPlayer // acts as "everyone must act once"
 
-	// If all remaining players are all-in, run through remaining cards
-	allIn := true
+	// If <= 1 non-all-in players remain, no more betting possible
+	activeNonAllIn := 0
 	for _, p := range state.Players {
 		if !p.Folded && !p.IsAllIn {
-			allIn = false
-			break
+			activeNonAllIn++
 		}
 	}
-	if allIn {
-		// Deal remaining community cards and go to showdown
+	if activeNonAllIn <= 1 {
 		pokerDealRemaining(state)
 		finishPokerHand(state)
 	}
@@ -550,7 +569,7 @@ func pokerDealRemaining(state *PokerState) {
 	}
 }
 
-// finishPokerHand resolves the hand
+// finishPokerHand resolves the hand with proper side pot handling
 func finishPokerHand(state *PokerState) {
 	state.Phase = "complete"
 
@@ -560,6 +579,7 @@ func finishPokerHand(state *PokerState) {
 			if !p.Folded {
 				state.Players[i].Stack += state.Pot
 				state.Pot = 0
+				state.WinnerIndices = []int{i}
 				break
 			}
 		}
@@ -570,13 +590,14 @@ func finishPokerHand(state *PokerState) {
 	pokerDealRemaining(state)
 
 	// Evaluate all active players' hands
-	type handResult struct {
+	type playerHand struct {
 		index    int
+		totalBet int
 		score    int
 		kickers  []int
 	}
 
-	var results []handResult
+	var hands []playerHand
 	for i, p := range state.Players {
 		if p.Folded {
 			continue
@@ -584,43 +605,97 @@ func finishPokerHand(state *PokerState) {
 		allCards := append([]Card{}, p.Cards...)
 		allCards = append(allCards, state.CommunityCards...)
 		score, kickers := evaluatePokerHand(allCards)
-		results = append(results, handResult{i, score, kickers})
+		hands = append(hands, playerHand{i, p.TotalBet, score, kickers})
 	}
 
-	// Sort by score descending, then kickers
-	sort.Slice(results, func(a, b int) bool {
-		if results[a].score != results[b].score {
-			return results[a].score > results[b].score
-		}
-		for k := 0; k < len(results[a].kickers) && k < len(results[b].kickers); k++ {
-			if results[a].kickers[k] != results[b].kickers[k] {
-				return results[a].kickers[k] > results[b].kickers[k]
-			}
-		}
-		return false
+	// Sort by TotalBet ascending for side pot calculation
+	sort.Slice(hands, func(a, b int) bool {
+		return hands[a].totalBet < hands[b].totalBet
 	})
 
-	// Find winner(s) — could be a tie
-	winners := []int{results[0].index}
-	for i := 1; i < len(results); i++ {
-		if results[i].score == results[0].score && equalKickers(results[i].kickers, results[0].kickers) {
-			winners = append(winners, results[i].index)
-		} else {
-			break
+	// Calculate and award side pots
+	winnerSet := map[int]bool{}
+	processedBet := 0
+	totalPot := state.Pot
+	awarded := 0
+
+	for h := 0; h < len(hands); h++ {
+		if hands[h].totalBet <= processedBet {
+			continue
 		}
+
+		levelBet := hands[h].totalBet - processedBet
+
+		// Calculate pot for this level from ALL players (including folded)
+		potForLevel := 0
+		for _, p := range state.Players {
+			contribution := p.TotalBet - processedBet
+			if contribution > levelBet {
+				contribution = levelBet
+			}
+			if contribution > 0 {
+				potForLevel += contribution
+			}
+		}
+
+		// Find best hand among eligible players (TotalBet >= this level)
+		var eligible []playerHand
+		for j := h; j < len(hands); j++ {
+			eligible = append(eligible, hands[j])
+		}
+
+		sort.Slice(eligible, func(a, b int) bool {
+			if eligible[a].score != eligible[b].score {
+				return eligible[a].score > eligible[b].score
+			}
+			for k := 0; k < len(eligible[a].kickers) && k < len(eligible[b].kickers); k++ {
+				if eligible[a].kickers[k] != eligible[b].kickers[k] {
+					return eligible[a].kickers[k] > eligible[b].kickers[k]
+				}
+			}
+			return false
+		})
+
+		winners := []int{eligible[0].index}
+		for j := 1; j < len(eligible); j++ {
+			if eligible[j].score == eligible[0].score && equalKickers(eligible[j].kickers, eligible[0].kickers) {
+				winners = append(winners, eligible[j].index)
+			} else {
+				break
+			}
+		}
+
+		share := potForLevel / len(winners)
+		remainder := potForLevel % len(winners)
+		for i, wIdx := range winners {
+			bonus := share
+			if i == 0 {
+				bonus += remainder
+			}
+			state.Players[wIdx].Stack += bonus
+			awarded += bonus
+			winnerSet[wIdx] = true
+		}
+
+		processedBet = hands[h].totalBet
 	}
 
-	// Split pot among winners
-	share := state.Pot / len(winners)
-	remainder := state.Pot % len(winners)
-	for i, wIdx := range winners {
-		bonus := share
-		if i == 0 {
-			bonus += remainder
+	// Award any rounding remainder
+	if leftover := totalPot - awarded; leftover > 0 {
+		for i, p := range state.Players {
+			if !p.Folded {
+				state.Players[i].Stack += leftover
+				winnerSet[i] = true
+				break
+			}
 		}
-		state.Players[wIdx].Stack += bonus
 	}
 	state.Pot = 0
+
+	state.WinnerIndices = make([]int, 0, len(winnerSet))
+	for idx := range winnerSet {
+		state.WinnerIndices = append(state.WinnerIndices, idx)
+	}
 }
 
 // equalKickers checks if two kicker slices are equal
@@ -1094,14 +1169,16 @@ func buildPokerResponse(record *model.CasinoGameRecord, state *PokerState) map[s
 		}
 
 		// 添加赢家名称
-		for _, p := range state.Players {
-			if !p.Folded && p.Stack > 0 {
-				response["winner"] = p.Name
-				break
-			}
+		if len(state.WinnerIndices) > 0 {
+			response["winner"] = state.Players[state.WinnerIndices[0]].Name
 		}
 
 		response["message"] = pokerResultMessage(record.Result, record.Payout, record.BetAmount)
+	}
+
+	if state.Phase != "complete" {
+		minRaise := state.CurrentBet + state.LastRaiseSize
+		response["min_raise"] = minRaise
 	}
 
 	return response

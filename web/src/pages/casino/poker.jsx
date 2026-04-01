@@ -67,6 +67,7 @@ export default function CasinoPoker() {
   const [raiseAmount, setRaiseAmount] = useState(0);
   const [actionLoading, setActionLoading] = useState(false);
   const [aiActionText, setAiActionText] = useState(null);
+  const [minRaise, setMinRaise] = useState(0);
 
   // History
   const [history, setHistory] = useState([]);
@@ -115,6 +116,7 @@ export default function CasinoPoker() {
     if (d.current_bet != null) setCurrentBet(d.current_bet);
     if (d.phase) setPhase(d.phase);
     if (d.active_player != null) setActivePlayer(d.active_player);
+    if (d.min_raise != null) setMinRaise(d.min_raise);
 
     if (d.status === 'complete' || d.phase === 'complete') {
       setStatus('complete');
@@ -190,6 +192,7 @@ export default function CasinoPoker() {
     setNetProfit(null);
     setResult(null);
     setRaiseAmount(0);
+    setMinRaise(0);
     setAiActionText(null);
     refreshBalance();
   };
@@ -481,8 +484,8 @@ export default function CasinoPoker() {
                 {canRaise && (
                   <Button
                     className="flex-1 bg-[#C5A55A]/80 hover:bg-[#C5A55A] text-[#2D1B4E]"
-                    onClick={() => doAction('raise', raiseAmount || currentBet * 2)}
-                    disabled={actionLoading || !raiseAmount}
+                    onClick={() => doAction('raise', raiseAmount || minRaise || currentBet * 2)}
+                    disabled={actionLoading}
                   >
                     {t('\u52A0\u6CE8')}
                   </Button>
@@ -504,7 +507,7 @@ export default function CasinoPoker() {
                     type="number"
                     value={raiseAmount || ''}
                     onChange={(e) => setRaiseAmount(parseInt(e.target.value) || 0)}
-                    placeholder={renderQuota(currentBet * 2)}
+                    placeholder={minRaise ? renderQuota(minRaise) : renderQuota(currentBet * 2)}
                     className="flex-1"
                     disabled={actionLoading}
                   />
@@ -513,25 +516,25 @@ export default function CasinoPoker() {
                       variant="secondary"
                       size="sm"
                       className="text-xs px-2"
-                      onClick={() => setRaiseAmount(currentBet * 2)}
+                      onClick={() => setRaiseAmount(minRaise || currentBet * 2)}
                       disabled={actionLoading}
                     >
-                      2x
+                      min
                     </Button>
                     <Button
                       variant="secondary"
                       size="sm"
                       className="text-xs px-2"
-                      onClick={() => setRaiseAmount(currentBet * 3)}
+                      onClick={() => setRaiseAmount(Math.max(minRaise, Math.floor(pot / 2)))}
                       disabled={actionLoading}
                     >
-                      3x
+                      ½{t('\u5E95\u6C60')}
                     </Button>
                     <Button
                       variant="secondary"
                       size="sm"
                       className="text-xs px-2"
-                      onClick={() => setRaiseAmount(pot)}
+                      onClick={() => setRaiseAmount(Math.max(minRaise, pot))}
                       disabled={actionLoading}
                     >
                       {t('\u5E95\u6C60')}
